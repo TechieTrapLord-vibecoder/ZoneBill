@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ZoneBill</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/ZoneBill_Lloren.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/tailwind.output.css" asp-append-version="true" />
+</head>
+<body>
+    @{
+        var isMainAdmin = User.IsInRole("MainAdmin");
+        var isManager = User.IsInRole("Manager");
+        var isCashier = User.IsInRole("Cashier");
+        var isStaff = User.IsInRole("Staff");
+        var canUsePos = isMainAdmin || isManager || isCashier;
+        var isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
+
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString()?.ToLower() ?? "";
+        var currentAction     = ViewContext.RouteData.Values["action"]?.ToString()?.ToLower() ?? "";
+
+        Func<string, string, string> Nav = (ctrl, action) =>
+            currentController == ctrl.ToLower() && currentAction == action.ToLower() ? "active" : "";
+        Func<string, string> NavCtrl = (ctrl) =>
+            currentController == ctrl.ToLower() ? "active" : "";
+    }
+
+    <!-- Mobile top bar -->
+    <div class="zb-topbar d-flex d-md-none align-items-center">
+        <button class="btn btn-link zb-topbar-toggle me-2" type="button"
+                data-bs-toggle="offcanvas" data-bs-target="#zbSidebar" aria-controls="zbSidebar">
+            <i class="bi bi-list fs-3" style="color:#06B6D4;"></i>
+        </button>
+        <span class="fw-bold fs-5" style="color:#06B6D4;">ZoneBill</span>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="offcanvas-md offcanvas-start zb-sidebar" tabindex="-1" id="zbSidebar">
+        <div class="offcanvas-header d-md-none border-bottom" style="border-color:#1E293B!important;">
+            <h5 class="offcanvas-title" style="color:#06B6D4;">ZoneBill</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#zbSidebar"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column p-0 h-100">
+
+            <!-- Brand (desktop only) -->
+            <div class="zb-brand d-none d-md-flex align-items-center gap-2">
+                <a asp-controller="Home" asp-action="Index" class="d-flex align-items-center gap-2 text-decoration-none">
+                    <img src="~/images/my-logo.png" alt="ZoneBill" class="zb-logo-img" />
+                    <span class="zb-brand-text">ZoneBill</span>
+                </a>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="zb-nav flex-grow-1">
+                @if (!isAuthenticated)
+                {
+                    <a class="zb-nav-link @Nav("Home","Privacy")" asp-controller="Home" asp-action="Privacy">
+                        <i class="bi bi-shield-check"></i> Privacy
+                    </a>
+                }
+
+                @if (User.IsInRole("SuperAdmin"))
+                {
+                    <div class="zb-nav-label">Global SaaS Admin</div>
+                    <a class="zb-nav-link @Nav("Home","SuperAdminDashboard")" asp-controller="Home" asp-action="SuperAdminDashboard"><i class="bi bi-speedometer2"></i> SaaS Dashboard</a>
+                    <a class="zb-nav-link @NavCtrl("SubscriptionInvoices")" asp-controller="SubscriptionInvoices" asp-action="Index"><i class="bi bi-receipt"></i> Subscription Invoices</a>
+                    <a class="zb-nav-link @NavCtrl("SubscriptionPlans")" asp-controller="SubscriptionPlans" asp-action="Index"><i class="bi bi-card-list"></i> Subscription Plans</a>
+                    <a class="zb-nav-link @NavCtrl("Businesses")" asp-controller="Businesses" asp-action="Index"><i class="bi bi-building"></i> Manage Businesses</a>
+                    <a class="zb-nav-link @NavCtrl("Users")" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i> System Users</a>
+                }
+
+                @if (isMainAdmin || isManager)
+                {
+                    <div class="zb-nav-label">Management</div>
+                    @if (isMainAdmin)
+                    {
+                        <a class="zb-nav-link @Nav("Home","Dashboard")" asp-controller="Home" asp-action="Dashboard"><i class="bi bi-bar-chart-line"></i> Analytics Dashboard</a>
+                    }
+                    <a class="zb-nav-link @NavCtrl("Reports")" asp-controller="Reports" asp-action="Index"><i class="bi bi-file-earmark-bar-graph"></i> Financial Reports</a>
+                    @if (isMainAdmin)
+                    {
+                        <a class="zb-nav-link @NavCtrl("Billing")" asp-controller="Billing" asp-action="Index"><i class="bi bi-credit-card"></i> Billing &amp; Plan</a>
+                    }
+
+                    <div class="zb-nav-label">Venue Setup</div>
+                    <a class="zb-nav-link @NavCtrl("Spaces")" asp-controller="Spaces" asp-action="Index"><i class="bi bi-grid-3x3-gap"></i> Spaces</a>
+                    <a class="zb-nav-link @NavCtrl("MenuItems")" asp-controller="MenuItems" asp-action="Index"><i class="bi bi-cup-straw"></i> Menu Items</a>
+                    <a class="zb-nav-link @NavCtrl("Inventory")" asp-controller="Inventory" asp-action="Index"><i class="bi bi-boxes"></i> Inventory</a>
+                    @if (isMainAdmin)
+                    {
+                        <a class="zb-nav-link @NavCtrl("Users")" asp-controller="Users" asp-action="Index"><i class="bi bi-person-badge"></i> Staff Members</a>
+                    }
+
+                    @if (isMainAdmin)
+                    {
+                        <div class="zb-nav-label">Accounting</div>
+                        <a class="zb-nav-link @NavCtrl("ChartOfAccounts")" asp-controller="ChartOfAccounts" asp-action="Index"><i class="bi bi-journal-text"></i> Chart of Accounts</a>
+                        <a class="zb-nav-link @NavCtrl("JournalEntrys")" asp-controller="JournalEntrys" asp-action="Index"><i class="bi bi-journal-bookmark"></i> Journal Entries</a>
+                        <a class="zb-nav-link @NavCtrl("JournalEntryLines")" asp-controller="JournalEntryLines" asp-action="Index"><i class="bi bi-list-columns"></i> Journal Lines</a>
+                    }
+                }
+
+                @if (canUsePos || isStaff)
+                {
+                    <div class="zb-nav-label">Front Desk / POS</div>
+                    @if (canUsePos)
+                    {
+                        <a class="zb-nav-link @NavCtrl("Shifts")" asp-controller="Shifts" asp-action="Index"><i class="bi bi-shop"></i> Shift &amp; Cash Drawer</a>
+                        <a class="zb-nav-link @NavCtrl("POS")" asp-controller="POS" asp-action="Index"><i class="bi bi-display"></i> POS Dashboard</a>
+                    }
+                    <a class="zb-nav-link @NavCtrl("Bookings")" asp-controller="Bookings" asp-action="Index"><i class="bi bi-calendar-check"></i> Active Bookings</a>
+                    <a class="zb-nav-link @NavCtrl("Customers")" asp-controller="Customers" asp-action="Index"><i class="bi bi-person-lines-fill"></i> Customers</a>
+                    @if (canUsePos)
+                    {
+                        <a class="zb-nav-link @NavCtrl("Orders")" asp-controller="Orders" asp-action="Index"><i class="bi bi-bag"></i> Orders</a>
+                        <a class="zb-nav-link @NavCtrl("Invoices")" asp-controller="Invoices" asp-action="Index"><i class="bi bi-receipt-cutoff"></i> Invoices</a>
+                        <a class="zb-nav-link @NavCtrl("Payments")" asp-controller="Payments" asp-action="Index"><i class="bi bi-cash-coin"></i> Payments</a>
+                        <a class="zb-nav-link @NavCtrl("Adjustments")" asp-controller="Adjustments" asp-action="Index"><i class="bi bi-sliders"></i> Adjustments</a>
+                    }
+                }
+            </nav>
+
+            <!-- Sidebar footer: user info + logout -->
+            <div class="zb-sidebar-footer">
+                @if (isAuthenticated)
+                {
+                    var userName = User.Identity!.Name;
+                    var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+                    <div class="d-flex align-items-center justify-content-between mb-1">
+                        <div class="zb-user-info mb-0">
+                            <i class="bi bi-person-circle me-1"></i>
+                            <div>
+                                <div class="small fw-semibold text-truncate" style="max-width:150px;">@userName</div>
+                                <div class="zb-role-tag">@userRole</div>
+                            </div>
+                        </div>
+                        <a asp-controller="Home" asp-action="Dashboard" class="zb-notif-bell" title="Notifications" id="zbNotifBell">
+                            <i class="bi bi-bell" style="font-size:1.1rem;color:var(--zb-text-muted);"></i>
+                            <span class="zb-notif-badge" id="zbNotifCount" style="display:none;">0</span>
+                        </a>
+                    </div>
+                    <a class="zb-nav-link" asp-controller="Account" asp-action="ChangePassword">
+                        <i class="bi bi-key"></i> Change Password
+                    </a>
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="zb-logout-btn">
+                            <i class="bi bi-box-arrow-left"></i> Logout
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <a class="zb-nav-link zb-login-link" asp-controller="Account" asp-action="Login">
+                        <i class="bi bi-box-arrow-in-right"></i> Login Securely
+                    </a>
+                }
+                <div class="zb-copy-text">&copy; 2026 ZoneBill</div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="zb-main">
+        <main class="zb-content">
+            @RenderBody()
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+
+    @if (isAuthenticated && !User.IsInRole("SuperAdmin"))
+    {
+        <script>
+            (function () {
+                function refreshBadge() {
+                    fetch('@Url.Action("GetNotificationCount", "Home")')
+                        .then(r => r.json())
+                        .then(data => {
+                            var el = document.getElementById('zbNotifCount');
+                            if (!el) return;
+                            if (data.count > 0) {
+                                el.textContent = data.count > 99 ? '99+' : data.count;
+                                el.style.display = '';
+                            } else {
+                                el.style.display = 'none';
+                            }
+                        })
+                        .catch(() => { });
+                }
+                refreshBadge();
+                setInterval(refreshBadge, 30000);
+            })();
+        </script>
+    }
+</body>
+</html>

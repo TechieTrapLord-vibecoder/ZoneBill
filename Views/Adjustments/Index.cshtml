@@ -1,0 +1,42 @@
+@model IEnumerable<ZoneBill_Lloren.Models.Adjustment>
+
+@{
+    ViewData["Title"] = "Adjustments";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-sliders me-2" style="color:var(--zb-secondary);"></i>Adjustments</h4>
+    <a asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;"><i class="bi bi-plus-lg me-1"></i>Create New</a>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>@Html.DisplayNameFor(model => model.Invoice)</th>
+                    <th>@Html.DisplayNameFor(model => model.AdjustmentType)</th>
+                    <th>@Html.DisplayNameFor(model => model.Amount)</th>
+                    <th>@Html.DisplayNameFor(model => model.Reason)</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@Html.DisplayFor(modelItem => item.Invoice.PaymentStatus)</td>
+                        <td>@Html.DisplayFor(modelItem => item.AdjustmentType)</td>
+                        <td>@Html.DisplayFor(modelItem => item.Amount)</td>
+                        <td>@Html.DisplayFor(modelItem => item.Reason)</td>
+                        <td class="text-end">
+                            <a asp-action="Edit" asp-route-id="@item.AdjustmentId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil-square"></i></a>
+                            <a asp-action="Details" asp-route-id="@item.AdjustmentId" class="zb-action-btn" title="Details"><i class="bi bi-eye"></i></a>
+                            <a asp-action="Delete" asp-route-id="@item.AdjustmentId" class="zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

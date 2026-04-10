@@ -1,0 +1,54 @@
+@model ZoneBill_Lloren.Models.OrderDetail
+
+@{
+    ViewData["Title"] = "Edit Order Detail";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);">
+        <i class="bi bi-pencil-square me-2" style="color:var(--zb-secondary);"></i>Edit Order Detail
+    </h4>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+        <i class="bi bi-arrow-left me-1"></i>Back to List
+    </a>
+</div>
+
+<div class="zb-table-card">
+    <div class="p-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <input type="hidden" asp-for="OrderDetailId" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="OrderId" class="form-label zb-form-label"></label>
+                    <select asp-for="OrderId" class="form-select zb-form-input" asp-items="ViewBag.OrderId"></select>
+                    <span asp-validation-for="OrderId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ItemId" class="form-label zb-form-label"></label>
+                    <select asp-for="ItemId" class="form-select zb-form-input" asp-items="ViewBag.ItemId"></select>
+                    <span asp-validation-for="ItemId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Quantity" class="form-label zb-form-label"></label>
+                    <input asp-for="Quantity" class="form-control zb-form-input" />
+                    <span asp-validation-for="Quantity" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="LockedUnitPrice" class="form-label zb-form-label"></label>
+                    <input asp-for="LockedUnitPrice" class="form-control zb-form-input" />
+                    <span asp-validation-for="LockedUnitPrice" class="text-danger"></span>
+                </div>
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn fw-semibold px-4" style="background:var(--zb-secondary);color:#0f172a;border:none;">
+                        <i class="bi bi-check-lg me-1"></i>Save
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

@@ -1,0 +1,326 @@
+@model ZoneBill_Lloren.Models.ShiftIndexViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Shift & Cash Drawer";
+}
+
+<style>
+    .zb-form-input { background:var(--zb-primary)!important; color:var(--zb-text)!important; border-color:rgba(6,182,212,0.25)!important; }
+    .zb-form-input:focus { border-color:var(--zb-secondary)!important; box-shadow:0 0 0 2px rgba(6,182,212,0.15)!important; }
+    .zb-form-input::placeholder { color:var(--zb-text-muted)!important; opacity:.6; }
+    .zb-form-label { color:var(--zb-text-muted); font-size:.85rem; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-clock-history me-2" style="color:var(--zb-secondary);"></i>Shift & Cash Drawer</h4>
+        <p class="text-muted small mb-0">Open your shift, track drawer transactions, and close with Z-reading variance.</p>
+    </div>
+    <a asp-controller="POS" asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+        <i class="bi bi-display me-1"></i> Go To POS
+    </a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert border-0 mb-3" style="background:rgba(239,68,68,0.12);color:#fca5a5;">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert border-0 mb-3" style="background:rgba(34,197,94,0.12);color:#86efac;">@TempData["Success"]</div>
+}
+
+@if (Model.ActiveShift == null)
+{
+    <div class="zb-table-card mb-4">
+        <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+            <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-play-circle me-2"></i>Open Shift</h6>
+        </div>
+        <div class="p-4">
+            <form asp-action="Open" method="post" class="row g-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-4">
+                    <label class="form-label zb-form-label">Opening Cash</label>
+                    <input class="form-control zb-form-input" type="number" name="OpeningCash" value="0" min="0" step="0.01" required />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label zb-form-label">Notes (optional)</label>
+                    <input class="form-control zb-form-input" type="text" name="Notes" maxlength="255" />
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
+                        <i class="bi bi-play-fill me-1"></i> Start Shift
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="zb-kpi-card">
+                <div class="zb-kpi-label">Opened (PH)</div>
+                <div class="zb-kpi-value" style="font-size:1.1rem;">@PhilippineTime.ToDateTime(Model.ActiveShift.OpenedAt).ToString("MMM d, h:mm tt")</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+                <div class="zb-kpi-label">Opening Cash</div>
+                <div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveShift.OpeningCash.ToString("C")</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+                <div class="zb-kpi-label">Cash Sales This Shift</div>
+                <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.ActiveShiftCashSales.ToString("C")</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+                <div class="zb-kpi-label">Expected Cash Now</div>
+                <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.ActiveShiftExpectedCash.ToString("C")</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="zb-table-card h-100">
+                <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-cash-stack me-2"></i>Cash Drawer Transactions</h6>
+                </div>
+                <div class="p-4">
+                    <form asp-action="AddDrawerTransaction" method="post" class="row g-2 mb-3">
+                        @Html.AntiForgeryToken()
+                        <div class="col-4">
+                            <label class="form-label small zb-form-label">Type</label>
+                            <select class="form-select form-select-sm zb-form-input" name="TransactionType" required>
+                                <option value="CashIn">Cash In</option>
+                                <option value="CashOut">Cash Out</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small zb-form-label">Amount</label>
+                            <input class="form-control form-control-sm zb-form-input" type="number" name="Amount" min="0.01" step="0.01" required />
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small zb-form-label">Notes</label>
+                            <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="Optional" />
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                                <i class="bi bi-plus-circle me-1"></i> Add Drawer Transaction
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="small mb-3" style="color:var(--zb-text-muted);">
+                        Cash In: <strong style="color:#22c55e;">@Model.ActiveShiftCashIn.ToString("C")</strong> &nbsp;|&nbsp;
+                        Cash Out: <strong style="color:var(--zb-accent);">@Model.ActiveShiftCashOut.ToString("C")</strong>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table zb-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>When (PH)</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.ActiveShiftTransactions.Any())
+                                {
+                                    @foreach (var tx in Model.ActiveShiftTransactions)
+                                    {
+                                        var badgeClass = tx.TransactionType == "CashIn" ? "zb-badge-green" : "zb-badge-orange";
+                                        <tr>
+                                            <td><span class="zb-mono">@PhilippineTime.ToDateTime(tx.CreatedAt).ToString("MMM d, h:mm tt")</span></td>
+                                            <td><span class="zb-badge @badgeClass">@tx.TransactionType</span></td>
+                                            <td>@tx.Amount.ToString("C")</td>
+                                            <td>@(string.IsNullOrWhiteSpace(tx.Notes) ? "—" : tx.Notes)</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center py-3" style="color:var(--zb-text-muted);">No drawer transactions for this shift.</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="zb-table-card h-100">
+                <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-stop-circle me-2"></i>Close Shift (Z-Reading)</h6>
+                </div>
+                <div class="p-4">
+                    <p class="small" style="color:var(--zb-text-muted);">Enter the actual physical cash from the drawer to close this shift.</p>
+                    <form asp-action="Close" method="post" class="row g-2">
+                        @Html.AntiForgeryToken()
+                        <div class="col-6">
+                            <label class="form-label zb-form-label">Expected Cash</label>
+                            <input class="form-control zb-form-input" type="text" value="@Model.ActiveShiftExpectedCash.ToString("C")" disabled />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label zb-form-label">Actual Cash Count</label>
+                            <input class="form-control zb-form-input" type="number" name="ActualCash" min="0" step="0.01" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label zb-form-label">Closing Notes (optional)</label>
+                            <input class="form-control zb-form-input" type="text" name="Notes" maxlength="255" placeholder="Short/over reason, manager note, etc." />
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn fw-semibold" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">
+                                <i class="bi bi-stop-fill me-1"></i> Close Shift
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (User.IsInRole("MainAdmin") || User.IsInRole("Manager"))
+{
+    <div class="zb-table-card mb-4" style="border-left:3px solid var(--zb-accent);">
+        <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+            <h6 class="fw-bold mb-0" style="color:var(--zb-accent);"><i class="bi bi-shield-lock me-2"></i>Manager Overrides</h6>
+        </div>
+        <div class="p-4">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <h6 class="mb-2 fw-semibold" style="color:var(--zb-text);">Force Close Open Shift</h6>
+                    <form asp-action="ForceClose" method="post" class="row g-2">
+                        @Html.AntiForgeryToken()
+                        <div class="col-12">
+                            <label class="form-label zb-form-label">Open Shift</label>
+                            <select class="form-select zb-form-input" name="ShiftId" required>
+                                <option value="">Select open shift...</option>
+                                @foreach (var option in Model.OpenShiftOptions)
+                                {
+                                    <option value="@option.ShiftId">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label zb-form-label">Actual Cash Count</label>
+                            <input class="form-control zb-form-input" type="number" name="ActualCash" min="0" step="0.01" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label zb-form-label">Reason / Notes</label>
+                            <input class="form-control zb-form-input" type="text" name="Notes" maxlength="255" placeholder="Optional" />
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">
+                                <i class="bi bi-exclamation-triangle me-1"></i> Force Close Shift
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="col-lg-6">
+                    <h6 class="mb-2 fw-semibold" style="color:var(--zb-text);">Reopen Closed Shift</h6>
+                    <form asp-action="Reopen" method="post" class="row g-2">
+                        @Html.AntiForgeryToken()
+                        <div class="col-12">
+                            <label class="form-label zb-form-label">Closed Shift</label>
+                            <select class="form-select zb-form-input" name="ShiftId" required>
+                                <option value="">Select closed shift...</option>
+                                @foreach (var option in Model.ClosedShiftOptions)
+                                {
+                                    <option value="@option.ShiftId">@option.Label</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label zb-form-label">Reason / Notes</label>
+                            <input class="form-control zb-form-input" type="text" name="Notes" maxlength="255" placeholder="Optional" />
+                        </div>
+                        <div class="col-12 d-grid">
+                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i> Reopen Shift
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="zb-table-card">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-journal-text me-2"></i>Recent Shifts</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Cashier</th>
+                    <th>Opened</th>
+                    <th>Closed</th>
+                    <th>Opening</th>
+                    <th>Expected</th>
+                    <th>Actual</th>
+                    <th>Variance</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.RecentShifts.Any())
+                {
+                    @foreach (var shift in Model.RecentShifts)
+                    {
+                        var variance = shift.Variance ?? 0m;
+                        var varianceClass = variance == 0m ? "zb-badge-green" : variance > 0 ? "zb-badge-cyan" : "zb-badge-red";
+                        <tr>
+                            <td class="fw-semibold" style="color:var(--zb-text);">@shift.Cashier.EmailAddress</td>
+                            <td><span class="zb-mono">@PhilippineTime.ToDateTime(shift.OpenedAt).ToString("MMM d, h:mm tt")</span></td>
+                            <td><span class="zb-mono">@(shift.ClosedAt.HasValue ? PhilippineTime.ToDateTime(shift.ClosedAt.Value).ToString("MMM d, h:mm tt") : "—")</span></td>
+                            <td>@shift.OpeningCash.ToString("C")</td>
+                            <td>@shift.ExpectedCash.ToString("C")</td>
+                            <td>@(shift.ActualCash.HasValue ? shift.ActualCash.Value.ToString("C") : "—")</td>
+                            <td>
+                                @if (shift.Variance.HasValue)
+                                {
+                                    <span class="zb-badge @varianceClass">@shift.Variance.Value.ToString("C")</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--zb-text-muted);">—</span>
+                                }
+                            </td>
+                            <td>
+                                @if (shift.Status == "Open")
+                                {
+                                    <span class="zb-badge zb-badge-orange">Open</span>
+                                }
+                                else
+                                {
+                                    <span class="zb-badge zb-badge-cyan">Closed</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8" class="text-center py-3" style="color:var(--zb-text-muted);">No shifts yet.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

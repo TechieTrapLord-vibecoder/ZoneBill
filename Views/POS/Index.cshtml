@@ -1,0 +1,150 @@
+@model ZoneBill_Lloren.Models.PosDashboardViewModel
+
+@{
+    ViewData["Title"] = "Front Desk POS";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-display me-2" style="color:var(--zb-secondary);"></i>Front Desk POS</h4>
+    <div class="d-flex gap-2 align-items-center">
+        <a asp-action="Tables" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-grid-3x3-gap me-1"></i>Floor Layout</a>
+        <span class="zb-badge zb-badge-cyan"><i class="bi bi-broadcast me-1"></i>Live Sessions</span>
+    </div>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;">@TempData["Success"]</div>
+}
+
+<div class="row g-3">
+    @foreach (var space in Model.Spaces)
+    {
+        var occupied = space.ActiveBookingId.HasValue;
+        <div class="col-12 col-md-6 col-xl-4" data-space-id="@space.SpaceId">
+            <div class="rounded-3 h-100 overflow-hidden" style="background:var(--zb-primary-mid);border:1px solid @(occupied ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)");">
+                <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background:@(occupied ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)");border-bottom:1px solid @(occupied ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)");">
+                    <strong style="color:@(occupied ? "#fca5a5" : "#86efac");">@space.SpaceName</strong>
+                    <span class="small fw-semibold" style="color:@(occupied ? "#fca5a5" : "#86efac");">@space.Status</span>
+                </div>
+                <div class="p-3">
+                    <p class="mb-1 small" style="color:var(--zb-text-muted);">Floor: <strong style="color:var(--zb-text);">@space.FloorArea</strong> | Capacity: <strong style="color:var(--zb-text);">@space.Capacity pax</strong></p>
+                    <p class="mb-1 small" style="color:var(--zb-text-muted);">Rate: <strong style="color:var(--zb-secondary);">PHP @space.HourlyRate.ToString("0.00") / hr</strong></p>
+
+                    @if (occupied)
+                    {
+                        @if (space.CheckoutRequested)
+                        {
+                            <div class="rounded-2 px-2 py-1 mb-2 text-center zb-pulse-alert" style="background:rgba(249,115,22,0.2);border:1px solid rgba(249,115,22,0.4);">
+                                <i class="bi bi-bell-fill me-1" style="color:var(--zb-accent);"></i>
+                                <span class="small fw-semibold" style="color:#fb923c;">Checkout Requested!</span>
+                            </div>
+                        }
+                        <p class="mb-2 small" style="color:var(--zb-text);">
+                            Booking #@space.ActiveBookingId
+                            @if (space.OrderItemCount > 0)
+                            {
+                                <span class="zb-badge zb-badge-orange ms-2">@space.OrderItemCount items ordered</span>
+                            }
+                        </p>
+                        <p class="mb-3 small" style="color:var(--zb-text-muted);">Elapsed: <strong class="pos-timer" style="color:var(--zb-secondary);" data-start-time="@space.ActiveStartTime?.ToString("o")">00:00:00</strong></p>
+
+                        <form asp-controller="POS" asp-action="AddOrder" method="post" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
+                            <div class="row g-2">
+                                <div class="col-7">
+                                    <select class="form-select form-select-sm zb-form-input" name="ItemId" required>
+                                        <option value="">Menu item</option>
+                                        @foreach (var item in Model.MenuItems)
+                                        {
+                                            <option value="@item.ItemId">@item.ItemName (PHP @item.CurrentPrice.ToString("0.00"), Stock: @item.StockAvailable)</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-2">
+                                    <input class="form-control form-control-sm zb-form-input" type="number" name="Quantity" value="1" min="1" />
+                                </div>
+                                <div class="col-3 d-grid">
+                                    <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">Add</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <form asp-controller="POS" asp-action="Checkout" method="post" class="d-grid gap-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Discount %</label>
+                                    <input class="form-control form-control-sm zb-form-input" type="number" name="DiscountPercentage" value="0" min="0" max="100" step="0.01" />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Payment</label>
+                                    <select class="form-select form-select-sm zb-form-input" name="PaymentMethod">
+                                        <option value="Cash">Cash</option>
+                                        <option value="GCash">GCash</option>
+                                        <option value="Card">Card</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);">Checkout</button>
+                        </form>
+
+                        <form asp-controller="POS" asp-action="SplitCheckout" method="post" class="d-grid gap-2 mt-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
+                            <div class="row g-2">
+                                <div class="col-4">
+                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Discount %</label>
+                                    <input class="form-control form-control-sm zb-form-input" type="number" name="DiscountPercentage" value="0" min="0" max="100" step="0.01" />
+                                </div>
+                                <div class="col-3">
+                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Split</label>
+                                    <input class="form-control form-control-sm zb-form-input" type="number" name="SplitCount" value="2" min="2" max="20" step="1" />
+                                </div>
+                                <div class="col-5">
+                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Payment</label>
+                                    <select class="form-select form-select-sm zb-form-input" name="PaymentMethod">
+                                        <option value="Cash">Cash</option>
+                                        <option value="GCash">GCash</option>
+                                        <option value="Card">Card</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.3);">Split Checkout</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form asp-controller="POS" asp-action="StartSession" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="SpaceId" value="@space.SpaceId" />
+                            <div class="mb-2">
+                                <label class="form-label small" style="color:var(--zb-text-muted);">Customer (optional)</label>
+                                <select class="form-select form-select-sm zb-form-input" name="CustomerId">
+                                    <option value="">Walk-in</option>
+                                    @foreach (var customer in Model.Customers)
+                                    {
+                                        <option value="@customer.CustomerId">@customer.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.2);color:#86efac;border:1px solid rgba(34,197,94,0.3);">Start Session</button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/js/pos.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,90 @@
+@model IEnumerable<ZoneBill_Lloren.Models.Payment>
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Payments";
+}
+
+@{
+    var totalCollected = Model.Sum(p => p.AmountPaid);
+    var cashCount = Model.Count(p => p.PaymentMethod == "Cash");
+    var gcashCount = Model.Count(p => p.PaymentMethod == "GCash");
+    var cardCount = Model.Count(p => p.PaymentMethod == "Card");
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-cash-coin me-2" style="color:var(--zb-secondary);"></i>Payments</h4>
+        <p class="text-muted small mb-0">All collected payments across invoices.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
+        <i class="bi bi-plus-lg me-1"></i> Record Payment
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Total Collected</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">₱@totalCollected.ToString("N2")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Cash</div>
+            <div class="zb-kpi-value">@cashCount</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+            <div class="zb-kpi-label">GCash</div>
+            <div class="zb-kpi-value" style="color:var(--zb-accent);">@gcashCount</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(139,92,246,0.4);">
+            <div class="zb-kpi-label">Card</div>
+            <div class="zb-kpi-value" style="color:#a78bfa;">@cardCount</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Business</th>
+                    <th>Invoice Status</th>
+                    <th>Amount Paid</th>
+                    <th>Method</th>
+                    <th>Date</th>
+                    <th>Reference</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var methodClass = item.PaymentMethod == "Cash" ? "zb-badge-cyan" :
+                                     item.PaymentMethod == "GCash" ? "zb-badge-orange" : "zb-badge-purple";
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@item.Business?.BusinessName</td>
+                        <td>@item.Invoice?.PaymentStatus</td>
+                        <td class="fw-semibold" style="color:var(--zb-secondary);">₱@item.AmountPaid.ToString("N2")</td>
+                        <td><span class="zb-badge @methodClass">@item.PaymentMethod</span></td>
+                        <td><span class="zb-mono">@PhilippineTime.ToDateTime(item.PaymentDate).ToString("MMM d, h:mm tt")</span></td>
+                        <td><span class="text-muted zb-mono">@(string.IsNullOrEmpty(item.ReferenceNumber) ? "—" : item.ReferenceNumber)</span></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@item.PaymentId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
+                                <a asp-action="Edit" asp-route-id="@item.PaymentId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <a asp-action="Delete" asp-route-id="@item.PaymentId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

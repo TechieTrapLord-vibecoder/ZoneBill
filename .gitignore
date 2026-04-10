@@ -1,0 +1,65 @@
+# ===========================
+# ASP.NET Core / .NET
+# ===========================
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.log
+*.bak
+
+# ===========================
+# Sensitive Configuration
+# ===========================
+appsettings.json
+appsettings.*.json
+!appsettings.example.json
+
+# User Secrets
+secrets.json
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# ===========================
+# Node.js / npm
+# ===========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===========================
+# Tailwind CSS (generated output)
+# ===========================
+wwwroot/css/tailwind.output.css
+
+# ===========================
+# Stripe CLI
+# ===========================
+stripe-cli/
+stripe.zip
+
+# ===========================
+# Build artifacts / publish
+# ===========================
+publish/
+*.nupkg
+*.snupkg
+
+# ===========================
+# OS files
+# ===========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===========================
+# Migrations (optional - comment out if you want to track these)
+# ===========================
+# Migrations/

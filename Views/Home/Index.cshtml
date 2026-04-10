@@ -1,0 +1,503 @@
+@model IEnumerable<ZoneBill_Lloren.Models.SubscriptionPlan>
+
+@{
+    ViewData["Title"] = "ZoneBill – Venue &amp; Reservation Platform";
+    Layout = "_LandingLayout";
+}
+
+@* ═══════════════════════════════════════════════════════════════
+   NAVBAR
+═══════════════════════════════════════════════════════════════ *@
+<nav class="lp-navbar navbar navbar-expand-lg fixed-top">
+    <div class="container">
+        <a class="navbar-brand" href="/">
+            <img src="~/images/ZoneBill.png" alt="ZoneBill" class="lp-nav-logo" />
+        </a>
+        <button class="navbar-toggler lp-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#lpNav">
+            <i class="bi bi-list" style="color:#06B6D4;font-size:1.6rem;"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="lpNav">
+            <ul class="navbar-nav mx-auto gap-lg-4">
+                <li class="nav-item"><a class="lp-nav-link" href="#features">Features</a></li>
+                <li class="nav-item"><a class="lp-nav-link" href="#pricing">Pricing</a></li>
+                <li class="nav-item"><a class="lp-nav-link" href="#faq">FAQ</a></li>
+            </ul>
+            <div class="d-flex gap-2 mt-3 mt-lg-0">
+                <a href="/Account/Login" class="btn lp-btn-outline">Login</a>
+                <a href="#pricing" class="btn lp-btn-accent">Get Started</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+@* ═══════════════════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-hero d-flex align-items-center">
+    <div class="container">
+        @if (TempData["Error"] != null)
+        {
+            <div class="alert alert-danger text-center mb-4" role="alert">@TempData["Error"]</div>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div class="alert alert-success text-center mb-4" role="alert">@TempData["Success"]</div>
+        }
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="lp-hero-badge mb-3">
+                    <i class="bi bi-lightning-charge-fill me-1" style="color:#F97316;"></i>
+                    <span>All-in-One Venue Platform</span>
+                </div>
+                <h1 class="lp-hero-headline">
+                    The Smart Way to Run Your
+                    <span class="lp-gradient-text">Entertainment Business</span>
+                </h1>
+                <p class="lp-hero-sub">
+                    ZoneBill unifies front desk POS, smart bookings, customer QR portals,
+                    inventory tracking, and double-entry accounting — in one sleek system built for
+                    billiard halls, board game cafés, KTVs, escape rooms, and gaming shops.
+                </p>
+                <div class="d-flex gap-3 flex-wrap mt-4">
+                    <a href="#pricing" class="btn lp-btn-accent lp-btn-lg">
+                        Get Started <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                    <a href="#features" class="btn lp-btn-outline lp-btn-lg">
+                        Explore Features
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="lp-hero-mockup">
+                    <div class="lp-stat-card" style="top:8%;left:0;">
+                        <div class="lp-stat-icon"><i class="bi bi-calendar2-check"></i></div>
+                        <div>
+                            <div class="lp-stat-label">Active Bookings</div>
+                            <div class="lp-stat-value">24</div>
+                        </div>
+                    </div>
+                    <div class="lp-stat-card lp-stat-accent" style="top:38%;right:0;">
+                        <div class="lp-stat-icon lp-stat-icon-accent"><i class="bi bi-cash-coin"></i></div>
+                        <div>
+                            <div class="lp-stat-label">Revenue Today</div>
+                            <div class="lp-stat-value">₱12,840</div>
+                        </div>
+                    </div>
+                    <div class="lp-stat-card" style="bottom:8%;left:12%;">
+                        <div class="lp-stat-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
+                        <div>
+                            <div class="lp-stat-label">Open Tables</div>
+                            <div class="lp-stat-value">7 / 12</div>
+                        </div>
+                    </div>
+                    <div class="lp-hero-screen">
+                        <div class="lp-screen-header">
+                            <span class="lp-screen-dot" style="background:#ef4444;"></span>
+                            <span class="lp-screen-dot" style="background:#f97316;"></span>
+                            <span class="lp-screen-dot" style="background:#22c55e;"></span>
+                            <span style="color:#94a3b8;font-size:.7rem;margin-left:.5rem;">ZoneBill — Front Desk</span>
+                        </div>
+                        <div class="lp-screen-body">
+                            <div class="lp-screen-row">
+                                <div class="lp-table-chip lp-chip-occupied">Table 1<br><small>2h 14m</small></div>
+                                <div class="lp-table-chip lp-chip-occupied">Table 2<br><small>1h 05m</small></div>
+                                <div class="lp-table-chip lp-chip-free">Table 3<br><small>Open</small></div>
+                                <div class="lp-table-chip lp-chip-occupied">Table 4<br><small>0h 48m</small></div>
+                            </div>
+                            <div class="lp-screen-row mt-2">
+                                <div class="lp-table-chip lp-chip-free">Table 5<br><small>Open</small></div>
+                                <div class="lp-table-chip lp-chip-occupied">Table 6<br><small>3h 01m</small></div>
+                                <div class="lp-table-chip lp-chip-occupied">Table 7<br><small>0h 22m</small></div>
+                                <div class="lp-table-chip lp-chip-free">Table 8<br><small>Open</small></div>
+                            </div>
+                            <div class="lp-screen-bar mt-3">
+                                <span style="color:#94a3b8;font-size:.7rem;">Today's Revenue</span>
+                                <span style="color:#06b6d4;font-weight:700;font-size:.85rem;">₱12,840.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   VENUE TYPES MARQUEE
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-marquee-section">
+    <div class="lp-marquee-track">
+        @for (int i = 0; i < 3; i++)
+        {
+            <span class="lp-marquee-item"><i class="bi bi-controller"></i> Billiard Hall</span>
+            <span class="lp-marquee-sep">·</span>
+            <span class="lp-marquee-item"><i class="bi bi-dice-5"></i> Board Game Café</span>
+            <span class="lp-marquee-sep">·</span>
+            <span class="lp-marquee-item"><i class="bi bi-music-note-beamed"></i> KTV / Karaoke</span>
+            <span class="lp-marquee-sep">·</span>
+            <span class="lp-marquee-item"><i class="bi bi-door-open"></i> Escape Room</span>
+            <span class="lp-marquee-sep">·</span>
+            <span class="lp-marquee-item"><i class="bi bi-pc-display"></i> Gaming Shop</span>
+            <span class="lp-marquee-sep">·</span>
+            <span class="lp-marquee-item"><i class="bi bi-cup-straw"></i> Café &amp; Bar</span>
+            <span class="lp-marquee-sep">·</span>
+        }
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   FEATURES GRID
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-section" id="features">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="lp-section-badge">Features</span>
+            <h2 class="lp-section-title mt-2">Everything Your Venue Needs</h2>
+            <p class="lp-section-sub">Purpose-built tools for entertainment businesses — no bloat, just what matters.</p>
+        </div>
+        <div class="row g-4">
+            <div class="col-sm-6 col-lg-4">
+                <div class="lp-feature-card">
+                    <div class="lp-feature-icon"><i class="bi bi-cash-stack"></i></div>
+                    <h5>Front Desk POS</h5>
+                    <p>Real-time table/room status, session timers, food &amp; drink orders, and cash drawer management — all in one view.</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="lp-feature-card">
+                    <div class="lp-feature-icon"><i class="bi bi-calendar2-check"></i></div>
+                    <h5>Smart Bookings</h5>
+                    <p>Accept walk-ins and advance bookings with automatic time tracking, overstay alerts, and customer history.</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="lp-feature-card lp-feature-card-accent">
+                    <div class="lp-feature-icon lp-feature-icon-accent"><i class="bi bi-qr-code-scan"></i></div>
+                    <h5>QR Customer Portal</h5>
+                    <p>Guests scan a QR code at their table to view their bill, running time, and order items — no app needed.</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="lp-feature-card">
+                    <div class="lp-feature-icon"><i class="bi bi-boxes"></i></div>
+                    <h5>Inventory Tracking</h5>
+                    <p>Monitor stock levels per item, get low-stock email alerts, and see depletion trends to optimize purchases.</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="lp-feature-card">
+                    <div class="lp-feature-icon"><i class="bi bi-journal-text"></i></div>
+                    <h5>Accounting Hub</h5>
+                    <p>Full double-entry bookkeeping with chart of accounts, journal entries, and automatic posting from invoices.</p>
+                </div>
+            </div>
+            <div class="col-sm-6 col-lg-4">
+                <div class="lp-feature-card">
+                    <div class="lp-feature-icon"><i class="bi bi-graph-up-arrow"></i></div>
+                    <h5>Financial Reports</h5>
+                    <p>Revenue breakdown, top spaces, best-selling items, payment method analysis — with CSV and PDF export.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   FEATURE ROW A — Front Desk
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-section lp-section-alt">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-5">
+                <span class="lp-section-badge mb-2 d-inline-block">Front Desk</span>
+                <h2 class="lp-section-title">Powerful Dashboard,<br>Zero Confusion</h2>
+                <p class="lp-section-sub text-start">
+                    Your staff sees everything at a glance — occupied tables, timers, active orders,
+                    and shift totals. Start, extend, or close a session in seconds.
+                </p>
+                <ul class="lp-check-list mt-4">
+                    <li><i class="bi bi-check-circle-fill"></i> Real-time table grid with live timers</li>
+                    <li><i class="bi bi-check-circle-fill"></i> One-click order entry per table</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Cash drawer open/close per shift</li>
+                    <li><i class="bi bi-check-circle-fill"></i> 10-second auto-refresh — always live</li>
+                </ul>
+            </div>
+            <div class="col-lg-7">
+                <div class="lp-mockup-card">
+                    <div class="lp-mockup-titlebar">
+                        <span class="lp-screen-dot" style="background:#ef4444;"></span>
+                        <span class="lp-screen-dot" style="background:#f97316;"></span>
+                        <span class="lp-screen-dot" style="background:#22c55e;"></span>
+                        <span class="lp-mockup-title ms-2">Front Desk Dashboard</span>
+                    </div>
+                    <div class="lp-mockup-body">
+                        <div class="row g-2 mb-3">
+                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#06b6d4;"><div class="lp-ms-num" style="color:#06b6d4;">8</div><div class="lp-ms-lbl">Occupied</div></div></div>
+                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#22c55e;"><div class="lp-ms-num" style="color:#22c55e;">4</div><div class="lp-ms-lbl">Open</div></div></div>
+                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#f97316;"><div class="lp-ms-num" style="color:#f97316;">₱8,200</div><div class="lp-ms-lbl">Shift Rev.</div></div></div>
+                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#94a3b8;"><div class="lp-ms-num" style="color:#94a3b8;">6h 20m</div><div class="lp-ms-lbl">Shift Time</div></div></div>
+                        </div>
+                        <div class="lp-mockup-table-grid">
+                            <div class="lpc occupied">T1<br><small>1h 40m</small></div>
+                            <div class="lpc occupied">T2<br><small>0h 55m</small></div>
+                            <div class="lpc free">T3<br><small>Open</small></div>
+                            <div class="lpc occupied">T4<br><small>2h 10m</small></div>
+                            <div class="lpc free">T5<br><small>Open</small></div>
+                            <div class="lpc occupied">T6<br><small>0h 30m</small></div>
+                            <div class="lpc occupied">T7<br><small>3h 02m</small></div>
+                            <div class="lpc free">T8<br><small>Open</small></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   FEATURE ROW B — Accounting
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-section">
+    <div class="container">
+        <div class="row align-items-center g-5 flex-lg-row-reverse">
+            <div class="col-lg-5">
+                <span class="lp-section-badge mb-2 d-inline-block">Accounting</span>
+                <h2 class="lp-section-title">Built-In Double-Entry<br>Accounting</h2>
+                <p class="lp-section-sub text-start">
+                    Every invoice automatically creates journal entries. Track your chart of accounts,
+                    reconcile cash, and export financial reports — without a separate accounting tool.
+                </p>
+                <ul class="lp-check-list mt-4">
+                    <li><i class="bi bi-check-circle-fill"></i> Chart of accounts &amp; journal entries</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Auto-posting from POS invoices</li>
+                    <li><i class="bi bi-check-circle-fill"></i> Revenue &amp; payment method reports</li>
+                    <li><i class="bi bi-check-circle-fill"></i> CSV &amp; PDF export for audits</li>
+                </ul>
+            </div>
+            <div class="col-lg-7">
+                <div class="lp-mockup-card">
+                    <div class="lp-mockup-titlebar">
+                        <span class="lp-screen-dot" style="background:#ef4444;"></span>
+                        <span class="lp-screen-dot" style="background:#f97316;"></span>
+                        <span class="lp-screen-dot" style="background:#22c55e;"></span>
+                        <span class="lp-mockup-title ms-2">Financial Reports</span>
+                    </div>
+                    <div class="lp-mockup-body">
+                        <div class="lp-chart-bars mb-3">
+                            <div class="lp-chart-col">
+                                <div class="lp-bar" style="height:55%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar-lbl">Mon</div>
+                            </div>
+                            <div class="lp-chart-col">
+                                <div class="lp-bar" style="height:80%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar-lbl">Tue</div>
+                            </div>
+                            <div class="lp-chart-col">
+                                <div class="lp-bar" style="height:65%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar-lbl">Wed</div>
+                            </div>
+                            <div class="lp-chart-col">
+                                <div class="lp-bar" style="height:90%;background:var(--zb-accent);"></div>
+                                <div class="lp-bar-lbl">Thu</div>
+                            </div>
+                            <div class="lp-chart-col">
+                                <div class="lp-bar" style="height:70%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar-lbl">Fri</div>
+                            </div>
+                            <div class="lp-chart-col">
+                                <div class="lp-bar" style="height:100%;background:var(--zb-accent);"></div>
+                                <div class="lp-bar-lbl">Sat</div>
+                            </div>
+                            <div class="lp-chart-col">
+                                <div class="lp-bar" style="height:85%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar-lbl">Sun</div>
+                            </div>
+                        </div>
+                        <div class="lp-report-row"><span>Total Revenue</span><span style="color:#06b6d4;font-weight:700;">₱248,500.00</span></div>
+                        <div class="lp-report-row"><span>Cash Payments</span><span style="color:#22c55e;">₱180,200.00</span></div>
+                        <div class="lp-report-row"><span>GCash / Online</span><span style="color:#f97316;">₱68,300.00</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   PRICING
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-section lp-section-alt" id="pricing">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="lp-section-badge">Pricing</span>
+            <h2 class="lp-section-title mt-2">Simple, Transparent Plans</h2>
+            <p class="lp-section-sub">No hidden fees. Cancel anytime. Includes 14-day free trial.</p>
+        </div>
+        <div class="row justify-content-center g-4">
+            @{
+                var plans = Model.Where(p => p.PlanName != "Free").ToList();
+                var popularIndex = plans.Count > 1 ? 1 : 0;
+            }
+            @for (int i = 0; i < plans.Count; i++)
+            {
+                var plan = plans[i];
+                var isPopular = i == popularIndex;
+                <div class="col-md-5 col-lg-4">
+                    <div class="lp-pricing-card @(isPopular ? "lp-pricing-popular" : "")">
+                        @if (isPopular)
+                        {
+                            <div class="lp-pricing-badge">Most Popular</div>
+                        }
+                        <h4 class="lp-pricing-name">@plan.PlanName</h4>
+                        <div class="lp-pricing-price">
+                            <span class="lp-price-currency">₱</span>
+                            <span class="lp-price-amount">@plan.MonthlyPrice.ToString("0")</span>
+                            <span class="lp-price-period">/mo</span>
+                        </div>
+                        <ul class="lp-pricing-features">
+                            <li><i class="bi bi-check2"></i> Up to <strong>@plan.MaxTablesAllowed spaces/tables</strong></li>
+                            <li><i class="bi bi-check2"></i> Full POS &amp; Front Desk</li>
+                            <li><i class="bi bi-check2"></i> Smart Bookings &amp; Timers</li>
+                            <li><i class="bi bi-check2"></i> QR Customer Portal</li>
+                            <li><i class="bi bi-check2"></i> Inventory Tracking</li>
+                            <li><i class="bi bi-check2"></i> Financial Reports + Export</li>
+                            @if (isPopular)
+                            {
+                                <li><i class="bi bi-check2"></i> Double-Entry Accounting</li>
+                                <li><i class="bi bi-check2"></i> Priority Email Support</li>
+                            }
+                            else
+                            {
+                                <li><i class="bi bi-check2"></i> Email Support</li>
+                            }
+                        </ul>
+                        <a href="/Account/RegisterBusiness?planId=@plan.PlanId"
+                           class="btn w-100 @(isPopular ? "lp-btn-accent" : "lp-btn-outline") lp-btn-lg mt-3">
+                            Get Started
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   FAQ
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-section" id="faq">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="lp-section-badge">FAQ</span>
+            <h2 class="lp-section-title mt-2">Frequently Asked Questions</h2>
+            <p class="lp-section-sub">Got questions? We have answers.</p>
+        </div>
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="accordion lp-accordion" id="faqAccordion">
+                    <div class="accordion-item lp-faq-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button lp-faq-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                                What type of businesses can use ZoneBill?
+                            </button>
+                        </h2>
+                        <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body lp-faq-body">
+                                ZoneBill is built for time-based entertainment venues — billiard halls, board game cafés, KTV bars, escape rooms, gaming shops, and hybrid café-entertainment setups. If you bill by the hour and manage tables or rooms, ZoneBill fits.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item lp-faq-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                                How does the QR customer portal work?
+                            </button>
+                        </h2>
+                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body lp-faq-body">
+                                Each table or room gets a unique QR code. Your customers scan it to view their running bill, elapsed time, and any food/drink orders placed — completely in real time. No app download required.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item lp-faq-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                                Do I need accounting knowledge to use the accounting features?
+                            </button>
+                        </h2>
+                        <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body lp-faq-body">
+                                No. ZoneBill auto-posts journal entries for every POS invoice, so the books stay accurate by default. You can review chart of accounts and export reports for your accountant — no manual entry needed.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item lp-faq-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                                Can I manage multiple staff roles?
+                            </button>
+                        </h2>
+                        <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body lp-faq-body">
+                                Yes. ZoneBill supports four staff roles: Main Admin, Manager, Cashier, and Staff. Each role has tailored access — cashiers see the POS, managers see reports, and admins control everything including billing and user management.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item lp-faq-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                                Is there a free trial?
+                            </button>
+                        </h2>
+                        <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                            <div class="accordion-body lp-faq-body">
+                                Yes — every new business gets a 14-day free trial on any plan. No credit card required to start. You can upgrade, downgrade, or cancel at any time from your billing dashboard.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   CTA BANNER
+═══════════════════════════════════════════════════════════════ *@
+<section class="lp-cta-section">
+    <div class="container text-center">
+        <h2 class="lp-cta-title">Ready to Modernize Your Venue?</h2>
+        <p class="lp-cta-sub">Join hundreds of entertainment businesses already using ZoneBill.</p>
+        <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+            <a href="#pricing" class="btn lp-btn-accent lp-btn-lg">Start Free Trial</a>
+            <a href="/Account/Login" class="btn lp-btn-outline lp-btn-lg">Login to Dashboard</a>
+        </div>
+    </div>
+</section>
+
+@* ═══════════════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════════════ *@
+<footer class="lp-footer">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-4 mb-3 mb-md-0">
+                <div>
+                    <img src="~/images/ZoneBill.png" alt="ZoneBill" class="lp-footer-logo" />
+                </div>
+                <p class="lp-footer-tagline mt-2">Venue &amp; Reservation Platform for Entertainment Businesses.</p>
+            </div>
+            <div class="col-md-4 mb-3 mb-md-0 text-md-center">
+                <div class="d-flex gap-4 justify-content-md-center lp-footer-links">
+                    <a href="/Account/Login">Login</a>
+                    <a href="#pricing">Register</a>
+                    <a href="/Home/Privacy">Privacy</a>
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <p class="lp-footer-copy">© 2026 ZoneBill. All rights reserved.</p>
+            </div>
+        </div>
+    </div>
+</footer>
+

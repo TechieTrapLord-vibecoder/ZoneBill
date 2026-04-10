@@ -1,0 +1,81 @@
+@model ZoneBill_Lloren.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Log in";
+}
+
+<style>
+    .zb-auth-card { background:var(--zb-primary-mid); border:1px solid rgba(6,182,212,0.2); border-radius:.75rem; overflow:hidden; }
+    .zb-auth-header { background:rgba(6,182,212,0.08); padding:1.5rem; text-align:center; border-bottom:1px solid rgba(6,182,212,0.15); }
+    .zb-auth-header h3 { color:var(--zb-text); margin:0; font-weight:700; }
+    .zb-auth-header small { color:var(--zb-text-muted); }
+    .zb-auth-input { background:var(--zb-primary)!important; color:var(--zb-text)!important; border-color:rgba(6,182,212,0.25)!important; }
+    .zb-auth-input:focus { border-color:var(--zb-secondary)!important; box-shadow:0 0 0 2px rgba(6,182,212,0.15)!important; }
+    .zb-auth-input::placeholder { color:var(--zb-text-muted)!important; opacity:.6; }
+    .zb-auth-label { color:var(--zb-text-muted); font-size:.85rem; }
+    .zb-auth-card hr { border-color:rgba(6,182,212,0.15); }
+    .zb-auth-card .form-check-label { color:var(--zb-text-muted); font-size:.85rem; }
+</style>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert border-0 text-center" role="alert" style="background:rgba(239,68,68,0.12);color:#fca5a5;">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert border-0 text-center" role="alert" style="background:rgba(34,197,94,0.12);color:#86efac;">@TempData["Success"]</div>
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-5 mt-5">
+        <div class="zb-auth-card">
+            <div class="zb-auth-header">
+                <h3><i class="bi bi-shield-lock me-2" style="color:var(--zb-secondary);"></i>Login to ZoneBill</h3>
+            </div>
+            <div class="p-4">
+                <form asp-action="Login" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Email" class="control-label zb-auth-label"></label>
+                        <input asp-for="Email" class="form-control zb-auth-input" placeholder="Enter your email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Password" class="control-label zb-auth-label"></label>
+                        <input asp-for="Password" type="password" class="form-control zb-auth-input" placeholder="Enter your password" />
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                        <div class="text-end mt-1">
+                            <a asp-action="ForgotPassword" class="small" style="color:var(--zb-secondary);">Forgot password?</a>
+                        </div>
+                    </div>
+
+                    <div class="form-group form-check mb-4">
+                        <input asp-for="RememberMe" class="form-check-input" />
+                        <label asp-for="RememberMe" class="form-check-label">Remember me for 7 days</label>
+                    </div>
+
+                    <div class="d-grid mb-3">
+                        <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;">Log in</button>
+                    </div>
+                </form>
+
+                <hr />
+
+                <form asp-action="GoogleLogin" method="post">
+                    <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-outline-danger btn-block">
+                            <i class="bi bi-google"></i> Log in with Google
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

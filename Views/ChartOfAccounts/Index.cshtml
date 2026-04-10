@@ -1,0 +1,82 @@
+@model IEnumerable<ZoneBill_Lloren.Models.ChartOfAccount>
+
+@{
+    ViewData["Title"] = "Chart of Accounts";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-journal-text me-2" style="color:var(--zb-secondary);"></i>Chart of Accounts</h4>
+        <p class="text-muted small mb-0">General ledger accounts grouped by type.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
+        <i class="bi bi-plus-lg me-1"></i> Add Account
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Total Accounts</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.Count()</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+            <div class="zb-kpi-label">Active</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@Model.Count(a => a.IsActive)</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Account Name</th>
+                    <th>Type</th>
+                    <th>Business</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var typeBadge = item.AccountType switch
+                    {
+                        "Assets"      => "zb-badge-cyan",
+                        "Liabilities" => "zb-badge-red",
+                        "Equity"      => "zb-badge-orange",
+                        "Revenue"     => "zb-badge-green",
+                        "Expenses"    => "zb-badge-yellow",
+                        _             => "zb-badge-cyan"
+                    };
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@item.AccountName</td>
+                        <td><span class="zb-badge @typeBadge">@item.AccountType</span></td>
+                        <td>@(item.Business?.BusinessName ?? "—")</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="zb-badge zb-badge-green">Active</span>
+                            }
+                            else
+                            {
+                                <span class="zb-badge zb-badge-red">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@item.AccountId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
+                                <a asp-action="Edit" asp-route-id="@item.AccountId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <a asp-action="Delete" asp-route-id="@item.AccountId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

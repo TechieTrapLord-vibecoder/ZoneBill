@@ -1,0 +1,84 @@
+@model ZoneBill_Lloren.Models.Business
+
+@{
+    ViewData["Title"] = "Edit Business";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);">
+        <i class="bi bi-pencil-square me-2" style="color:var(--zb-secondary);"></i>Edit Business
+    </h4>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+        <i class="bi bi-arrow-left me-1"></i>Back to List
+    </a>
+</div>
+
+<div class="zb-table-card">
+    <div class="p-4">
+        <form asp-action="Edit" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <input type="hidden" asp-for="BusinessId" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="PlanId" class="form-label zb-form-label"></label>
+                    <select asp-for="PlanId" class="form-select zb-form-input" asp-items="ViewBag.PlanId"></select>
+                    <span asp-validation-for="PlanId" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="BusinessName" class="form-label zb-form-label"></label>
+                    <input asp-for="BusinessName" class="form-control zb-form-input" />
+                    <span asp-validation-for="BusinessName" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="DomainPrefix" class="form-label zb-form-label"></label>
+                    <input asp-for="DomainPrefix" class="form-control zb-form-input" />
+                    <span asp-validation-for="DomainPrefix" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="LogoUrl" class="form-label zb-form-label"></label>
+                    <input asp-for="LogoUrl" class="form-control zb-form-input" />
+                    <span asp-validation-for="LogoUrl" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label zb-form-label">Upload Logo</label>
+                    <input type="file" name="logoFile" class="form-control zb-form-input" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" />
+                    <small style="color:var(--zb-text-muted);">Optional. Uploading a file will replace the current logo URL.</small>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.LogoUrl))
+                {
+                    <div class="col-md-6">
+                        <label class="form-label zb-form-label">Current Logo</label>
+                        <div>
+                            <img src="@Model.LogoUrl" alt="Current logo" style="max-height:80px;width:auto;border:1px solid var(--zb-primary-alt);padding:4px;border-radius:6px;" />
+                        </div>
+                    </div>
+                }
+                <div class="col-md-6">
+                    <label asp-for="TaxRatePercentage" class="form-label zb-form-label"></label>
+                    <input asp-for="TaxRatePercentage" class="form-control zb-form-input" type="number" min="0" max="100" step="0.01" />
+                    <span asp-validation-for="TaxRatePercentage" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="CreatedAt" class="form-label zb-form-label"></label>
+                    <input asp-for="CreatedAt" class="form-control zb-form-input" />
+                    <span asp-validation-for="CreatedAt" class="text-danger"></span>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mt-4">
+                        <input class="form-check-input" asp-for="IsActive" style="background-color:var(--zb-primary-mid);border-color:var(--zb-text-muted);" />
+                        <label class="form-check-label zb-form-label" asp-for="IsActive">@Html.DisplayNameFor(model => model.IsActive)</label>
+                    </div>
+                </div>
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn fw-semibold px-4" style="background:var(--zb-secondary);color:#0f172a;border:none;">
+                        <i class="bi bi-check-lg me-1"></i>Save
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

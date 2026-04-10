@@ -1,0 +1,58 @@
+@model ZoneBill_Lloren.Models.Invoice
+
+@{
+    ViewData["Title"] = "Edit Invoice";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-pencil-square me-2" style="color:var(--zb-secondary);"></i>Edit Invoice</h4>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+</div>
+
+<div class="zb-table-card">
+    <div class="p-4">
+        <form asp-action="Edit">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <input type="hidden" asp-for="InvoiceId" />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="BusinessId" class="form-label zb-form-label"></label>
+                    <select asp-for="BusinessId" class="form-select zb-form-input" asp-items="ViewBag.BusinessId"></select>
+                    <span asp-validation-for="BusinessId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="BookingId" class="form-label zb-form-label"></label>
+                    <select asp-for="BookingId" class="form-select zb-form-input" asp-items="ViewBag.BookingId"></select>
+                    <span asp-validation-for="BookingId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="TotalAmount" class="form-label zb-form-label"></label>
+                    <input asp-for="TotalAmount" class="form-control zb-form-input" />
+                    <span asp-validation-for="TotalAmount" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="TaxRateApplied" class="form-label zb-form-label"></label>
+                    <input asp-for="TaxRateApplied" class="form-control zb-form-input" />
+                    <span asp-validation-for="TaxRateApplied" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="PaymentStatus" class="form-label zb-form-label"></label>
+                    <input asp-for="PaymentStatus" class="form-control zb-form-input" />
+                    <span asp-validation-for="PaymentStatus" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="GeneratedDate" class="form-label zb-form-label"></label>
+                    <input asp-for="GeneratedDate" class="form-control zb-form-input" />
+                    <span asp-validation-for="GeneratedDate" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;"><i class="bi bi-check-lg me-1"></i>Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

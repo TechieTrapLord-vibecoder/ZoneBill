@@ -1,0 +1,99 @@
+@model IEnumerable<ZoneBill_Lloren.Models.MenuItem>
+
+@{
+    ViewData["Title"] = "Menu Items";
+}
+
+@{
+    var totalItems = Model.Count();
+    var lowStock = Model.Count(m => m.IsActive && m.StockAvailable <= m.LowStockThreshold);
+    var inactiveItems = Model.Count(m => !m.IsActive);
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-cup-straw me-2" style="color:var(--zb-secondary);"></i>Menu Items</h4>
+        <p class="text-muted small mb-0">Your venue's food, beverage, and add-on catalog.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
+        <i class="bi bi-plus-lg me-1"></i> Add Item
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Total Items</div>
+            <div class="zb-kpi-value">@totalItems</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+            <div class="zb-kpi-label">Low Stock</div>
+            <div class="zb-kpi-value" style="color:var(--zb-accent);">@lowStock</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="zb-kpi-label">Inactive</div>
+            <div class="zb-kpi-value" style="color:#ef4444;">@inactiveItems</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Item Name</th>
+                    <th>Price</th>
+                    <th>Cost</th>
+                    <th>Stock</th>
+                    <th>Low Threshold</th>
+                    <th>Active</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var isLow = item.IsActive && item.StockAvailable <= item.LowStockThreshold;
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</td>
+                        <td style="color:var(--zb-secondary);font-weight:600;">₱@item.CurrentPrice.ToString("N2")</td>
+                        <td>₱@item.CostPrice.ToString("N2")</td>
+                        <td>
+                            @if (isLow)
+                            {
+                                <span class="fw-bold" style="color:var(--zb-accent);">@item.StockAvailable <i class="bi bi-exclamation-triangle-fill" style="font-size:0.7rem;"></i></span>
+                            }
+                            else
+                            {
+                                @item.StockAvailable
+                            }
+                        </td>
+                        <td>@item.LowStockThreshold</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="zb-badge zb-badge-green">Yes</span>
+                            }
+                            else
+                            {
+                                <span class="zb-badge zb-badge-red">No</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@item.ItemId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
+                                <a asp-action="Edit" asp-route-id="@item.ItemId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <a asp-action="Delete" asp-route-id="@item.ItemId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

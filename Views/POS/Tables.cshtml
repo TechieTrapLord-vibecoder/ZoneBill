@@ -1,0 +1,132 @@
+@model ZoneBill_Lloren.Models.PosTableLayoutViewModel
+
+@{
+    ViewData["Title"] = "Floor Layout";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-grid-3x3-gap me-2" style="color:var(--zb-secondary);"></i>Table Layout</h4>
+        <p class="small mb-0" style="color:var(--zb-text-muted);">Grouped by floor area for faster transfers and split checkouts.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back To POS</a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;">@TempData["Success"]</div>
+}
+
+@foreach (var floor in Model.Floors)
+{
+    <div class="zb-table-card mb-4">
+        <div class="px-4 pt-3 pb-2 border-bottom d-flex justify-content-between align-items-center" style="border-color:rgba(6,182,212,0.15)!important;">
+            <strong style="color:var(--zb-text);">@floor.FloorArea</strong>
+            <span class="zb-badge zb-badge-cyan">@floor.Spaces.Count table(s)</span>
+        </div>
+        <div class="p-3">
+            <div class="row g-3">
+                @foreach (var space in floor.Spaces)
+                {
+                    var occupied = space.ActiveBookingId.HasValue;
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="rounded-3 h-100 overflow-hidden" style="background:var(--zb-primary);border:1px solid @(occupied ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)");">
+                            <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background:@(occupied ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)");border-bottom:1px solid @(occupied ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)");">
+                                <span class="fw-semibold" style="color:@(occupied ? "#fca5a5" : "#86efac");">@space.SpaceName</span>
+                                <span class="small fw-semibold" style="color:@(occupied ? "#fca5a5" : "#86efac");">@(occupied ? "Occupied" : "Available")</span>
+                            </div>
+                            <div class="p-3">
+                                <p class="mb-1 small" style="color:var(--zb-text-muted);">Capacity: <strong style="color:var(--zb-text);">@space.Capacity pax</strong></p>
+                                <p class="mb-1 small" style="color:var(--zb-text-muted);">Rate: <strong style="color:var(--zb-secondary);">PHP @space.HourlyRate.ToString("0.00") / hr</strong></p>
+
+                                @if (occupied)
+                                {
+                                    @if (space.CheckoutRequested)
+                                    {
+                                        <div class="rounded-2 px-2 py-1 mb-2 text-center zb-pulse-alert" style="background:rgba(249,115,22,0.2);border:1px solid rgba(249,115,22,0.4);">
+                                            <i class="bi bi-bell-fill me-1" style="color:var(--zb-accent);"></i>
+                                            <span class="small fw-semibold" style="color:#fb923c;">Checkout Requested!</span>
+                                        </div>
+                                    }
+                                    <p class="mb-1 small" style="color:var(--zb-text);">Booking #@space.ActiveBookingId</p>
+                                    <p class="mb-3 small" style="color:var(--zb-text-muted);">Elapsed: <strong class="pos-timer" style="color:var(--zb-secondary);" data-start-time="@space.ActiveStartTime?.ToString("o")">00:00:00</strong></p>
+
+                                    <form asp-action="TransferTable" method="post" class="row g-2 mb-3">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
+                                        <div class="col-12">
+                                            <label class="form-label small" style="color:var(--zb-text-muted);">Transfer To</label>
+                                            <select name="ToSpaceId" class="form-select form-select-sm zb-form-input" required>
+                                                <option value="">Select destination table</option>
+                                                @foreach (var target in Model.AvailableSpaces.Where(s => s.SpaceId != space.SpaceId))
+                                                {
+                                                    <option value="@target.SpaceId">@target.FloorArea - @target.SpaceName (@target.Capacity pax)</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-12 d-grid">
+                                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(234,179,8,0.15);color:#facc15;border:1px solid rgba(234,179,8,0.3);">Transfer Table</button>
+                                        </div>
+                                    </form>
+
+                                    <form asp-action="SplitCheckout" method="post" class="row g-2 mb-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
+                                        <div class="col-4">
+                                            <label class="form-label small" style="color:var(--zb-text-muted);">Discount %</label>
+                                            <input class="form-control form-control-sm zb-form-input" type="number" name="DiscountPercentage" value="0" min="0" max="100" step="0.01" />
+                                        </div>
+                                        <div class="col-3">
+                                            <label class="form-label small" style="color:var(--zb-text-muted);">Split</label>
+                                            <input class="form-control form-control-sm zb-form-input" type="number" name="SplitCount" value="2" min="2" max="20" step="1" />
+                                        </div>
+                                        <div class="col-5">
+                                            <label class="form-label small" style="color:var(--zb-text-muted);">Payment</label>
+                                            <select class="form-select form-select-sm zb-form-input" name="PaymentMethod">
+                                                <option value="Cash">Cash</option>
+                                                <option value="GCash">GCash</option>
+                                                <option value="Card">Card</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-12 d-grid">
+                                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.3);">Split Checkout</button>
+                                        </div>
+                                    </form>
+
+                                    <form asp-action="Checkout" method="post" class="mb-0">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
+                                        <input type="hidden" name="DiscountPercentage" value="0" />
+                                        <div class="mb-2">
+                                            <label class="form-label small" style="color:var(--zb-text-muted);">Payment</label>
+                                            <select class="form-select form-select-sm zb-form-input" name="PaymentMethod">
+                                                <option value="Cash">Cash</option>
+                                                <option value="GCash">GCash</option>
+                                                <option value="Card">Card</option>
+                                            </select>
+                                        </div>
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);">Regular Checkout</button>
+                                        </div>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <div class="small" style="color:var(--zb-text-muted);">Ready for next session.</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/pos.js" asp-append-version="true"></script>
+}

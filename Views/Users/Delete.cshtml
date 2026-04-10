@@ -1,0 +1,38 @@
+@model ZoneBill_Lloren.Models.User
+
+@{
+    ViewData["Title"] = "Delete User";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-trash me-2" style="color:#ef4444;"></i>Delete User</h4>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+</div>
+
+<div class="zb-table-card" style="border:1px solid rgba(239,68,68,0.3);">
+    <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(239,68,68,0.2)!important;background:rgba(239,68,68,0.06);">
+        <h6 class="fw-bold mb-0" style="color:#fca5a5;"><i class="bi bi-exclamation-triangle me-2"></i>Are you sure you want to delete this?</h6>
+    </div>
+    <div class="p-4">
+        <dl class="row mb-0">
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Business)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@(Model.Business?.BusinessName ?? "-")</dd>
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.UserRole)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.UserRole)</dd>
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.FirstName)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.FirstName)</dd>
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.LastName)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.LastName)</dd>
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.EmailAddress)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.EmailAddress)</dd>
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.IsActive)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.IsActive)</dd>
+        </dl>
+
+        <form asp-action="Delete" class="mt-4 d-flex gap-2">
+            <input type="hidden" asp-for="UserId" />
+            <button type="submit" class="btn fw-semibold" style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.4);"><i class="bi bi-trash me-1"></i>Delete</button>
+            <a asp-action="Index" class="btn fw-semibold" style="background:rgba(148,163,184,0.1);color:var(--zb-text-muted);border:1px solid rgba(148,163,184,0.2);">Cancel</a>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,329 @@
+@model ZoneBill_Lloren.Models.ReportsDashboardViewModel
+
+@{
+    ViewData["Title"] = "Financial Reports";
+    var today = ZoneBill_Lloren.Helpers.PhilippineTime.Now.Date;
+    var sevenDaysAgo = today.AddDays(-6);
+    var thirtyDaysAgo = today.AddDays(-29);
+}
+
+<style>
+    .zb-form-input { background:var(--zb-primary)!important; color:var(--zb-text)!important; border-color:rgba(6,182,212,0.25)!important; }
+    .zb-form-input:focus { border-color:var(--zb-secondary)!important; box-shadow:0 0 0 2px rgba(6,182,212,0.15)!important; }
+    .zb-form-label { color:var(--zb-text-muted); font-size:.85rem; }
+</style>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-file-earmark-bar-graph me-2" style="color:var(--zb-secondary);"></i>Financial Reports</h4>
+        <p class="text-muted small mb-0">Track sales, COGS, gross profit, item mix, and drawer variance.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="ExportCsv"
+           asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-cashierId="@Model.SelectedCashierId"
+           asp-route-paymentMethod="@Model.SelectedPaymentMethod"
+           class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);"><i class="bi bi-filetype-csv me-1"></i>Export CSV</a>
+        <a asp-action="ExportPdf"
+           asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
+           asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
+           asp-route-cashierId="@Model.SelectedCashierId"
+           asp-route-paymentMethod="@Model.SelectedPaymentMethod"
+           class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);"><i class="bi bi-filetype-pdf me-1"></i>Export PDF</a>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="p-4">
+        <form asp-action="Index" method="get" class="row g-3 align-items-end">
+            <div class="col-md-3 col-lg-2">
+                <label for="startDate" class="form-label zb-form-label">Start Date</label>
+                <input id="startDate" name="startDate" type="date" class="form-control zb-form-input" value="@Model.StartDate.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label for="endDate" class="form-label zb-form-label">End Date</label>
+                <input id="endDate" name="endDate" type="date" class="form-control zb-form-input" value="@Model.EndDate.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-md-3 col-lg-3">
+                <label for="cashierId" class="form-label zb-form-label">Cashier</label>
+                <select id="cashierId" name="cashierId" class="form-select zb-form-input">
+                    <option value="">All Cashiers</option>
+                    @foreach (var cashier in Model.CashierOptions)
+                    {
+                        var isSelected = cashier.Value == Model.SelectedCashierId?.ToString();
+                        <option value="@cashier.Value" selected="@isSelected">@cashier.Label</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-3">
+                <label for="paymentMethod" class="form-label zb-form-label">Payment Method</label>
+                <select id="paymentMethod" name="paymentMethod" class="form-select zb-form-input">
+                    <option value="">All Payment Methods</option>
+                    @foreach (var method in Model.PaymentMethodOptions)
+                    {
+                        var isSelected = string.Equals(method.Value, Model.SelectedPaymentMethod, StringComparison.OrdinalIgnoreCase);
+                        <option value="@method.Value" selected="@isSelected">@method.Label</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-12 col-lg-2 d-grid">
+                <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;">Apply Range</button>
+            </div>
+            <div class="col-lg-12">
+                <div class="small" style="color:var(--zb-text-muted);">Quick Ranges</div>
+                <div class="d-flex gap-2 mt-1 flex-wrap">
+                    <a asp-action="Index" asp-route-startDate="@today.ToString("yyyy-MM-dd")" asp-route-endDate="@today.ToString("yyyy-MM-dd")" asp-route-cashierId="@Model.SelectedCashierId" asp-route-paymentMethod="@Model.SelectedPaymentMethod" class="btn btn-sm" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">Today</a>
+                    <a asp-action="Index" asp-route-startDate="@sevenDaysAgo.ToString("yyyy-MM-dd")" asp-route-endDate="@today.ToString("yyyy-MM-dd")" asp-route-cashierId="@Model.SelectedCashierId" asp-route-paymentMethod="@Model.SelectedPaymentMethod" class="btn btn-sm" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">7 Days</a>
+                    <a asp-action="Index" asp-route-startDate="@thirtyDaysAgo.ToString("yyyy-MM-dd")" asp-route-endDate="@today.ToString("yyyy-MM-dd")" asp-route-cashierId="@Model.SelectedCashierId" asp-route-paymentMethod="@Model.SelectedPaymentMethod" class="btn btn-sm" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">30 Days</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Gross Sales</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalSales.ToString("C")</div>
+            <div class="small mt-2" style="color:var(--zb-text-muted);">@Model.TotalOrders orders / @Model.TotalUnitsSold units</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="zb-kpi-label">Cost of Goods Sold</div>
+            <div class="zb-kpi-value" style="color:#ef4444;">@Model.TotalCostOfGoods.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+            <div class="zb-kpi-label">Gross Profit</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@Model.GrossProfit.ToString("C")</div>
+            <div class="small mt-2" style="color:var(--zb-text-muted);">Margin: @Model.ProfitMarginPercent.ToString("N2")%</div>
+            @if (Model.TotalAdjustments != 0m)
+            {
+                <div class="small mt-1" style="color:var(--zb-accent);">Net Adjustments: @Model.TotalAdjustments.ToString("C")</div>
+            }
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+            <div class="zb-kpi-label">Shift Variance</div>
+            <div class="zb-kpi-value" style="color:@(Model.TotalShiftVariance < 0 ? "#ef4444" : "#22c55e");">@Model.TotalShiftVariance.ToString("C")</div>
+            <div class="small mt-2" style="color:var(--zb-text-muted);">@Model.ClosedShiftCount closed shifts (@Model.ShortShiftCount short / @Model.OverShiftCount over)</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4" style="border-left:3px solid rgba(6,182,212,0.5);">
+    <div class="p-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <div class="small" style="color:var(--zb-text-muted);">POS Audit Trail Events (Filtered Range)</div>
+            <div class="h4 mb-0 fw-semibold" style="color:var(--zb-secondary);">@Model.AuditEventCount</div>
+        </div>
+        <div class="small" style="color:var(--zb-text-muted);">Includes transfer-table and split-checkout actions with cashier identity and timestamps.</div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-graph-up me-2"></i>Daily Sales Trend</h6>
+            </div>
+            <div class="p-4">
+                <canvas id="dailySalesChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-bar-chart-line me-2"></i>Top Selling Items (By Units)</h6>
+            </div>
+            <div class="p-4">
+                <canvas id="topItemsChart" height="170"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-calculator me-2"></i>Top Item Financials</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table zb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-end">COGS</th>
+                            <th class="text-end">Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.TopItems.Any())
+                    {
+                        @foreach (var item in Model.TopItems)
+                        {
+                            <tr>
+                                <td class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</td>
+                                <td class="text-end">@item.Quantity</td>
+                                <td class="text-end" style="color:var(--zb-secondary);">@item.Revenue.ToString("C")</td>
+                                <td class="text-end">@item.Cost.ToString("C")</td>
+                                <td class="text-end" style="color:@(item.Profit < 0 ? "#ef4444" : "#22c55e");">@item.Profit.ToString("C")</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4" style="color:var(--zb-text-muted);">No item sales in the selected range.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-5">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-cash-stack me-2"></i>Recent Shift Closures (Variance)</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table zb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Cashier</th>
+                            <th>Closed</th>
+                            <th class="text-end">Expected</th>
+                            <th class="text-end">Actual</th>
+                            <th class="text-end">Variance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.ShiftVariances.Any())
+                    {
+                        @foreach (var shift in Model.ShiftVariances)
+                        {
+                            <tr>
+                                <td class="fw-semibold" style="color:var(--zb-text);">@shift.CashierName</td>
+                                <td><span class="zb-mono">@ZoneBill_Lloren.Helpers.PhilippineTime.ToDateTime(shift.ClosedAt)?.ToString("MMM dd, hh:mm tt")</span></td>
+                                <td class="text-end">@shift.ExpectedCash.ToString("C")</td>
+                                <td class="text-end">@((shift.ActualCash ?? 0m).ToString("C"))</td>
+                                <td class="text-end" style="color:@((shift.Variance ?? 0m) < 0 ? "#ef4444" : "#22c55e");">@((shift.Variance ?? 0m).ToString("C"))</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-4" style="color:var(--zb-text-muted);">No closed shifts in the selected range.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card mt-4">
+    <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-shield-check me-2"></i>Recent POS Audit Trail</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>When</th>
+                    <th>Cashier</th>
+                    <th>Action</th>
+                    <th>Booking</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Split</th>
+                    <th>Invoices</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.RecentPosAuditLogs.Any())
+            {
+                @foreach (var audit in Model.RecentPosAuditLogs)
+                {
+                    <tr>
+                        <td><span class="zb-mono">@ZoneBill_Lloren.Helpers.PhilippineTime.ToDateTime(audit.CreatedAt).ToString("MMM dd, hh:mm tt")</span></td>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@audit.CashierName</td>
+                        <td><span class="zb-badge zb-badge-cyan">@audit.ActionType</span></td>
+                        <td>@(audit.BookingId.HasValue ? $"#{audit.BookingId.Value}" : "—")</td>
+                        <td>@(string.IsNullOrWhiteSpace(audit.SourceSpaceName) ? "—" : audit.SourceSpaceName)</td>
+                        <td>@(string.IsNullOrWhiteSpace(audit.TargetSpaceName) ? "—" : audit.TargetSpaceName)</td>
+                        <td>@(audit.SplitCount.HasValue ? audit.SplitCount.Value.ToString() : "—")</td>
+                        <td>@(string.IsNullOrWhiteSpace(audit.InvoiceIds) ? "—" : audit.InvoiceIds)</td>
+                        <td>@(string.IsNullOrWhiteSpace(audit.Details) ? "—" : audit.Details)</td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr>
+                    <td colspan="9" class="text-center py-4" style="color:var(--zb-text-muted);">No POS audit events in the selected range.</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(51,65,85,0.5)';
+
+        const dailyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DailyLabels));
+        const dailySales = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DailySalesSeries));
+        const topItemLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopItems.Select(x => x.ItemName).ToList()));
+        const topItemQty = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopItems.Select(x => x.Quantity).ToList()));
+
+        new Chart(document.getElementById('dailySalesChart'), {
+            type: 'line',
+            data: {
+                labels: dailyLabels,
+                datasets: [{
+                    label: 'Sales',
+                    data: dailySales,
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6,182,212,0.12)',
+                    fill: true,
+                    tension: 0.3,
+                    pointBackgroundColor: '#06b6d4'
+                }]
+            }
+        });
+
+        new Chart(document.getElementById('topItemsChart'), {
+            type: 'bar',
+            data: {
+                labels: topItemLabels,
+                datasets: [{
+                    label: 'Units Sold',
+                    data: topItemQty,
+                    backgroundColor: '#06b6d4',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y'
+            }
+        });
+    </script>
+}

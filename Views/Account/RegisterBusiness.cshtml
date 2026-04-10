@@ -1,0 +1,88 @@
+@model ZoneBill_Lloren.Models.RegisterBusinessViewModel
+
+@{
+    ViewData["Title"] = "Register Your Business";
+}
+
+<style>
+    .zb-auth-card { background:var(--zb-primary-mid); border:1px solid rgba(6,182,212,0.2); border-radius:.75rem; overflow:hidden; }
+    .zb-auth-header { background:rgba(6,182,212,0.08); padding:1.5rem; border-bottom:1px solid rgba(6,182,212,0.15); }
+    .zb-auth-header h4 { color:var(--zb-text); margin:0; font-weight:700; }
+    .zb-auth-header small { color:var(--zb-text-muted); }
+    .zb-auth-input { background:var(--zb-primary)!important; color:var(--zb-text)!important; border-color:rgba(6,182,212,0.25)!important; }
+    .zb-auth-input:focus { border-color:var(--zb-secondary)!important; box-shadow:0 0 0 2px rgba(6,182,212,0.15)!important; }
+    .zb-auth-input::placeholder { color:var(--zb-text-muted)!important; opacity:.6; }
+    .zb-auth-label { color:var(--zb-text-muted); font-size:.85rem; font-weight:600; }
+    .zb-section-title { color:var(--zb-secondary); border-bottom:1px solid rgba(6,182,212,0.15); padding-bottom:.5rem; font-size:1rem; }
+</style>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="zb-auth-card">
+                <div class="zb-auth-header">
+                    <h4><i class="bi bi-building me-2" style="color:var(--zb-secondary);"></i>Start Your @ViewBag.PlanName Plan</h4>
+                    <small>Get running today for ₱@ViewBag.Price / month</small>
+                </div>
+                <div class="p-4">
+                    <form asp-action="RegisterBusiness" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                        <input type="hidden" asp-for="PlanId" />
+
+                        <h5 class="zb-section-title"><i class="bi bi-shop me-1"></i> Business Information</h5>
+                        <div class="form-group mb-3">
+                            <label asp-for="BusinessName" class="control-label zb-auth-label"></label>
+                            <input asp-for="BusinessName" class="form-control zb-auth-input" placeholder="e.g. Rack and Roll Billiards" />
+                            <span asp-validation-for="BusinessName" class="text-danger"></span>
+                        </div>
+
+                        <h5 class="zb-section-title mt-4"><i class="bi bi-person me-1"></i> Owner Profile</h5>
+                        <div class="row">
+                            <div class="col-md-6 form-group mb-3">
+                                <label asp-for="FirstName" class="control-label zb-auth-label"></label>
+                                <input asp-for="FirstName" class="form-control zb-auth-input" />
+                                <span asp-validation-for="FirstName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group mb-3">
+                                <label asp-for="LastName" class="control-label zb-auth-label"></label>
+                                <input asp-for="LastName" class="form-control zb-auth-input" />
+                                <span asp-validation-for="LastName" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="EmailAddress" class="control-label zb-auth-label"></label>
+                            <input asp-for="EmailAddress" class="form-control zb-auth-input" placeholder="owner@domain.com" />
+                            <span asp-validation-for="EmailAddress" class="text-danger"></span>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 form-group mb-4">
+                                <label asp-for="Password" class="control-label zb-auth-label"></label>
+                                <input asp-for="Password" class="form-control zb-auth-input" />
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 form-group mb-4">
+                                <label asp-for="ConfirmPassword" class="control-label zb-auth-label"></label>
+                                <input asp-for="ConfirmPassword" class="form-control zb-auth-input" />
+                                <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-group d-grid">
+                            <button type="submit" class="btn btn-lg fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">Complete Registration</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <a asp-controller="Home" asp-action="Index" style="color:var(--zb-secondary);">Back to Pricing</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

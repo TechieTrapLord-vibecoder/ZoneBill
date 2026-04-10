@@ -1,0 +1,69 @@
+@model ZoneBill_Lloren.Models.Booking
+
+@{
+    ViewData["Title"] = "Create Booking";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-plus-circle me-2" style="color:var(--zb-secondary);"></i>Create Booking</h4>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+</div>
+
+<div class="zb-table-card">
+    <div class="p-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="BusinessId" class="form-label zb-form-label"></label>
+                    <select asp-for="BusinessId" class="form-select zb-form-input" asp-items="ViewBag.BusinessId"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="SpaceId" class="form-label zb-form-label"></label>
+                    <select asp-for="SpaceId" class="form-select zb-form-input" asp-items="ViewBag.SpaceId"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="CustomerId" class="form-label zb-form-label"></label>
+                    <select asp-for="CustomerId" class="form-select zb-form-input" asp-items="ViewBag.CustomerId"></select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="StartTime" class="form-label zb-form-label"></label>
+                    <input asp-for="StartTime" class="form-control zb-form-input" />
+                    <span asp-validation-for="StartTime" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="EndTime" class="form-label zb-form-label"></label>
+                    <input asp-for="EndTime" class="form-control zb-form-input" />
+                    <span asp-validation-for="EndTime" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="DurationHours" class="form-label zb-form-label"></label>
+                    <input asp-for="DurationHours" class="form-control zb-form-input" />
+                    <span asp-validation-for="DurationHours" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="LockedHourlyRate" class="form-label zb-form-label"></label>
+                    <input asp-for="LockedHourlyRate" class="form-control zb-form-input" />
+                    <span asp-validation-for="LockedHourlyRate" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="BookingStatus" class="form-label zb-form-label"></label>
+                    <input asp-for="BookingStatus" class="form-control zb-form-input" />
+                    <span asp-validation-for="BookingStatus" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="ReferenceCode" class="form-label zb-form-label"></label>
+                    <input asp-for="ReferenceCode" class="form-control zb-form-input" />
+                    <span asp-validation-for="ReferenceCode" class="text-danger small"></span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;"><i class="bi bi-check-lg me-1"></i>Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

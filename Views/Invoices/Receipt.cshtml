@@ -1,0 +1,264 @@
+@model ZoneBill_Lloren.Models.InvoiceReceiptViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Receipt #@Model.Invoice.InvoiceId</title>
+    <style>
+        @@page {
+            size: 80mm auto;
+            margin: 6mm;
+        }
+
+        body {
+            font-family: "Consolas", "Courier New", monospace;
+            background: #f1f3f5;
+            margin: 0;
+            padding: 20px 0;
+            color: #111;
+        }
+
+        .receipt {
+            width: 80mm;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #d9d9d9;
+            padding: 10px 10px 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .center { text-align: center; }
+        .muted { color: #666; font-size: 11px; }
+        .line { border-top: 1px dashed #999; margin: 8px 0; }
+        .meta { font-size: 11px; line-height: 1.35; }
+        .brand { font-size: 16px; font-weight: 700; letter-spacing: 0.4px; }
+        .brand-logo {
+            max-width: 120px;
+            max-height: 56px;
+            margin: 0 auto 6px;
+            display: block;
+            object-fit: contain;
+        }
+        .caps { text-transform: uppercase; letter-spacing: 0.6px; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+
+        th, td {
+            padding: 3px 0;
+            vertical-align: top;
+        }
+
+        td:last-child, th:last-child {
+            text-align: right;
+        }
+
+        td.qty,
+        th.qty {
+            width: 34px;
+            text-align: right;
+            padding-right: 6px;
+        }
+
+        td.price,
+        th.price {
+            width: 70px;
+            text-align: right;
+        }
+
+        .totals td {
+            padding-top: 4px;
+            font-weight: 600;
+        }
+
+        .totals tr.grand td {
+            font-size: 14px;
+            padding-top: 6px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .small {
+            font-size: 11px;
+        }
+
+        .footnote {
+            margin-top: 8px;
+            font-size: 10px;
+            color: #666;
+            line-height: 1.35;
+        }
+
+        .qr-wrap {
+            margin-top: 8px;
+        }
+
+        .qr-img {
+            width: 76px;
+            height: 76px;
+        }
+
+        .actions {
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .actions button {
+            border: 1px solid #0d6efd;
+            background: #0d6efd;
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .actions button:hover {
+            background: #0b5ed7;
+        }
+
+        @@media print {
+            body { background: #fff; padding: 0; }
+            .receipt {
+                border: 0;
+                width: 100%;
+                box-shadow: none;
+                padding: 0;
+            }
+            .actions { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="receipt">
+        <div class="center">
+            @if (!string.IsNullOrWhiteSpace(Model.Invoice.Business.LogoUrl))
+            {
+                <img src="@Model.Invoice.Business.LogoUrl" alt="@Model.Invoice.Business.BusinessName logo" class="brand-logo" />
+            }
+            <div class="brand">@Model.Invoice.Business.BusinessName</div>
+            <div class="muted caps">Official Receipt</div>
+        </div>
+
+        <div class="line"></div>
+
+        <div class="meta">
+            <div><strong>Receipt No:</strong> #@Model.Invoice.InvoiceId</div>
+            <div><strong>Date:</strong> @PhilippineTime.ToDateTime(Model.Invoice.GeneratedDate).ToString("yyyy-MM-dd HH:mm")</div>
+            <div><strong>Booking:</strong> @Model.Invoice.Booking.BookingId</div>
+            <div><strong>Status:</strong> @Model.Invoice.PaymentStatus</div>
+        </div>
+
+        <div class="line"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="qty">Qty</th>
+                    <th class="price">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>@item.Description</td>
+                    <td class="qty">@item.Quantity</td>
+                    <td class="price">@item.Total.ToString("0.00")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+
+        <div class="line"></div>
+
+        <table class="totals">
+            <tbody>
+                <tr>
+                    <td>Subtotal</td>
+                    <td>@Model.Invoice.SubTotal.ToString("0.00")</td>
+                </tr>
+                <tr>
+                    <td>Discount</td>
+                    <td>-@Model.Invoice.DiscountAmount.ToString("0.00")</td>
+                </tr>
+                @foreach (var adj in Model.Adjustments)
+                {
+                    <tr>
+                        <td>@adj.AdjustmentType @if (!string.IsNullOrWhiteSpace(adj.Reason)) { <span class="small">(@adj.Reason)</span> }</td>
+                        <td>@((adj.AdjustmentType == "Debit" ? "+" : "-"))@adj.Amount.ToString("0.00")</td>
+                    </tr>
+                }
+                <tr>
+                    <td>Tax (@((Model.Invoice.TaxRateApplied * 100m).ToString("0.##"))%)</td>
+                    <td>@Model.Invoice.TaxAmount.ToString("0.00")</td>
+                </tr>
+                <tr>
+                    <td>Total</td>
+                    <td>@Model.Invoice.TotalAmount.ToString("0.00")</td>
+                </tr>
+                <tr>
+                    <td>Paid</td>
+                    <td>@Model.PaidAmount.ToString("0.00")</td>
+                </tr>
+                <tr class="grand">
+                    <td>Balance</td>
+                    <td>@Model.Balance.ToString("0.00")</td>
+                </tr>
+            </tbody>
+        </table>
+
+        @if (Model.Payments.Any())
+        {
+            <div class="line"></div>
+            <div class="muted caps">Payment History</div>
+            <table>
+                <tbody>
+                @foreach (var payment in Model.Payments)
+                {
+                    <tr>
+                        <td>@payment.PaymentMethod @if (!string.IsNullOrWhiteSpace(payment.ReferenceNumber))
+                            {
+                                <span class="small">(@payment.ReferenceNumber)</span>
+                            }
+                        </td>
+                        <td class="text-right">@payment.AmountPaid.ToString("0.00")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+
+        <div class="line"></div>
+        <div class="center muted caps">Thank You For Visiting</div>
+        <div class="footnote center">This receipt is system-generated and valid without signature.</div>
+        @if (!string.IsNullOrWhiteSpace(Model.InvoiceLookupUrl))
+        {
+            <div class="qr-wrap center">
+                <img
+                    class="qr-img"
+                    alt="Invoice QR"
+                    src="https://api.qrserver.com/v1/create-qr-code/?size=152x152&data=@Uri.EscapeDataString(Model.InvoiceLookupUrl)" />
+                <div class="small muted">Scan to open invoice</div>
+            </div>
+        }
+
+        <div class="actions">
+            <button onclick="window.print();">Print / Save as PDF</button>
+        </div>
+    </div>
+</body>
+</html>

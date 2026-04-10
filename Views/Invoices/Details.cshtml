@@ -1,0 +1,147 @@
+@model ZoneBill_Lloren.Models.Invoice
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Invoice Details";
+    var isPaid = Model.PaymentStatus == "Paid";
+    var statusClass = isPaid ? "zb-badge-green" : "zb-badge-orange";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <a asp-action="Index" class="text-muted small text-decoration-none"><i class="bi bi-arrow-left me-1"></i>Back to Invoices</a>
+        <h4 class="fw-bold mb-0 mt-1" style="color:var(--zb-text);"><i class="bi bi-receipt-cutoff me-2" style="color:var(--zb-secondary);"></i>Invoice Details</h4>
+    </div>
+    <div class="d-flex gap-2">
+        @if (!isPaid)
+        {
+            <button type="button" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;"
+                    data-bs-toggle="modal" data-bs-target="#receivePaymentModal">
+                <i class="bi bi-cash-coin me-1"></i> Receive Payment
+            </button>
+        }
+        <a asp-action="Receipt" asp-route-id="@Model.InvoiceId" target="_blank"
+           class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+            <i class="bi bi-printer me-1"></i> Print Receipt
+        </a>
+        <a asp-action="Edit" asp-route-id="@Model.InvoiceId"
+           class="btn btn-sm" style="background:rgba(255,255,255,0.06);color:var(--zb-text-muted);border:1px solid rgba(255,255,255,0.1);">
+            <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+    </div>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger border-0 mb-3" style="background:rgba(239,68,68,0.12);color:#fca5a5;">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert border-0 mb-3" style="background:rgba(34,197,94,0.12);color:#86efac;">@TempData["Success"]</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="zb-table-card">
+            <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-info-circle me-2"></i>Invoice Information</h6>
+            </div>
+            <div class="p-4">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="zb-detail-item">
+                            <div class="zb-detail-label">Business</div>
+                            <div class="zb-detail-value">@Model.Business?.BusinessName</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="zb-detail-item">
+                            <div class="zb-detail-label">Booking Status</div>
+                            <div class="zb-detail-value">@Model.Booking?.BookingStatus</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="zb-detail-item">
+                            <div class="zb-detail-label">Total Amount</div>
+                            <div class="zb-detail-value fw-bold" style="color:var(--zb-secondary);font-size:1.25rem;">₱@Model.TotalAmount.ToString("N2")</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="zb-detail-item">
+                            <div class="zb-detail-label">Tax Rate Applied</div>
+                            <div class="zb-detail-value">@Model.TaxRateApplied.ToString("0.##")%</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="zb-detail-item">
+                            <div class="zb-detail-label">Generated Date</div>
+                            <div class="zb-detail-value zb-mono">@PhilippineTime.ToDateTime(Model.GeneratedDate).ToString("MMMM d, yyyy h:mm tt")</div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="zb-detail-item">
+                            <div class="zb-detail-label">Payment Status</div>
+                            <div class="mt-1"><span class="zb-badge @statusClass">@Model.PaymentStatus</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="zb-table-card h-100 d-flex flex-column align-items-center justify-content-center p-4 text-center">
+            @if (isPaid)
+            {
+                <i class="bi bi-check-circle-fill mb-3" style="font-size:2.5rem;color:#22c55e;"></i>
+                <div class="fw-bold" style="color:#22c55e;font-size:1.1rem;">Payment Received</div>
+                <p class="text-muted small mt-1 mb-0">This invoice has been fully paid.</p>
+            }
+            else
+            {
+                <i class="bi bi-clock-history mb-3" style="font-size:2.5rem;color:var(--zb-accent);"></i>
+                <div class="fw-bold" style="color:var(--zb-accent);font-size:1.1rem;">Awaiting Payment</div>
+                <p class="text-muted small mt-1 mb-3">This invoice has not been paid yet.</p>
+                <button type="button" class="btn fw-semibold w-100" style="background:var(--zb-accent);color:#fff;border:none;"
+                        data-bs-toggle="modal" data-bs-target="#receivePaymentModal">
+                    <i class="bi bi-cash-coin me-1"></i> Receive Payment
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+@if (!isPaid)
+{
+    <div class="modal fade" id="receivePaymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.2);">
+                <div class="modal-header" style="border-color:rgba(6,182,212,0.15);">
+                    <h5 class="modal-title fw-bold" style="color:var(--zb-text);"><i class="bi bi-cash-coin me-2" style="color:var(--zb-secondary);"></i>Receive Payment</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-controller="Payments" asp-action="ReceiveFromInvoice" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <input type="hidden" name="invoiceId" value="@Model.InvoiceId" />
+                        <div class="mb-3">
+                            <label class="form-label" style="color:var(--zb-text-muted);font-size:.85rem;">Payment Method</label>
+                            <select name="paymentMethod" class="form-select" style="background:var(--zb-primary);color:var(--zb-text);border-color:rgba(6,182,212,0.25);" required>
+                                <option value="Cash">Cash</option>
+                                <option value="GCash">GCash</option>
+                                <option value="Card">Card</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label" style="color:var(--zb-text-muted);font-size:.85rem;">Reference Number <span class="text-muted">(optional)</span></label>
+                            <input name="referenceNumber" type="text" class="form-control" style="background:var(--zb-primary);color:var(--zb-text);border-color:rgba(6,182,212,0.25);" maxlength="100" placeholder="Txn / Trace / OR number" />
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="border-color:rgba(6,182,212,0.15);">
+                        <button type="button" class="btn btn-sm" style="background:rgba(255,255,255,0.06);color:var(--zb-text-muted);border:1px solid rgba(255,255,255,0.1);" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">Confirm Payment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}

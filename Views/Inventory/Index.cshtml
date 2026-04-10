@@ -1,0 +1,288 @@
+@model ZoneBill_Lloren.Models.InventoryIndexViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Inventory Management";
+}
+
+<style>
+    .zb-form-input { background:var(--zb-primary)!important; color:var(--zb-text)!important; border-color:rgba(6,182,212,0.25)!important; }
+    .zb-form-input:focus { border-color:var(--zb-secondary)!important; box-shadow:0 0 0 2px rgba(6,182,212,0.15)!important; }
+    .zb-form-input::placeholder { color:var(--zb-text-muted)!important; opacity:.6; }
+    .zb-form-label { color:var(--zb-text-muted); font-size:.85rem; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-boxes me-2" style="color:var(--zb-secondary);"></i>Inventory Management</h4>
+        <p class="text-muted small mb-0">Track stock levels, restock items, and monitor stock movement history.</p>
+    </div>
+    <a asp-controller="MenuItems" asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
+        <i class="bi bi-plus-lg me-1"></i> Add Menu Item
+    </a>
+</div>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert border-0 mb-3" style="background:rgba(239,68,68,0.12);color:#fca5a5;">@TempData["Error"]</div>
+}
+@if (TempData["Success"] != null)
+{
+    <div class="alert border-0 mb-3" style="background:rgba(34,197,94,0.12);color:#86efac;">@TempData["Success"]</div>
+}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="zb-kpi-label">Low Stock Alerts</div>
+            <div class="zb-kpi-value" style="color:#ef4444;">@Model.LowStockItems.Count</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Active Menu Items</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.MenuItems.Count(m => m.IsActive)</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Total Stock Units</div>
+            <div class="zb-kpi-value">@Model.MenuItems.Where(m => m.IsActive).Sum(m => m.StockAvailable)</div>
+        </div>
+    </div>
+</div>
+
+<!-- Items Needing Restock -->
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:#ef4444;"><i class="bi bi-exclamation-triangle me-2"></i>Items Needing Restock</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Current Stock</th>
+                    <th>Low Threshold</th>
+                    <th style="width:360px;">Quick Restock</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.LowStockItems.Any())
+                {
+                    @foreach (var item in Model.LowStockItems)
+                    {
+                        <tr>
+                            <td class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</td>
+                            <td><span class="zb-badge zb-badge-red">@item.StockAvailable</span></td>
+                            <td>@item.LowStockThreshold</td>
+                            <td>
+                                <form asp-action="Restock" method="post" class="row g-2">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ItemId" value="@item.ItemId" />
+                                    <div class="col-4">
+                                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" name="Quantity" value="10" required />
+                                    </div>
+                                    <div class="col-5">
+                                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" placeholder="Optional note" maxlength="255" />
+                                    </div>
+                                    <div class="col-3 d-grid">
+                                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);font-size:.78rem;">Restock</button>
+                                    </div>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="4" class="text-center py-3" style="color:var(--zb-text-muted);">No low-stock alerts. Inventory levels are healthy.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Manual Stock Adjustments -->
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-sliders me-2"></i>Manual Stock Adjustments</h6>
+    </div>
+    <div class="p-4">
+        <div class="row g-4">
+            <div class="col-lg-6">
+                <h6 class="mb-2 fw-semibold" style="color:var(--zb-accent);"><i class="bi bi-trash3 me-1"></i> Spoilage (Decrease Stock)</h6>
+                <form asp-action="AdjustStock" method="post" class="row g-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="TransactionType" value="Spoilage" />
+                    <div class="col-12">
+                        <label class="form-label small zb-form-label">Item</label>
+                        <select class="form-select form-select-sm zb-form-input" name="ItemId" required>
+                            <option value="">Select item</option>
+                            @foreach (var item in Model.MenuItems.Where(m => m.IsActive).OrderBy(m => m.ItemName))
+                            {
+                                <option value="@item.ItemId">@item.ItemName (Stock: @item.StockAvailable)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small zb-form-label">Quantity</label>
+                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" name="Quantity" value="1" required />
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label small zb-form-label">Notes</label>
+                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="e.g. expired item" />
+                    </div>
+                    <div class="col-12 d-grid">
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
+                            <i class="bi bi-trash3 me-1"></i> Record Spoilage
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="col-lg-6">
+                <h6 class="mb-2 fw-semibold" style="color:var(--zb-secondary);"><i class="bi bi-arrow-left-right me-1"></i> Correction (Increase or Decrease)</h6>
+                <form asp-action="AdjustStock" method="post" class="row g-2">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="TransactionType" value="Correction" />
+                    <div class="col-12">
+                        <label class="form-label small zb-form-label">Item</label>
+                        <select class="form-select form-select-sm zb-form-input" name="ItemId" required>
+                            <option value="">Select item</option>
+                            @foreach (var item in Model.MenuItems.Where(m => m.IsActive).OrderBy(m => m.ItemName))
+                            {
+                                <option value="@item.ItemId">@item.ItemName (Stock: @item.StockAvailable)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small zb-form-label">Quantity Change</label>
+                        <input class="form-control form-control-sm zb-form-input" type="number" min="-100000" max="100000" name="Quantity" value="1" required />
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label small zb-form-label">Notes</label>
+                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="e.g. physical count mismatch" />
+                    </div>
+                    <div class="col-12">
+                        <small style="color:var(--zb-text-muted);">Use positive values to add stock and negative values to subtract stock.</small>
+                    </div>
+                    <div class="col-12 d-grid">
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                            <i class="bi bi-arrow-left-right me-1"></i> Save Correction
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- All Menu Items -->
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-list-ul me-2"></i>All Menu Items</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Sell Price</th>
+                    <th>Cost Price</th>
+                    <th>Stock</th>
+                    <th>Threshold</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.MenuItems)
+                {
+                    var lowStock = item.IsActive && item.StockAvailable <= item.LowStockThreshold;
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</td>
+                        <td style="color:var(--zb-secondary);">@item.CurrentPrice.ToString("C")</td>
+                        <td>@item.CostPrice.ToString("C")</td>
+                        <td>
+                            @if (lowStock)
+                            {
+                                <span class="zb-badge zb-badge-red">@item.StockAvailable</span>
+                            }
+                            else
+                            {
+                                <span class="zb-badge zb-badge-green">@item.StockAvailable</span>
+                            }
+                        </td>
+                        <td>@item.LowStockThreshold</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="zb-badge zb-badge-cyan">Active</span>
+                            }
+                            else
+                            {
+                                <span class="zb-badge zb-badge-red">Inactive</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Recent Inventory Movements -->
+<div class="zb-table-card">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-arrow-down-up me-2"></i>Recent Inventory Movements</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>When (PH)</th>
+                    <th>Item</th>
+                    <th>Type</th>
+                    <th>Change</th>
+                    <th>Before</th>
+                    <th>After</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.RecentTransactions.Any())
+                {
+                    @foreach (var tx in Model.RecentTransactions)
+                    {
+                        var changeBadge = tx.QuantityChange >= 0 ? "zb-badge-green" : "zb-badge-red";
+                        var signedValue = tx.QuantityChange >= 0 ? $"+{tx.QuantityChange}" : tx.QuantityChange.ToString();
+                        var typeBadge = tx.TransactionType switch
+                        {
+                            "Restock" => "zb-badge-green",
+                            "Sale" => "zb-badge-red",
+                            "Spoilage" => "zb-badge-orange",
+                            "Correction" => "zb-badge-cyan",
+                            _ => "zb-badge-cyan"
+                        };
+                        <tr>
+                            <td><span class="zb-mono">@PhilippineTime.ToDateTime(tx.CreatedAt).ToString("MMM d, h:mm tt")</span></td>
+                            <td class="fw-semibold" style="color:var(--zb-text);">@tx.MenuItem.ItemName</td>
+                            <td><span class="zb-badge @typeBadge">@tx.TransactionType</span></td>
+                            <td><span class="zb-badge @changeBadge">@signedValue</span></td>
+                            <td>@tx.PreviousStock</td>
+                            <td>@tx.NewStock</td>
+                            <td>@(string.IsNullOrWhiteSpace(tx.Notes) ? "—" : tx.Notes)</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-3" style="color:var(--zb-text-muted);">No inventory transactions recorded yet.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

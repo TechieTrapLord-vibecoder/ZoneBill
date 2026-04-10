@@ -1,0 +1,17 @@
+{
+  "name": "zonebill_lloren",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "css:build": "npx tailwindcss -i ./Styles/tailwind.css -o ./wwwroot/css/tailwind.output.css --minify",
+    "css:watch": "npx tailwindcss -i ./Styles/tailwind.css -o ./wwwroot/css/tailwind.output.css --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

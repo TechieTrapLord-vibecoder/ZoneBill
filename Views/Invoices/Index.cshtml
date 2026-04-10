@@ -1,0 +1,87 @@
+@model IEnumerable<ZoneBill_Lloren.Models.Invoice>
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Invoices";
+}
+
+@{
+    var totalAmt = Model.Sum(i => i.TotalAmount);
+    var paid = Model.Count(i => i.PaymentStatus == "Paid");
+    var unpaid = Model.Count(i => i.PaymentStatus != "Paid");
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-receipt-cutoff me-2" style="color:var(--zb-secondary);"></i>Invoices</h4>
+        <p class="text-muted small mb-0">Billing records for all completed sessions.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
+        <i class="bi bi-plus-lg me-1"></i> New Invoice
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Total Revenue</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">₱@totalAmt.ToString("N2")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+            <div class="zb-kpi-label">Paid</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@paid</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+            <div class="zb-kpi-label">Unpaid</div>
+            <div class="zb-kpi-value" style="color:var(--zb-accent);">@unpaid</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Business</th>
+                    <th>Booking Status</th>
+                    <th>Total Amount</th>
+                    <th>Tax Rate</th>
+                    <th>Status</th>
+                    <th>Generated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var statusClass = item.PaymentStatus == "Paid" ? "zb-badge-green" : "zb-badge-orange";
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@item.Business?.BusinessName</td>
+                        <td>@item.Booking?.BookingStatus</td>
+                        <td class="fw-semibold" style="color:var(--zb-secondary);">₱@item.TotalAmount.ToString("N2")</td>
+                        <td>@item.TaxRateApplied.ToString("0.##")%</td>
+                        <td><span class="zb-badge @statusClass">@item.PaymentStatus</span></td>
+                        <td><span class="zb-mono">@PhilippineTime.ToDateTime(item.GeneratedDate).ToString("MMM d, h:mm tt")</span></td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@item.InvoiceId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
+                                <a asp-action="Receipt" asp-route-id="@item.InvoiceId" target="_blank" class="zb-action-btn" title="Receipt"><i class="bi bi-printer"></i></a>
+                                @if (item.PaymentStatus != "Paid")
+                                {
+                                    <a asp-action="Details" asp-route-id="@item.InvoiceId" class="zb-action-btn" title="Receive Payment" style="color:#22c55e;"><i class="bi bi-cash-coin"></i></a>
+                                }
+                                <a asp-action="Edit" asp-route-id="@item.InvoiceId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <a asp-action="Delete" asp-route-id="@item.InvoiceId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

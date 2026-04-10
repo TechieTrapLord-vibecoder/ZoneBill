@@ -1,0 +1,81 @@
+@model IEnumerable<ZoneBill_Lloren.Models.SubscriptionInvoice>
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Subscription Invoices";
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-receipt me-2" style="color:var(--zb-secondary);"></i>Subscription Invoices</h4>
+        <p class="text-muted small mb-0">SaaS billing history for all tenant businesses.</p>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Total Invoices</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.Count()</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+            <div class="zb-kpi-label">Paid</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@Model.Count(i => i.Status == "Paid")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+            <div class="zb-kpi-label">Pending</div>
+            <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.Count(i => i.Status == "Pending")</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="zb-kpi-label">Failed / Overdue</div>
+            <div class="zb-kpi-value" style="color:#ef4444;">@Model.Count(i => i.Status == "Failed" || i.Status == "Overdue")</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Issued (PH)</th>
+                    <th>Business</th>
+                    <th>Plan</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Period</th>
+                    <th>Reference</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var invoice in Model)
+                {
+                    var statusBadge = invoice.Status switch
+                    {
+                        "Paid"      => "zb-badge-green",
+                        "Pending"   => "zb-badge-cyan",
+                        "Failed"    => "zb-badge-red",
+                        "Overdue"   => "zb-badge-orange",
+                        "Cancelled" => "zb-badge-yellow",
+                        _           => "zb-badge-cyan"
+                    };
+                    <tr>
+                        <td><span class="zb-mono">@PhilippineTime.ToDateTime(invoice.IssuedAt).ToString("MMM d, yyyy h:mm tt")</span></td>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@invoice.Business.BusinessName</td>
+                        <td>@invoice.Plan.PlanName</td>
+                        <td style="color:var(--zb-secondary);">@invoice.Amount.ToString("C")</td>
+                        <td><span class="zb-badge @statusBadge">@invoice.Status</span></td>
+                        <td><span class="zb-mono">@PhilippineTime.ToDateTime(invoice.PeriodStart).ToString("MMM d") – @PhilippineTime.ToDateTime(invoice.PeriodEnd).ToString("MMM d, yyyy")</span></td>
+                        <td>@(string.IsNullOrEmpty(invoice.ExternalReference) ? "—" : invoice.ExternalReference)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

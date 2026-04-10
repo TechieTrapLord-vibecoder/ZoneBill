@@ -1,0 +1,163 @@
+@model IEnumerable<ZoneBill_Lloren.Models.Space>
+
+@{
+    ViewData["Title"] = "Spaces";
+}
+
+@{
+    var total = Model.Count();
+    var available = Model.Count(s => s.CurrentStatus == "Available");
+    var occupied = Model.Count(s => s.CurrentStatus == "Occupied");
+    var inactive = Model.Count(s => !s.IsActive);
+}
+
+<div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-grid-3x3-gap me-2" style="color:var(--zb-secondary);"></i>Spaces</h4>
+        <p class="text-muted small mb-0">Manage your venue's tables, rooms, and areas.</p>
+    </div>
+    <a asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
+        <i class="bi bi-plus-lg me-1"></i> Add Space
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Total</div>
+            <div class="zb-kpi-value">@total</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+            <div class="zb-kpi-label">Available</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@available</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Occupied</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@occupied</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="zb-kpi-label">Inactive</div>
+            <div class="zb-kpi-value" style="color:#ef4444;">@inactive</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Floor</th>
+                    <th>Capacity</th>
+                    <th>Rate/hr</th>
+                    <th>Status</th>
+                    <th>Active</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var statusClass = item.CurrentStatus == "Available" ? "zb-badge-green" :
+                                     item.CurrentStatus == "Occupied" ? "zb-badge-cyan" : "zb-badge-red";
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@item.SpaceName</td>
+                        <td>@(string.IsNullOrEmpty(item.FloorArea) ? "—" : item.FloorArea)</td>
+                        <td>@item.Capacity pax</td>
+                        <td>₱@item.CurrentHourlyRate.ToString("N2")</td>
+                        <td><span class="zb-badge @statusClass">@item.CurrentStatus</span></td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="zb-badge zb-badge-green">Yes</span>
+                            }
+                            else
+                            {
+                                <span class="zb-badge zb-badge-red">No</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@item.SpaceId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
+                                <a asp-action="Edit" asp-route-id="@item.SpaceId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
+                                <button type="button" class="zb-action-btn" title="QR Code" onclick="showQR(@item.SpaceId, '@Html.Raw(item.SpaceName.Replace("'", "\\'"))')"><i class="bi bi-qr-code"></i></button>
+                                <a asp-action="Delete" asp-route-id="@item.SpaceId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.2);">
+            <div class="modal-header" style="border-color:rgba(6,182,212,0.15);">
+                <h5 class="modal-title fw-bold" id="qrModalTitle" style="color:var(--zb-text);">QR Code</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrCodeContainer" class="mb-3"></div>
+                <p class="text-muted small" id="qrUrl"></p>
+            </div>
+            <div class="modal-footer justify-content-center" style="border-color:rgba(6,182,212,0.15);">
+                <button type="button" class="btn btn-sm fw-semibold" style="background:var(--zb-secondary);color:#fff;border:none;" onclick="printQR()"><i class="bi bi-printer me-1"></i>Print QR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        var qrInstance = null;
+
+        function showQR(spaceId, spaceName) {
+            var url = window.location.origin + '/Customer/Space/' + spaceId;
+            document.getElementById('qrModalTitle').textContent = spaceName + ' \u2014 QR Code';
+            document.getElementById('qrUrl').textContent = url;
+
+            var container = document.getElementById('qrCodeContainer');
+            container.innerHTML = '';
+
+            qrInstance = new QRCode(container, {
+                text: url,
+                width: 220,
+                height: 220,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            new bootstrap.Modal(document.getElementById('qrModal')).show();
+        }
+
+        function printQR() {
+            var img = document.querySelector('#qrCodeContainer img');
+            var canvas = document.querySelector('#qrCodeContainer canvas');
+            var src = img ? img.src : (canvas ? canvas.toDataURL() : null);
+            if (!src) return;
+            var title = document.getElementById('qrModalTitle').textContent;
+            var url = document.getElementById('qrUrl').textContent;
+            var win = window.open('', '_blank');
+            win.document.write('<html><head><title>Print QR</title></head><body style="text-align:center;font-family:sans-serif;padding:40px">');
+            win.document.write('<h2>' + title + '</h2>');
+            win.document.write('<img src="' + src + '" style="width:300px;height:300px" />');
+            win.document.write('<p style="font-size:14px">Scan to view menu and order</p>');
+            win.document.write('<p style="font-size:11px;color:#666">' + url + '</p>');
+            win.document.write('</body></html>');
+            win.document.close();
+            win.print();
+        }
+    </script>
+}
