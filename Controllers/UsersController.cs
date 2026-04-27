@@ -14,8 +14,8 @@ namespace ZoneBill_Lloren.Controllers
     [Authorize(Roles = "SuperAdmin,MainAdmin")]
     public class UsersController : Controller
     {
-        private static readonly string[] SuperAdminAssignableRoles = { "SuperAdmin", "MainAdmin", "Manager", "Cashier", "Staff" };
-        private static readonly string[] MainAdminAssignableRoles = { "Manager", "Cashier", "Staff" };
+        private static readonly string[] SuperAdminAssignableRoles = { "SuperAdmin", "MainAdmin", "Manager", "Cashier" };
+        private static readonly string[] MainAdminAssignableRoles = { "Manager", "Cashier" };
 
         private readonly ApplicationDbContext _context;
 
@@ -66,7 +66,13 @@ namespace ZoneBill_Lloren.Controllers
                 return NotFound();
             }
 
-            return View(user);
+            var activity = await _context.PosAuditLogs
+                .Where(a => a.CashierId == user.UserId)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(20)
+                .ToListAsync();
+
+            return View(new UserDetailsViewModel { User = user, RecentActivity = activity });
         }
 
         // GET: Users/Create
@@ -74,7 +80,7 @@ namespace ZoneBill_Lloren.Controllers
         {
             var isSuperAdmin = User.IsInRole("SuperAdmin");
             ViewBag.IsSuperAdmin = isSuperAdmin;
-            SetRoleOptions(isSuperAdmin, "Staff");
+            SetRoleOptions(isSuperAdmin, "Cashier");
 
             if (isSuperAdmin)
             {
@@ -279,6 +285,53 @@ namespace ZoneBill_Lloren.Controllers
             return View(user);
         }
 
+        // GET: Users/ResetPassword/5
+        public async Task<IActionResult> ResetPassword(int? id)
+        {
+            if (id == null) return NotFound();
+            var query = _context.Users.Include(u => u.Business).AsQueryable();
+            if (User.IsInRole("MainAdmin"))
+            {
+                var businessId = GetBusinessId();
+                if (businessId == null) return Forbid();
+                query = query.Where(u => u.BusinessId == businessId.Value);
+            }
+            var user = await query.FirstOrDefaultAsync(u => u.UserId == id);
+            if (user == null) return NotFound();
+            ViewBag.UserName = $"{user.FirstName} {user.LastName}";
+            ViewBag.UserId = user.UserId;
+            return View();
+        }
+
+        // POST: Users/ResetPassword/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPassword(int id, string newPassword)
+        {
+            var query = _context.Users.AsQueryable();
+            if (User.IsInRole("MainAdmin"))
+            {
+                var businessId = GetBusinessId();
+                if (businessId == null) return Forbid();
+                query = query.Where(u => u.BusinessId == businessId.Value);
+            }
+            var user = await query.FirstOrDefaultAsync(u => u.UserId == id);
+            if (user == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 6)
+            {
+                ViewBag.UserName = $"{user.FirstName} {user.LastName}";
+                ViewBag.UserId = user.UserId;
+                ModelState.AddModelError("", "Password must be at least 6 characters.");
+                return View();
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"Password for {user.FirstName} {user.LastName} has been reset.";
+            return RedirectToAction(nameof(Index));
+        }
+
         // POST: Users/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -322,10 +375,10 @@ namespace ZoneBill_Lloren.Controllers
         private static string NormalizeAssignableRole(string? requestedRole, bool isSuperAdmin)
         {
             var roles = isSuperAdmin ? SuperAdminAssignableRoles : MainAdminAssignableRoles;
-            if (string.IsNullOrWhiteSpace(requestedRole)) return "Staff";
+            if (string.IsNullOrWhiteSpace(requestedRole)) return "Cashier";
 
             var matchedRole = roles.FirstOrDefault(r => r.Equals(requestedRole, StringComparison.OrdinalIgnoreCase));
-            return matchedRole ?? "Staff";
+            return matchedRole ?? "Cashier";
         }
     }
 }

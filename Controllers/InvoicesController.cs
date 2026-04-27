@@ -251,6 +251,29 @@ namespace ZoneBill_Lloren.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // POST: Invoices/BulkMarkPaid
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkMarkPaid(int[] invoiceIds)
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            if (invoiceIds != null && invoiceIds.Length > 0)
+            {
+                var invoices = await _context.Invoices
+                    .Where(i => invoiceIds.Contains(i.InvoiceId) && i.BusinessId == businessId.Value && i.PaymentStatus != "Paid")
+                    .ToListAsync();
+
+                foreach (var inv in invoices)
+                    inv.PaymentStatus = "Paid";
+
+                await _context.SaveChangesAsync();
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
         private bool InvoiceExists(int id)
         {
             var businessId = GetBusinessId();

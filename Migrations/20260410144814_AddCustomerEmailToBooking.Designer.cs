@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZoneBill_Lloren.Data;
 
@@ -11,9 +12,11 @@ using ZoneBill_Lloren.Data;
 namespace ZoneBill_Lloren.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260410144814_AddCustomerEmailToBooking")]
+    partial class AddCustomerEmailToBooking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -93,9 +96,6 @@ namespace ZoneBill_Lloren.Migrations
                     b.Property<string>("ReferenceCode")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
-
-                    b.Property<int?>("RequestedSplitCount")
-                        .HasColumnType("int");
 
                     b.Property<int>("SpaceId")
                         .HasColumnType("int");

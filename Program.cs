@@ -21,6 +21,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ActiveSubscriptionFilter>();
 builder.Services.AddScoped<ZoneBill_Lloren.Helpers.IEmailService, ZoneBill_Lloren.Helpers.EmailService>();
+builder.Services.AddHostedService<ZoneBill_Lloren.Helpers.AutomationWorker>();
 
 // Configure Cookie Authentication for Roles (SuperAdmin, MainAdmin, Staff)
 builder.Services.AddAuthentication(options =>

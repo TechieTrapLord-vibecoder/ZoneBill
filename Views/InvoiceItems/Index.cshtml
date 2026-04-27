@@ -1,4 +1,4 @@
-@model IEnumerable<ZoneBill_Lloren.Models.InvoiceItem>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.InvoiceItem>
 
 @{
     ViewData["Title"] = "Invoice Items";
@@ -27,7 +27,7 @@
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model)
                 {
                     <tr>

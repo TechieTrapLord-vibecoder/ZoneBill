@@ -25,6 +25,10 @@ namespace ZoneBill_Lloren.Models
         public List<decimal> TopSpaceRevenueSeries { get; set; } = new();
         public List<string> TopMenuLabels { get; set; } = new();
         public List<int> TopMenuQuantitySeries { get; set; } = new();
+        public List<string> PaymentMethodLabels { get; set; } = new();
+        public List<decimal> PaymentMethodAmounts { get; set; } = new();
+        public int TodayBookings { get; set; }
+        public int ActiveBookings { get; set; }
     }
 
     public class InvoiceReceiptViewModel
@@ -58,5 +62,11 @@ namespace ZoneBill_Lloren.Models
         public List<string> PlanLabels { get; set; } = new();
         public List<int> PlanBusinessCounts { get; set; } = new();
         public List<BusinessSignupViewModel> RecentSignups { get; set; } = new();
+    }
+
+    public class UserDetailsViewModel
+    {
+        public User User { get; set; } = null!;
+        public List<PosAuditLog> RecentActivity { get; set; } = new();
     }
 }

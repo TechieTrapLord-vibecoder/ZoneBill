@@ -25,7 +25,10 @@
     @foreach (var space in Model.Spaces)
     {
         var occupied = space.ActiveBookingId.HasValue;
-        <div class="col-12 col-md-6 col-xl-4" data-space-id="@space.SpaceId">
+        <div class="col-12 col-md-6 col-xl-4" data-space-id="@space.SpaceId"
+             data-req-split="@(space.RequestedSplitCount ?? 0)"
+             data-menu-total="@space.MenuTotal.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+             data-order-count="@space.OrderItemCount">
             <div class="rounded-3 h-100 overflow-hidden" style="background:var(--zb-primary-mid);border:1px solid @(occupied ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)");">
                 <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background:@(occupied ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)");border-bottom:1px solid @(occupied ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)");">
                     <strong style="color:@(occupied ? "#fca5a5" : "#86efac");">@space.SpaceName</strong>
@@ -37,87 +40,50 @@
 
                     @if (occupied)
                     {
-                        @if (space.CheckoutRequested)
-                        {
-                            <div class="rounded-2 px-2 py-1 mb-2 text-center zb-pulse-alert" style="background:rgba(249,115,22,0.2);border:1px solid rgba(249,115,22,0.4);">
-                                <i class="bi bi-bell-fill me-1" style="color:var(--zb-accent);"></i>
-                                <span class="small fw-semibold" style="color:#fb923c;">Checkout Requested!</span>
-                            </div>
-                        }
+                        <div class="pos-checkout-alert rounded-2 px-2 py-1 mb-2 text-center zb-pulse-alert" style="background:rgba(249,115,22,0.2);border:1px solid rgba(249,115,22,0.4);@(space.CheckoutRequested ? "" : "display:none;")">
+                            <i class="bi bi-bell-fill me-1" style="color:var(--zb-accent);"></i>
+                            <span class="small fw-semibold" style="color:#fb923c;">Checkout Requested!</span>
+                        </div>
                         <p class="mb-2 small" style="color:var(--zb-text);">
                             Booking #@space.ActiveBookingId
-                            @if (space.OrderItemCount > 0)
-                            {
-                                <span class="zb-badge zb-badge-orange ms-2">@space.OrderItemCount items ordered</span>
-                            }
+                            <span class="zb-badge zb-badge-orange ms-2 pos-order-badge" style="@(space.OrderItemCount > 0 ? "" : "display:none;")">@space.OrderItemCount item@(space.OrderItemCount != 1 ? "s" : "") ordered</span>
                         </p>
                         <p class="mb-3 small" style="color:var(--zb-text-muted);">Elapsed: <strong class="pos-timer" style="color:var(--zb-secondary);" data-start-time="@space.ActiveStartTime?.ToString("o")">00:00:00</strong></p>
 
-                        <form asp-controller="POS" asp-action="AddOrder" method="post" class="mb-2">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
-                            <div class="row g-2">
-                                <div class="col-7">
-                                    <select class="form-select form-select-sm zb-form-input" name="ItemId" required>
-                                        <option value="">Menu item</option>
-                                        @foreach (var item in Model.MenuItems)
-                                        {
-                                            <option value="@item.ItemId">@item.ItemName (PHP @item.CurrentPrice.ToString("0.00"), Stock: @item.StockAvailable)</option>
-                                        }
-                                    </select>
-                                </div>
-                                <div class="col-2">
-                                    <input class="form-control form-control-sm zb-form-input" type="number" name="Quantity" value="1" min="1" />
-                                </div>
-                                <div class="col-3 d-grid">
-                                    <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">Add</button>
-                                </div>
-                            </div>
-                        </form>
+                        <!-- ── Add Order ── -->
+                        <button type="button" class="btn btn-sm fw-semibold w-100 mb-2"
+                                style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"
+                                onclick="openOrderModal(@space.ActiveBookingId, '@Html.Raw(space.SpaceName.Replace("'", "\\'"))')">
+                            <i class="bi bi-bag-plus me-1"></i>Add Order
+                        </button>
 
-                        <form asp-controller="POS" asp-action="Checkout" method="post" class="d-grid gap-2">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
-                            <div class="row g-2">
-                                <div class="col-6">
-                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Discount %</label>
-                                    <input class="form-control form-control-sm zb-form-input" type="number" name="DiscountPercentage" value="0" min="0" max="100" step="0.01" />
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Payment</label>
-                                    <select class="form-select form-select-sm zb-form-input" name="PaymentMethod">
-                                        <option value="Cash">Cash</option>
-                                        <option value="GCash">GCash</option>
-                                        <option value="Card">Card</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);">Checkout</button>
-                        </form>
+                        <!-- ── View Orders ── -->
+                        <button type="button" class="btn btn-sm fw-semibold w-100 mb-2"
+                                style="background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.3);"
+                                onclick="openOrdersModal(@space.ActiveBookingId, '@Html.Raw(space.SpaceName.Replace("'", "\\'"))')">
+                            <i class="bi bi-list-ul me-1"></i>View Orders
+                        </button>
 
-                        <form asp-controller="POS" asp-action="SplitCheckout" method="post" class="d-grid gap-2 mt-2">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="BookingId" value="@space.ActiveBookingId" />
-                            <div class="row g-2">
-                                <div class="col-4">
-                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Discount %</label>
-                                    <input class="form-control form-control-sm zb-form-input" type="number" name="DiscountPercentage" value="0" min="0" max="100" step="0.01" />
-                                </div>
-                                <div class="col-3">
-                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Split</label>
-                                    <input class="form-control form-control-sm zb-form-input" type="number" name="SplitCount" value="2" min="2" max="20" step="1" />
-                                </div>
-                                <div class="col-5">
-                                    <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Payment</label>
-                                    <select class="form-select form-select-sm zb-form-input" name="PaymentMethod">
-                                        <option value="Cash">Cash</option>
-                                        <option value="GCash">GCash</option>
-                                        <option value="Card">Card</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.3);">Split Checkout</button>
-                        </form>
+                        <div class="d-grid">
+                            <button type="button" class="btn btn-sm fw-semibold pos-checkout-btn"
+                                    style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);"
+                                    onclick="openCheckoutModal(this, {
+                                        bookingId: @space.ActiveBookingId,
+                                        spaceName: '@Html.Raw(space.SpaceName.Replace("'", "\\'"))',
+                                        refCode: '@Html.Raw((space.ReferenceCode ?? "").Replace("'", "\\'"))',
+                                        startTime: '@space.ActiveStartTime?.ToString("o")',
+                                        hourlyRate: @space.LockedHourlyRate.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+                                        taxPct: @space.TaxRatePercentage.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+                                    })">
+                                <i class="bi bi-cash-stack me-1"></i>Checkout
+                            </button>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm w-100 fw-semibold" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);"
+                                    onclick="showPosQR(@space.SpaceId, '@Html.Raw(space.SpaceName.Replace("'","\\'"))')">
+                                <i class="bi bi-qr-code me-1"></i>Show QR
+                            </button>
+                        </div>
                     }
                     else
                     {
@@ -138,6 +104,12 @@
                                 <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.2);color:#86efac;border:1px solid rgba(34,197,94,0.3);">Start Session</button>
                             </div>
                         </form>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm w-100 fw-semibold" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);"
+                                    onclick="showPosQR(@space.SpaceId, '@Html.Raw(space.SpaceName.Replace("'","\\'"))')">
+                                <i class="bi bi-qr-code me-1"></i>Show QR
+                            </button>
+                        </div>
                     }
                 </div>
             </div>
@@ -145,6 +117,733 @@
     }
 </div>
 
+<!-- ── POS QR Modal ──────────────────────────────────────────────── -->
+<div class="modal fade" id="posQrModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:360px;">
+        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.25);border-radius:16px;overflow:hidden;">
+            <div class="modal-header px-4 py-3" style="border-color:rgba(6,182,212,0.15);background:rgba(6,182,212,0.06);">
+                <h5 class="modal-title fw-bold mb-0" id="posQrTitle" style="color:var(--zb-text);">QR Code</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center px-4 py-4">
+                <img id="posQrImg" src="" alt="QR Code" class="rounded-3 mb-3" style="width:240px;height:240px;background:#fff;padding:8px;" />
+                <p class="small mb-1" style="color:var(--zb-text-muted);">Scan to open the customer portal</p>
+                <p class="small fw-semibold mb-0" id="posQrUrl" style="color:var(--zb-secondary);word-break:break-all;"></p>
+            </div>
+            <div class="modal-footer px-4 py-3" style="border-color:rgba(6,182,212,0.15);">
+                <a id="posQrDownload" href="" download="qr.png" class="btn btn-sm fw-semibold w-100" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                    <i class="bi bi-download me-1"></i>Download
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Add Order Modal ─────────────────────────────────────────────── -->
+<div class="modal fade" id="posOrderModal" tabindex="-1" aria-hidden="true" data-booking-id="">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:720px;">
+        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.25);border-radius:16px;overflow:hidden;">
+            <div class="modal-header px-4 py-3" style="border-color:rgba(6,182,212,0.15);background:rgba(6,182,212,0.06);">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" id="orderModalTitle" style="color:var(--zb-text);">Add Order</h5>
+                    <small id="orderModalSub" style="color:var(--zb-text-muted);"></small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div class="row g-3">
+                    <!-- Left: Item Tiles -->
+                    <div class="col-12 col-md-7">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="small fw-semibold" style="color:var(--zb-text-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.7rem;">Menu Items</span>
+                            <input type="text" id="orderModalSearch" class="form-control form-control-sm" placeholder="Search..." style="width:140px;background:var(--zb-primary);color:var(--zb-text);border-color:rgba(148,163,184,0.2);font-size:.8rem;" />
+                        </div>
+                        <div id="orderModalTilesGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;max-height:380px;overflow-y:auto;padding-right:2px;">
+                            @foreach (var item in Model.MenuItems)
+                            {
+                                <button type="button" class="pos-modal-tile text-start rounded-2 p-2 border"
+                                        style="background:rgba(15,23,42,0.7);border-color:rgba(148,163,184,0.12)!important;transition:all .15s;"
+                                        data-item-id="@item.ItemId"
+                                        data-name="@item.ItemName"
+                                        data-price="@item.CurrentPrice.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
+                                        data-stock="@item.StockAvailable">
+                                    <div class="fw-semibold lh-sm text-truncate" style="color:var(--zb-text);font-size:.78rem;">@item.ItemName</div>
+                                    <div style="color:var(--zb-secondary);font-size:.73rem;">&#8369;@item.CurrentPrice.ToString("0.00")</div>
+                                    <div style="color:@(item.StockAvailable > 0 ? "var(--zb-text-muted)" : "#f87171");font-size:.68rem;">@(item.StockAvailable > 0 ? item.StockAvailable + " in stock" : "Out of stock")</div>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <!-- Right: Cart -->
+                    <div class="col-12 col-md-5">
+                        <p class="small fw-semibold mb-2" style="color:var(--zb-text-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.7rem;">Cart</p>
+                        <div class="pos-modal-empty text-center py-5" style="color:var(--zb-text-muted);">
+                            <i class="bi bi-bag" style="font-size:2.4rem;opacity:.35;"></i>
+                            <p class="small mt-2 mb-0" style="opacity:.55;">Tap items to add them</p>
+                        </div>
+                        <div class="pos-modal-cart-wrap" style="display:none;">
+                            <div class="pos-modal-cart-items rounded-2 mb-2" style="background:rgba(0,0,0,0.25);border:1px solid rgba(148,163,184,0.1);max-height:300px;overflow-y:auto;"></div>
+                            <div class="d-flex justify-content-between align-items-center px-1 mb-1">
+                                <span class="small" style="color:var(--zb-text-muted);">Total: <strong class="pos-modal-total" style="color:var(--zb-accent);">&#8369;0.00</strong></span>
+                                <button type="button" class="btn btn-sm px-2 pos-modal-clear-btn" style="background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);font-size:.75rem;">
+                                    <i class="bi bi-trash3 me-1"></i>Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer px-4 py-3" style="border-color:rgba(6,182,212,0.15);">
+                <button type="button" class="btn fw-bold w-100 py-2 pos-modal-place-btn"
+                        style="background:linear-gradient(135deg,rgba(6,182,212,0.25),rgba(6,182,212,0.12));color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.4);border-radius:10px;font-size:1rem;" disabled>
+                    <i class="bi bi-bag-check me-1"></i>Place Order &mdash; <span class="pos-modal-count">0</span> item(s)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Order History / Void Modal ───────────────────────────────────── -->
+<div class="modal fade" id="posOrdersModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:520px;">
+        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(168,85,247,0.3);border-radius:16px;overflow:hidden;">
+            <div class="modal-header px-4 py-3" style="border-color:rgba(168,85,247,0.2);background:rgba(168,85,247,0.08);">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" id="ordersModalTitle" style="color:var(--zb-text);">Order History</h5>
+                    <small class="text-muted" id="ordersModalSub">Current session items</small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <div id="ordersModalLoading" class="text-center py-4" style="color:var(--zb-text-muted);">
+                    <span class="spinner-border spinner-border-sm me-2"></span>Loading…
+                </div>
+                <div id="ordersModalEmpty" class="text-center py-4" style="color:var(--zb-text-muted);display:none;">
+                    <i class="bi bi-bag-x fs-3 d-block mb-2"></i>No orders yet
+                </div>
+                <table class="table zb-table mb-0" id="ordersModalTable" style="display:none;">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Subtotal</th>
+                            <th style="width:40px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersModalBody"></tbody>
+                </table>
+            </div>
+            <div class="modal-footer px-4" style="border-color:rgba(168,85,247,0.15);">
+                <div class="d-flex w-100 justify-content-between align-items-center">
+                    <span style="color:var(--zb-text-muted);font-size:.85rem;">Total: <strong id="ordersModalTotal" style="color:#c084fc;">₱0.00</strong></span>
+                    <button type="button" class="btn btn-sm" style="background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.3);" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Checkout Confirmation Modal ──────────────────────────────────── -->
+<div class="modal fade" id="checkoutModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:480px;">
+        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.25);border-radius:16px;overflow:hidden;">
+            <div class="modal-header px-4 py-3" style="border-color:rgba(6,182,212,0.15);background:rgba(6,182,212,0.06);">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0" id="coModalTitle" style="color:var(--zb-text);">Checkout</h5>
+                    <small id="coRefCode" class="text-muted"></small>
+                    <div id="coSplitBadge" style="display:none;margin-top:4px;">
+                        <span class="badge" style="background:rgba(249,115,22,0.2);color:#fb923c;border:1px solid rgba(249,115,22,0.4);font-size:.72rem;font-weight:600;padding:3px 8px;border-radius:6px;">
+                            <i class="bi bi-people-fill me-1"></i><span id="coSplitBadgeText"></span>
+                        </span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body px-4 py-3">
+                <!-- Bill Summary -->
+                <div class="rounded-3 p-3 mb-3" style="background:var(--zb-primary);border:1px solid rgba(6,182,212,0.12);">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small text-muted">Table time</span>
+                        <span class="small fw-semibold" style="color:var(--zb-secondary);" id="coTimeCharge">₱0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small text-muted">Food &amp; drinks (<span id="coItemQty">0</span> items)</span>
+                        <span class="small fw-semibold" style="color:var(--zb-text);" id="coMenuTotal">₱0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1" id="coDiscountRow" style="display:none!important;">
+                        <span class="small" style="color:#fb923c;">Discount (<span id="coDiscountPctLabel">0</span>%)</span>
+                        <span class="small fw-semibold" style="color:#fb923c;" id="coDiscountAmt">−₱0.00</span>
+                    </div>
+                    <hr class="my-2" style="border-color:rgba(6,182,212,0.12);" />
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small text-muted">Subtotal</span>
+                        <span class="small fw-semibold" style="color:var(--zb-text);" id="coSubTotal">₱0.00</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small text-muted">Tax (<span id="coTaxPctLabel">0</span>%)</span>
+                        <span class="small" style="color:var(--zb-text-muted);" id="coTaxAmt">₱0.00</span>
+                    </div>
+                    <hr class="my-2" style="border-color:rgba(6,182,212,0.15);" />
+                    <div class="d-flex justify-content-between">
+                        <span class="fw-bold" style="color:var(--zb-accent);font-size:1.1rem;">Total</span>
+                        <span class="fw-bold" style="color:var(--zb-accent);font-size:1.1rem;" id="coTotal">₱0.00</span>
+                    </div>
+                    <!-- Per-person row for split mode -->
+                    <div class="d-flex justify-content-between mt-1" id="coPerPersonRow" style="display:none;">
+                        <span class="small text-muted">Per person (<span id="coSplitCountLabel">2</span>-way)</span>
+                        <span class="small fw-semibold" style="color:var(--zb-secondary);" id="coPerPerson">₱0.00</span>
+                    </div>
+                </div>
+
+                <!-- Split Bill Toggle -->
+                <div class="mb-3">
+                    <div class="d-flex align-items-center justify-content-between p-2 rounded-2" style="background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);">
+                        <div>
+                            <span class="small fw-semibold" style="color:var(--zb-text);"><i class="bi bi-people me-1" style="color:var(--zb-secondary);"></i>Split bill?</span>
+                            <div class="small" style="color:var(--zb-text-muted);font-size:.72rem;">Divide total equally among guests</div>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" role="switch" id="coSplitToggle" style="cursor:pointer;width:2.2em;height:1.2em;" />
+                        </div>
+                    </div>
+                    <div id="coSplitSection" class="mt-2" style="display:none;">
+                        <label class="form-label small fw-semibold mb-1" style="color:var(--zb-text-muted);">Split into how many?</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" id="coSplitMinus" class="btn btn-sm px-2" style="background:var(--zb-primary-alt);color:var(--zb-text);border:1px solid rgba(148,163,184,0.2);font-size:1.1rem;line-height:1;">&#8722;</button>
+                            <input type="number" id="coSplitCount" class="form-control form-control-sm zb-form-input text-center fw-bold" value="2" min="2" max="20" step="1" style="width:70px;font-size:1.05rem;" />
+                            <button type="button" id="coSplitPlus" class="btn btn-sm px-2" style="background:var(--zb-primary-alt);color:var(--zb-text);border:1px solid rgba(148,163,184,0.2);font-size:1.1rem;line-height:1;">+</button>
+                            <span class="small" style="color:var(--zb-text-muted);">persons</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Discount -->
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold" style="color:var(--zb-text-muted);">Discount %</label>
+                    <input type="number" id="coDiscount" class="form-control form-control-sm zb-form-input" value="0" min="0" max="100" step="0.01" style="width:120px;" />
+                </div>
+
+                <!-- Payment Method -->
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold d-block" style="color:var(--zb-text-muted);">Payment Method</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="coPayMethod" id="pmCash" value="Cash" checked />
+                        <label class="btn btn-sm fw-semibold" for="pmCash" style="border-color:rgba(6,182,212,0.3);color:var(--zb-text-muted);">
+                            <i class="bi bi-cash me-1"></i>Cash
+                        </label>
+                        <input type="radio" class="btn-check" name="coPayMethod" id="pmGCash" value="GCash" />
+                        <label class="btn btn-sm fw-semibold" for="pmGCash" style="border-color:rgba(6,182,212,0.3);color:var(--zb-text-muted);">
+                            <i class="bi bi-phone me-1"></i>GCash
+                        </label>
+                        <input type="radio" class="btn-check" name="coPayMethod" id="pmCard" value="Card" />
+                        <label class="btn btn-sm fw-semibold" for="pmCard" style="border-color:rgba(6,182,212,0.3);color:var(--zb-text-muted);">
+                            <i class="bi bi-credit-card me-1"></i>Card
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Cash: Amount Tendered + Change -->
+                <div id="coCashSection" class="mb-3">
+                    <label class="form-label small fw-semibold" style="color:var(--zb-text-muted);">Amount Tendered</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text fw-bold" style="background:var(--zb-primary-alt);color:var(--zb-text-muted);border-color:rgba(148,163,184,0.2);">₱</span>
+                        <input type="number" id="coTendered" class="form-control zb-form-input" step="0.01" min="0" placeholder="0.00" />
+                    </div>
+                    <div class="mt-2 rounded-2 px-3 py-2" id="coChangeBox" style="display:none;">
+                        <span class="small fw-semibold" id="coChangeLabel"></span>
+                    </div>
+                </div>
+
+                <!-- GCash/Card: Reference Number -->
+                <div id="coRefSection" class="mb-3" style="display:none;">
+                    <label class="form-label small fw-semibold" style="color:var(--zb-text-muted);">Reference / Auth Number</label>
+                    <input type="text" id="coRefNumber" class="form-control form-control-sm zb-form-input" placeholder="e.g. 1234567890" maxlength="100" />
+                </div>
+            </div>
+
+            <!-- Confirm Button -->
+            <div class="modal-footer px-4 py-3 d-grid" style="border-color:rgba(6,182,212,0.15);">
+                <form id="coForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="BookingId" id="coBookingId" />
+                    <input type="hidden" name="DiscountPercentage" id="coDiscountHidden" value="0" />
+                    <input type="hidden" name="PaymentMethod" id="coPayMethodHidden" value="Cash" />
+                    <input type="hidden" name="ReferenceNumber" id="coRefNumberHidden" value="" />
+                    <input type="hidden" name="SplitCount" id="coSplitCountHidden" value="2" />
+                    <button type="submit" class="btn fw-bold w-100 py-2" id="coSubmitBtn"
+                            style="background:linear-gradient(135deg,#f97316,#ea580c);color:#fff;border:none;border-radius:10px;font-size:1rem;box-shadow:0 4px 15px rgba(249,115,22,0.3);">
+                        <i class="bi bi-check-circle me-1"></i> Confirm &amp; Checkout
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-check:checked + .btn { background:rgba(6,182,212,0.2)!important; color:var(--zb-secondary)!important; border-color:var(--zb-secondary)!important; }
+</style>
+
 @section Scripts {
     <script src="~/js/pos.js" asp-append-version="true"></script>
+    <script>
+        var _coData = {};
+        var _coTimer = null;
+
+        // ── Order History / Void Modal ─────────────────────────────────
+        var _ordersBookingId = null;
+        function openOrdersModal(bookingId, spaceName) {
+            _ordersBookingId = bookingId;
+            document.getElementById('ordersModalTitle').textContent = spaceName + ' — Orders';
+            document.getElementById('ordersModalSub').textContent = 'Current session items';
+            document.getElementById('ordersModalLoading').style.display = '';
+            document.getElementById('ordersModalEmpty').style.display = 'none';
+            document.getElementById('ordersModalTable').style.display = 'none';
+            document.getElementById('ordersModalTotal').textContent = '₱0.00';
+            var modalEl = document.getElementById('posOrdersModal');
+            var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
+            refreshOrdersModal(bookingId);
+        }
+
+        function refreshOrdersModal(bookingId) {
+            fetch('/POS/GetBookingOrders?bookingId=' + bookingId)
+                .then(function (r) { return r.json(); })
+                .then(function (items) {
+                    document.getElementById('ordersModalLoading').style.display = 'none';
+                    if (!items || items.length === 0) {
+                        document.getElementById('ordersModalEmpty').style.display = '';
+                        return;
+                    }
+                    document.getElementById('ordersModalTable').style.display = '';
+                    var tbody = document.getElementById('ordersModalBody');
+                    tbody.innerHTML = '';
+                    var total = 0;
+                    items.forEach(function (it) {
+                        total += it.subtotal;
+                        var tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td class="fw-semibold" style="color:var(--zb-text);">' + it.itemName + '</td>' +
+                            '<td class="text-center">' + it.quantity + '</td>' +
+                            '<td class="text-end zb-mono" style="color:#c084fc;">₱' + it.subtotal.toFixed(2) + '</td>' +
+                            '<td><button type="button" class="zb-action-btn zb-action-danger" title="Void" onclick="voidItem(' + it.orderDetailId + ', this)"><i class="bi bi-x-lg"></i></button></td>';
+                        tbody.appendChild(tr);
+                    });
+                    document.getElementById('ordersModalTotal').textContent = '₱' + total.toFixed(2);
+                })
+                .catch(function () {
+                    document.getElementById('ordersModalLoading').style.display = 'none';
+                    document.getElementById('ordersModalEmpty').style.display = '';
+                });
+        }
+
+        function voidItem(orderDetailId, btn) {
+            if (!confirm('Void this item? Stock will be restored.')) return;
+            btn.disabled = true;
+            var fd = new FormData();
+            fd.append('orderDetailId', orderDetailId);
+            fd.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
+            fetch('/POS/VoidOrderItem', { method: 'POST', body: fd })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (data.ok) {
+                        btn.closest('tr').remove();
+                        // Refresh totals
+                        var rows = document.querySelectorAll('#ordersModalBody tr');
+                        if (rows.length === 0) {
+                            document.getElementById('ordersModalTable').style.display = 'none';
+                            document.getElementById('ordersModalEmpty').style.display = '';
+                            document.getElementById('ordersModalTotal').textContent = '₱0.00';
+                        } else {
+                            refreshOrdersModal(_ordersBookingId);
+                        }
+                    } else {
+                        alert(data.error || 'Failed to void item.');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function () { btn.disabled = false; });
+        }
+
+        function openCheckoutModal(btnEl, data) {
+            // Read live data attributes from the card (updated by posLivePoll every 5s)
+            var card = btnEl.closest('[data-space-id]');
+            var liveMenuTotal   = parseFloat(card ? card.getAttribute('data-menu-total') : 0) || 0;
+            var liveOrderCount  = parseInt(card ? card.getAttribute('data-order-count') : 0)  || 0;
+            var liveReqSplit    = parseInt(card ? card.getAttribute('data-req-split')   : 0)  || 0;
+
+            data.menuTotal   = liveMenuTotal;
+            data.orderCount  = liveOrderCount;
+            data.requestedSplitCount = liveReqSplit;
+
+            _coData = data;
+            document.getElementById('coModalTitle').textContent = data.spaceName + ' — Checkout';
+            document.getElementById('coRefCode').textContent = data.refCode ? 'Ref: ' + data.refCode : '';
+            document.getElementById('coBookingId').value = data.bookingId;
+            document.getElementById('coItemQty').textContent = liveOrderCount;
+            document.getElementById('coTaxPctLabel').textContent = parseFloat(data.taxPct).toFixed(2);
+            document.getElementById('coDiscount').value = 0;
+            document.getElementById('coTendered').value = '';
+            document.getElementById('coRefNumber').value = '';
+            document.getElementById('coChangeBox').style.display = 'none';
+
+            // Reset payment to Cash
+            document.getElementById('pmCash').checked = true;
+            togglePayFields();
+
+            // Auto-enable split if customer requested it
+            var isSplit = liveReqSplit >= 2;
+            document.getElementById('coSplitToggle').checked = isSplit;
+            document.getElementById('coSplitSection').style.display = isSplit ? 'block' : 'none';
+            document.getElementById('coPerPersonRow').style.display = isSplit ? 'flex' : 'none';
+            document.getElementById('coSplitCount').value = isSplit ? liveReqSplit : 2;
+
+            // Show/hide customer-requested split badge in header
+            var badge = document.getElementById('coSplitBadge');
+            var badgeText = document.getElementById('coSplitBadgeText');
+            if (isSplit) {
+                badgeText.textContent = 'Customer requested ' + liveReqSplit + '-way split';
+                badge.style.display = 'block';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            recalcBill();
+
+            // Start ticking timer for time charge
+            if (_coTimer) clearInterval(_coTimer);
+            _coTimer = setInterval(recalcBill, 1000);
+
+            var modalEl = document.getElementById('checkoutModal');
+            var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
+        }
+
+        function recalcBill() {
+            var d = _coData;
+            var startMs = new Date(d.startTime).getTime();
+            var elapsed = Math.max(0.01, (Date.now() - startMs) / 3600000);
+            var timeCharge = Math.round(elapsed * d.hourlyRate * 100) / 100;
+            var menuTotal = d.menuTotal;
+            var subRaw = timeCharge + menuTotal;
+            var discountPct = parseFloat(document.getElementById('coDiscount').value) || 0;
+            if (discountPct < 0) discountPct = 0;
+            if (discountPct > 100) discountPct = 100;
+            var discountAmt = Math.round(subRaw * (discountPct / 100) * 100) / 100;
+            var taxableBase = Math.max(0, subRaw - discountAmt);
+            var taxRate = parseFloat(d.taxPct) / 100;
+            var taxAmt = Math.round(taxableBase * taxRate * 100) / 100;
+            var total = Math.round((taxableBase + taxAmt) * 100) / 100;
+
+            document.getElementById('coTimeCharge').textContent = '\u20B1' + timeCharge.toFixed(2);
+            document.getElementById('coMenuTotal').textContent = '\u20B1' + menuTotal.toFixed(2);
+
+            var discRow = document.getElementById('coDiscountRow');
+            if (discountPct > 0) {
+                discRow.style.display = 'flex';
+                discRow.classList.add('d-flex');
+                document.getElementById('coDiscountPctLabel').textContent = discountPct.toFixed(2);
+                document.getElementById('coDiscountAmt').textContent = '\u2212\u20B1' + discountAmt.toFixed(2);
+            } else {
+                discRow.style.display = 'none';
+                discRow.classList.remove('d-flex');
+            }
+
+            document.getElementById('coSubTotal').textContent = '\u20B1' + taxableBase.toFixed(2);
+            document.getElementById('coTaxAmt').textContent = '\u20B1' + taxAmt.toFixed(2);
+            document.getElementById('coTotal').textContent = '\u20B1' + total.toFixed(2);
+
+            // Split per-person
+            var isSplitOn = document.getElementById('coSplitToggle').checked;
+            var splitCount = isSplitOn ? (parseInt(document.getElementById('coSplitCount').value) || 2) : 1;
+            if (isSplitOn && splitCount < 2) splitCount = 2;
+            var perRow = document.getElementById('coPerPersonRow');
+            if (isSplitOn) {
+                var perPerson = Math.round(total / splitCount * 100) / 100;
+                document.getElementById('coSplitCountLabel').textContent = splitCount;
+                document.getElementById('coPerPerson').textContent = '\u20B1' + perPerson.toFixed(2);
+                perRow.style.display = 'flex';
+            } else {
+                perRow.style.display = 'none';
+            }
+
+            // Update hidden fields + form action
+            document.getElementById('coDiscountHidden').value = discountPct;
+            document.getElementById('coSplitCountHidden').value = splitCount;
+            document.getElementById('coForm').action = isSplitOn ? '@Url.Action("SplitCheckout", "POS")' : '@Url.Action("Checkout", "POS")';
+
+            // Change calculation
+            updateChange(total);
+
+            // Store for change calc
+            _coData._currentTotal = total;
+        }
+
+        function updateChange(total) {
+            var tendered = parseFloat(document.getElementById('coTendered').value);
+            var box = document.getElementById('coChangeBox');
+            var label = document.getElementById('coChangeLabel');
+            if (isNaN(tendered) || tendered <= 0) {
+                box.style.display = 'none';
+                return;
+            }
+            box.style.display = 'block';
+            var change = tendered - total;
+            if (change >= 0) {
+                box.style.background = 'rgba(34,197,94,0.12)';
+                box.style.border = '1px solid rgba(34,197,94,0.3)';
+                label.style.color = '#86efac';
+                label.textContent = 'Change: \u20B1' + change.toFixed(2);
+            } else {
+                box.style.background = 'rgba(239,68,68,0.12)';
+                box.style.border = '1px solid rgba(239,68,68,0.3)';
+                label.style.color = '#fca5a5';
+                label.textContent = 'Short: \u20B1' + Math.abs(change).toFixed(2);
+            }
+        }
+
+        function togglePayFields() {
+            var method = document.querySelector('input[name="coPayMethod"]:checked').value;
+            document.getElementById('coCashSection').style.display = method === 'Cash' ? 'block' : 'none';
+            document.getElementById('coRefSection').style.display = method !== 'Cash' ? 'block' : 'none';
+            document.getElementById('coPayMethodHidden').value = method;
+        }
+
+        // Split toggle
+        document.getElementById('coSplitToggle').addEventListener('change', function () {
+            var on = this.checked;
+            document.getElementById('coSplitSection').style.display = on ? 'block' : 'none';
+            recalcBill();
+        });
+        document.getElementById('coSplitMinus').addEventListener('click', function () {
+            var el = document.getElementById('coSplitCount');
+            var v = parseInt(el.value) || 2;
+            if (v > 2) { el.value = v - 1; recalcBill(); }
+        });
+        document.getElementById('coSplitPlus').addEventListener('click', function () {
+            var el = document.getElementById('coSplitCount');
+            var v = parseInt(el.value) || 2;
+            if (v < 20) { el.value = v + 1; recalcBill(); }
+        });
+
+        // Wire payment events
+        document.querySelectorAll('input[name="coPayMethod"]').forEach(function (el) {
+            el.addEventListener('change', togglePayFields);
+        });
+        document.getElementById('coDiscount').addEventListener('input', recalcBill);
+        document.getElementById('coSplitCount').addEventListener('input', recalcBill);
+        document.getElementById('coTendered').addEventListener('input', function () {
+            updateChange(_coData._currentTotal || 0);
+        });
+
+        // Sync reference number to hidden field on submit
+        document.getElementById('coForm').addEventListener('submit', function () {
+            document.getElementById('coRefNumberHidden').value = document.getElementById('coRefNumber').value;
+        });
+
+        // Stop timer when modal closes
+        document.getElementById('checkoutModal').addEventListener('hidden.bs.modal', function () {
+            if (_coTimer) { clearInterval(_coTimer); _coTimer = null; }
+        });
+
+        // ── POS live polling (every 5s) ───────────────────────────────────
+        function posLivePoll() {
+            fetch('@Url.Action("LiveStatus", "POS")')
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    if (!data) return;
+                    data.forEach(function (s) {
+                        var card = document.querySelector('[data-space-id="' + s.spaceId + '"]');
+                        if (!card) return;
+
+                        // order item badge
+                        var badge = card.querySelector('.pos-order-badge');
+                        if (badge) {
+                            badge.textContent = s.orderItemCount + ' item' + (s.orderItemCount !== 1 ? 's' : '') + ' ordered';
+                            badge.style.display = s.orderItemCount > 0 ? '' : 'none';
+                        }
+
+                        // checkout requested alert
+                        var alert = card.querySelector('.pos-checkout-alert');
+                        if (alert) alert.style.display = s.checkoutRequested ? '' : 'none';
+
+                        // keep live data attributes fresh so Checkout modal reads correct values
+                        card.setAttribute('data-req-split', s.requestedSplitCount || 0);
+                        card.setAttribute('data-menu-total', (s.menuTotal || 0).toFixed(2));
+                        card.setAttribute('data-order-count', s.orderItemCount || 0);
+
+                        // if checkout was just requested and has a split, pulse the checkout button
+                        var coBtn = card.querySelector('.pos-checkout-btn');
+                        if (coBtn && s.checkoutRequested) {
+                            coBtn.style.boxShadow = s.requestedSplitCount >= 2
+                                ? '0 0 0 3px rgba(249,115,22,0.4)'
+                                : '0 0 0 3px rgba(239,68,68,0.35)';
+                        }
+                    });
+                })
+                .catch(function () {});
+        }
+        setInterval(posLivePoll, 5000);
+
+        function showPosQR(spaceId, spaceName) {
+            var url = window.location.origin + '/Customer/Space/' + spaceId;
+            var src = 'https://quickchart.io/qr?text=' + encodeURIComponent(url) + '&size=240&margin=2';
+            document.getElementById('posQrTitle').textContent = spaceName + ' \u2014 QR Code';
+            document.getElementById('posQrImg').src = src;
+            document.getElementById('posQrUrl').textContent = url;
+            document.getElementById('posQrDownload').href = src;
+            document.getElementById('posQrDownload').download = 'QR-' + spaceName.replace(/\s+/g, '-') + '.png';
+            var modal = bootstrap.Modal.getInstance(document.getElementById('posQrModal')) || new bootstrap.Modal(document.getElementById('posQrModal'));
+            modal.show();
+        }
+
+        // ── Order Modal logic ─────────────────────────────────────────────
+        (function () {
+            var _token   = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            var _modalEl = document.getElementById('posOrderModal');
+            var _bsModal = null;
+            var _cart    = [];
+
+            function bsModal() {
+                if (!_bsModal) _bsModal = bootstrap.Modal.getInstance(_modalEl) || new bootstrap.Modal(_modalEl);
+                return _bsModal;
+            }
+
+            function renderModal() {
+                var emptyEl  = _modalEl.querySelector('.pos-modal-empty');
+                var wrapEl   = _modalEl.querySelector('.pos-modal-cart-wrap');
+                var itemsEl  = _modalEl.querySelector('.pos-modal-cart-items');
+                var totalEl  = _modalEl.querySelector('.pos-modal-total');
+                var countEl  = _modalEl.querySelector('.pos-modal-count');
+                var placeBtn = _modalEl.querySelector('.pos-modal-place-btn');
+
+                if (_cart.length === 0) {
+                    emptyEl.style.display = '';
+                    wrapEl.style.display  = 'none';
+                    itemsEl.innerHTML     = '';
+                    if (totalEl)  totalEl.textContent  = '\u20B10.00';
+                    if (countEl)  countEl.textContent  = '0';
+                    if (placeBtn) placeBtn.disabled = true;
+                } else {
+                    emptyEl.style.display = 'none';
+                    wrapEl.style.display  = '';
+                    if (placeBtn) placeBtn.disabled = false;
+                    var totalAmt = 0, totalQty = 0, html = '';
+                    _cart.forEach(function (c, i) {
+                        totalAmt += c.price * c.qty;
+                        totalQty += c.qty;
+                        html += '<div class="d-flex align-items-center px-2 py-1 gap-2" style="font-size:.82rem;border-bottom:1px solid rgba(148,163,184,0.07);">'
+                            + '<span class="flex-grow-1 text-truncate" style="color:var(--zb-text);">' + c.name + '</span>'
+                            + '<button type="button" class="btn btn-sm p-0 px-1" style="color:var(--zb-text-muted);font-size:1rem;" data-cm="' + i + '">&minus;</button>'
+                            + '<span class="fw-bold mx-1" style="color:var(--zb-secondary);min-width:20px;text-align:center;">' + c.qty + '</span>'
+                            + '<button type="button" class="btn btn-sm p-0 px-1" style="color:var(--zb-text-muted);font-size:1rem;" data-cp="' + i + '">+</button>'
+                            + '<span class="ms-1" style="color:var(--zb-text-muted);min-width:60px;text-align:right;">\u20B1' + (c.price * c.qty).toFixed(2) + '</span>'
+                            + '<button type="button" class="btn btn-sm p-0 px-1 ms-1" style="color:#f87171;" data-cr="' + i + '">&times;</button>'
+                            + '</div>';
+                    });
+                    itemsEl.innerHTML = html;
+                    if (totalEl) totalEl.textContent = '\u20B1' + totalAmt.toFixed(2);
+                    if (countEl) countEl.textContent = totalQty;
+
+                    itemsEl.querySelectorAll('[data-cp]').forEach(function (b) {
+                        b.onclick = function () { var i = +b.getAttribute('data-cp'); if (_cart[i].qty < _cart[i].stock) { _cart[i].qty++; renderModal(); } };
+                    });
+                    itemsEl.querySelectorAll('[data-cm]').forEach(function (b) {
+                        b.onclick = function () { var i = +b.getAttribute('data-cm'); _cart[i].qty--; if (_cart[i].qty <= 0) _cart.splice(i, 1); renderModal(); };
+                    });
+                    itemsEl.querySelectorAll('[data-cr]').forEach(function (b) {
+                        b.onclick = function () { var i = +b.getAttribute('data-cr'); _cart.splice(i, 1); renderModal(); };
+                    });
+                }
+
+                // Highlight tiles
+                _modalEl.querySelectorAll('.pos-modal-tile').forEach(function (tile) {
+                    var id = +tile.getAttribute('data-item-id');
+                    var inCart = _cart.find(function (c) { return c.itemId === id; });
+                    tile.style.setProperty('border-color', inCart ? 'rgba(6,182,212,0.55)' : 'rgba(148,163,184,0.12)', 'important');
+                    tile.style.background = inCart ? 'rgba(6,182,212,0.12)' : 'rgba(15,23,42,0.7)';
+                });
+            }
+
+            // Tile clicks
+            _modalEl.querySelectorAll('.pos-modal-tile').forEach(function (tile) {
+                tile.addEventListener('click', function () {
+                    var itemId = +tile.getAttribute('data-item-id');
+                    var stock  = +tile.getAttribute('data-stock');
+                    if (stock < 1) return;
+                    var ex = _cart.find(function (c) { return c.itemId === itemId; });
+                    if (ex) { if (ex.qty < stock) ex.qty++; }
+                    else { _cart.push({ itemId: itemId, name: tile.getAttribute('data-name'), price: +tile.getAttribute('data-price'), qty: 1, stock: stock }); }
+                    renderModal();
+                });
+            });
+
+            // Clear button
+            _modalEl.querySelector('.pos-modal-clear-btn').addEventListener('click', function () {
+                _cart = []; renderModal();
+            });
+
+            // Place Order
+            _modalEl.querySelector('.pos-modal-place-btn').addEventListener('click', function () {
+                if (_cart.length === 0) return;
+                var bookingId = +_modalEl.getAttribute('data-booking-id');
+                var placeBtn = _modalEl.querySelector('.pos-modal-place-btn');
+                placeBtn.disabled = true;
+                placeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Placing order...';
+
+                fetch('@Url.Action("BatchAddOrder", "POS")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': _token },
+                    body: JSON.stringify({ bookingId: bookingId, items: _cart.map(function (c) { return { itemId: c.itemId, quantity: c.qty }; }) })
+                })
+                .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+                .then(function (res) {
+                    if (res.ok) {
+                        _cart = []; renderModal();
+                        bsModal().hide();
+                        var t = document.createElement('div');
+                        t.style.cssText = 'position:fixed;top:1.2rem;right:1.2rem;z-index:9999;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#86efac;padding:.5rem 1.1rem;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+                        t.textContent = res.data.message || 'Order placed!';
+                        document.body.appendChild(t);
+                        setTimeout(function () { t.remove(); }, 3000);
+                    } else {
+                        alert(res.data.error || 'Failed to place order.');
+                        placeBtn.disabled = false;
+                        placeBtn.innerHTML = '<i class="bi bi-bag-check me-1"></i>Place Order &mdash; <span class="pos-modal-count">' + _cart.reduce(function (s, c) { return s + c.qty; }, 0) + '</span> item(s)';
+                    }
+                })
+                .catch(function () {
+                    alert('Network error. Try again.');
+                    placeBtn.disabled = false;
+                    placeBtn.innerHTML = '<i class="bi bi-bag-check me-1"></i>Place Order &mdash; <span class="pos-modal-count">' + _cart.reduce(function (s, c) { return s + c.qty; }, 0) + '</span> item(s)';
+                });
+            });
+
+            // Search filter
+            document.getElementById('orderModalSearch').addEventListener('input', function () {
+                var q = this.value.toLowerCase().trim();
+                _modalEl.querySelectorAll('.pos-modal-tile').forEach(function (tile) {
+                    tile.style.display = (!q || tile.getAttribute('data-name').toLowerCase().includes(q)) ? '' : 'none';
+                });
+            });
+
+            // Reset on close
+            _modalEl.addEventListener('hidden.bs.modal', function () {
+                _cart = [];
+                document.getElementById('orderModalSearch').value = '';
+                _modalEl.querySelectorAll('.pos-modal-tile').forEach(function (t) { t.style.display = ''; });
+                renderModal();
+            });
+
+            // Global opener
+            window.openOrderModal = function (bookingId, spaceName) {
+                _modalEl.setAttribute('data-booking-id', bookingId);
+                document.getElementById('orderModalTitle').textContent = spaceName;
+                document.getElementById('orderModalSub').textContent   = 'Booking #' + bookingId;
+                _cart = [];
+                renderModal();
+                bsModal().show();
+            };
+        })();
+    </script>
 }

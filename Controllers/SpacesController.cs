@@ -116,6 +116,10 @@ namespace ZoneBill_Lloren.Controllers
                 .CountAsync(s => s.BusinessId == businessId && s.IsActive);
 
             space.BusinessId = businessId;
+            space.IsActive = true;
+            ModelState.Remove("BusinessId");
+            ModelState.Remove("IsActive");
+            ModelState.Remove("Business");
 
             if (currentTables >= maxTablesAllowed)
             {
@@ -166,12 +170,25 @@ namespace ZoneBill_Lloren.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("SpaceId,BusinessId,SpaceName,FloorArea,Capacity,CurrentHourlyRate,CurrentStatus,IsActive")] Space space)
+        public async Task<IActionResult> Edit(int id, [Bind("SpaceId,SpaceName,FloorArea,Capacity,CurrentHourlyRate,CurrentStatus,IsActive")] Space space)
         {
             if (id != space.SpaceId)
             {
                 return NotFound();
             }
+
+            var myBusinessId = User.FindFirst("BusinessId")?.Value;
+            if (!int.TryParse(myBusinessId, out int businessId))
+                return Unauthorized();
+
+            // Verify the space belongs to this user's business
+            var exists = await _context.Spaces.AnyAsync(s => s.SpaceId == id && s.BusinessId == businessId);
+            if (!exists)
+                return NotFound();
+
+            space.BusinessId = businessId;
+            ModelState.Remove("Business");
+            ModelState.Remove("BusinessId");
 
             if (ModelState.IsValid)
             {
@@ -193,7 +210,6 @@ namespace ZoneBill_Lloren.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["BusinessId"] = new SelectList(_context.Businesses, "BusinessId", "BusinessName", space.BusinessId);
             return View(space);
         }
 

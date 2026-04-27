@@ -42,6 +42,18 @@
             <div class="zb-kpi-value" style="color:#a855f7;">@Model.ActiveShiftCount</div>
         </div>
     </div>
+    <div class="col-6 col-lg">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Today's Bookings</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TodayBookings</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+            <div class="zb-kpi-label">Active Sessions</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveBookings</div>
+        </div>
+    </div>
 </div>
 
 @if (Model.LowStockItems.Any())
@@ -82,6 +94,16 @@
             </div>
             <div class="p-4">
                 <canvas id="menuQtyChart" height="160"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="zb-table-card">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-credit-card me-2"></i>Payment Methods (Last 7 Days)</h6>
+            </div>
+            <div class="p-4">
+                <canvas id="payMethodChart" height="160"></canvas>
             </div>
         </div>
     </div>
@@ -143,6 +165,22 @@
                     borderWidth: 2
                 }]
             }
+        });
+
+        const payMethodLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PaymentMethodLabels));
+        const payMethodAmounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PaymentMethodAmounts));
+        new Chart(document.getElementById('payMethodChart'), {
+            type: 'doughnut',
+            data: {
+                labels: payMethodLabels,
+                datasets: [{
+                    data: payMethodAmounts,
+                    backgroundColor: ['#06b6d4', '#22c55e', '#f97316', '#a855f7', '#eab308'],
+                    borderColor: '#1e293b',
+                    borderWidth: 2
+                }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } } }
         });
     </script>
 }

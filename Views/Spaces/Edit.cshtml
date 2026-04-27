@@ -4,58 +4,84 @@
     ViewData["Title"] = "Edit Space";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-pencil-square me-2" style="color:var(--zb-secondary);"></i>Edit Space</h4>
-    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
-</div>
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="d-flex align-items-center mb-4 gap-2">
+            <i class="bi bi-pencil-square fs-4" style="color:var(--zb-secondary);"></i>
+            <h4 class="fw-bold mb-0" style="color:var(--zb-text);">Edit Space</h4>
+        </div>
 
-<div class="zb-table-card">
-    <div class="p-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-            <input type="hidden" asp-for="SpaceId" />
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="BusinessId" class="form-label zb-form-label"></label>
-                    <select asp-for="BusinessId" class="form-select zb-form-input" asp-items="ViewBag.BusinessId"></select>
-                    <span asp-validation-for="BusinessId" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="SpaceName" class="form-label zb-form-label"></label>
-                    <input asp-for="SpaceName" class="form-control zb-form-input" />
-                    <span asp-validation-for="SpaceName" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="FloorArea" class="form-label zb-form-label"></label>
-                    <input asp-for="FloorArea" class="form-control zb-form-input" />
-                    <span asp-validation-for="FloorArea" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Capacity" class="form-label zb-form-label"></label>
-                    <input asp-for="Capacity" class="form-control zb-form-input" min="1" />
-                    <span asp-validation-for="Capacity" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="CurrentHourlyRate" class="form-label zb-form-label"></label>
-                    <input asp-for="CurrentHourlyRate" class="form-control zb-form-input" />
-                    <span asp-validation-for="CurrentHourlyRate" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="CurrentStatus" class="form-label zb-form-label"></label>
-                    <input asp-for="CurrentStatus" class="form-control zb-form-input" />
-                    <span asp-validation-for="CurrentStatus" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-check mt-4">
-                        <input class="form-check-input" asp-for="IsActive" style="background-color:var(--zb-primary-mid);border-color:var(--zb-text-muted);" />
-                        <label class="form-check-label zb-form-label" asp-for="IsActive">@Html.DisplayNameFor(model => model.IsActive)</label>
+        <div class="zb-table-card">
+            <div class="px-4 pt-4 pb-1" style="border-bottom:1px solid rgba(6,182,212,0.12);">
+                <p class="mb-3 fw-semibold" style="color:var(--zb-secondary);font-size:0.8rem;letter-spacing:0.05em;text-transform:uppercase;">
+                    <i class="bi bi-grid me-1"></i>Space Details
+                </p>
+            </div>
+            <div class="p-4">
+                <form asp-action="Edit" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small mb-3"></div>
+                    <input type="hidden" asp-for="SpaceId" />
+
+                    <div class="mb-3">
+                        <label asp-for="SpaceName" class="form-label zb-form-label">Space Name</label>
+                        <input asp-for="SpaceName" class="form-control zb-form-input" placeholder="e.g. Table 1, Pool Room A" />
+                        <span asp-validation-for="SpaceName" class="text-danger small"></span>
                     </div>
-                </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="FloorArea" class="form-label zb-form-label">Floor Area (sqm)</label>
+                            <input asp-for="FloorArea" class="form-control zb-form-input" placeholder="e.g. 25.5" />
+                            <span asp-validation-for="FloorArea" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Capacity" class="form-label zb-form-label">Capacity (persons)</label>
+                            <input asp-for="Capacity" type="number" min="1" class="form-control zb-form-input" placeholder="e.g. 4" />
+                            <span asp-validation-for="Capacity" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CurrentHourlyRate" class="form-label zb-form-label">Hourly Rate</label>
+                        <div class="input-group">
+                            <span class="input-group-text fw-bold" style="background:var(--zb-primary-alt);color:var(--zb-text-muted);border-color:rgba(148,163,184,0.2);">₱</span>
+                            <input asp-for="CurrentHourlyRate" type="number" step="0.01" min="0" class="form-control zb-form-input" placeholder="0.00" />
+                        </div>
+                        <span asp-validation-for="CurrentHourlyRate" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label asp-for="CurrentStatus" class="form-label zb-form-label">Status</label>
+                            <select asp-for="CurrentStatus" class="form-select zb-form-input">
+                                <option value="Available">Available</option>
+                                <option value="Unavailable">Unavailable</option>
+                                <option value="Occupied">Occupied</option>
+                            </select>
+                            <span class="text-muted" style="font-size:0.72rem;">"Occupied" is normally set by the system during active sessions.</span>
+                            <span asp-validation-for="CurrentStatus" class="text-danger small d-block"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="IsActive" class="form-label zb-form-label">Active</label>
+                            <select asp-for="IsActive" class="form-select zb-form-input">
+                                <option value="true">Yes — Space is visible &amp; bookable</option>
+                                <option value="false">No — Space is hidden from POS</option>
+                            </select>
+                            <span asp-validation-for="IsActive" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="submit" class="btn fw-semibold px-4" style="background:var(--zb-accent);color:#fff;border:none;">
+                            <i class="bi bi-check-lg me-1"></i>Save Changes
+                        </button>
+                        <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:transparent;color:var(--zb-text-muted);border:1px solid rgba(148,163,184,0.2);">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
             </div>
-            <div class="mt-4">
-                <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;"><i class="bi bi-check-lg me-1"></i>Save</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 

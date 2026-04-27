@@ -1,0 +1,159 @@
+@model ZoneBill_Lloren.Models.CustomerReceiptViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Receipt — @Model.BusinessName</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'zb-primary': '#0F172A',
+                        'zb-mid': '#1E293B',
+                        'zb-alt': '#334155',
+                        'zb-cyan': '#06B6D4',
+                        'zb-orange': '#F97316',
+                        'zb-text': '#F1F5F9',
+                        'zb-muted': '#94A3B8',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+</head>
+<body class="bg-zb-primary text-zb-text min-h-screen">
+
+<div class="max-w-md mx-auto px-4 py-6">
+
+    <!-- Thank You Header -->
+    <div class="text-center mb-6">
+        <div class="text-5xl mb-3">🎉</div>
+        <h1 class="text-2xl font-bold text-zb-cyan mb-1">Thank you for visiting!</h1>
+        <p class="text-zb-muted text-sm">@Model.BusinessName</p>
+    </div>
+
+    <!-- Session Summary -->
+    <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-4">
+        <div class="bg-zb-alt border-b border-zb-cyan px-4 py-2.5 text-zb-cyan font-semibold text-sm">
+            <i class="bi bi-info-circle me-1"></i> Session Details
+        </div>
+        <div class="p-4 space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-zb-muted">Table</span>
+                <span class="font-medium">@Model.SpaceName</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-zb-muted">Reference</span>
+                <span class="font-medium text-zb-cyan">@Model.ReferenceCode</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-zb-muted">Time In</span>
+                <span>@PhilippineTime.ToDateTime(Model.StartTime).ToString("MMM d, yyyy h:mm tt")</span>
+            </div>
+            @if (Model.EndTime.HasValue)
+            {
+                <div class="flex justify-between">
+                    <span class="text-zb-muted">Time Out</span>
+                    <span>@PhilippineTime.ToDateTime(Model.EndTime.Value).ToString("MMM d, yyyy h:mm tt")</span>
+                </div>
+            }
+            @if (Model.DurationHours.HasValue)
+            {
+                <div class="flex justify-between">
+                    <span class="text-zb-muted">Duration</span>
+                    <span>@Model.DurationHours.Value.ToString("0.00") hrs</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Itemized Bill -->
+    <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-4">
+        <div class="bg-zb-alt border-b border-zb-cyan px-4 py-2.5 text-zb-cyan font-semibold text-sm">
+            <i class="bi bi-receipt me-1"></i> Itemized Bill
+        </div>
+        <div class="divide-y divide-zb-alt">
+            <!-- Time Charge -->
+            <div class="flex justify-between items-center px-4 py-2.5 text-sm">
+                <span class="flex-1">
+                    <i class="bi bi-clock text-zb-muted me-1"></i> Table time
+                    @if (Model.DurationHours.HasValue)
+                    {
+                        <span class="text-zb-muted text-xs">(@Model.DurationHours.Value.ToString("0.00")h)</span>
+                    }
+                </span>
+                <span class="font-medium">₱@Model.TimeCharge.ToString("0.00")</span>
+            </div>
+
+            <!-- Order Items -->
+            @foreach (var item in Model.OrderItems)
+            {
+                <div class="flex justify-between items-center px-4 py-2.5 text-sm">
+                    <span class="flex-1">@item.ItemName</span>
+                    <span class="text-zb-muted w-12 text-center">×@item.Quantity</span>
+                    <span class="w-24 text-right font-medium">₱@item.LineTotal.ToString("0.00")</span>
+                </div>
+            }
+        </div>
+
+        <!-- Totals -->
+        <div class="p-4 border-t border-zb-alt space-y-1.5">
+            <div class="flex justify-between text-sm">
+                <span class="text-zb-muted">Subtotal</span>
+                <span>₱@((Model.TimeCharge + Model.MenuTotal).ToString("0.00"))</span>
+            </div>
+            <div class="flex justify-between text-xs text-zb-muted">
+                <span>Tax (@Model.TaxRatePercent.ToString("0.##")%)</span>
+                <span>₱@Model.TaxAmount.ToString("0.00")</span>
+            </div>
+            <div class="flex justify-between text-lg font-bold text-zb-orange border-t-2 border-zb-cyan pt-3 mt-2">
+                <span>Total</span>
+                <span>₱@Model.TotalAmount.ToString("0.00")</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Info -->
+    <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-4">
+        <div class="bg-zb-alt border-b border-zb-cyan px-4 py-2.5 text-zb-cyan font-semibold text-sm">
+            <i class="bi bi-credit-card me-1"></i> Payment
+        </div>
+        <div class="p-4 space-y-2 text-sm">
+            <div class="flex justify-between">
+                <span class="text-zb-muted">Amount Paid</span>
+                <span class="font-semibold text-emerald-400">₱@Model.PaidAmount.ToString("0.00")</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-zb-muted">Payment Method</span>
+                <span>@Model.PaymentMethod</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Confirmation -->
+    @if (Model.ReceiptEmailSent && !string.IsNullOrWhiteSpace(Model.CustomerEmail))
+    {
+        <div class="bg-emerald-900/40 border border-emerald-500/30 rounded-xl px-4 py-3 mb-4 text-center text-sm">
+            <i class="bi bi-envelope-check text-emerald-400 me-1"></i>
+            Receipt sent to <span class="font-semibold text-emerald-300">@Model.CustomerEmail</span>
+        </div>
+    }
+
+    <!-- Footer -->
+    <p class="text-center text-zb-muted text-xs pb-4">
+        Powered by <span class="text-zb-cyan font-semibold">ZoneBill</span>
+    </p>
+</div>
+
+</body>
+</html>

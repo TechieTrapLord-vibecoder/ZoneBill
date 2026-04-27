@@ -1,4 +1,4 @@
-@model ZoneBill_Lloren.Models.InventoryIndexViewModel
+﻿@model ZoneBill_Lloren.Models.InventoryIndexViewModel
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -67,7 +67,7 @@
                     <th style="width:360px;">Quick Restock</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @if (Model.LowStockItems.Any())
                 {
                     @foreach (var item in Model.LowStockItems)
@@ -159,18 +159,15 @@
                     </div>
                     <div class="col-4">
                         <label class="form-label small zb-form-label">Quantity Change</label>
-                        <input class="form-control form-control-sm zb-form-input" type="number" min="-100000" max="100000" name="Quantity" value="1" required />
+                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" max="100000" name="Quantity" value="1" required />
                     </div>
                     <div class="col-8">
                         <label class="form-label small zb-form-label">Notes</label>
                         <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="e.g. physical count mismatch" />
                     </div>
-                    <div class="col-12">
-                        <small style="color:var(--zb-text-muted);">Use positive values to add stock and negative values to subtract stock.</small>
-                    </div>
                     <div class="col-12 d-grid">
                         <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
-                            <i class="bi bi-arrow-left-right me-1"></i> Save Correction
+                            <i class="bi bi-arrow-left-right me-1"></i> Apply Change
                         </button>
                     </div>
                 </form>
@@ -196,7 +193,7 @@
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model.MenuItems)
                 {
                     var lowStock = item.IsActive && item.StockAvailable <= item.LowStockThreshold;
@@ -250,7 +247,7 @@
                     <th>Notes</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @if (Model.RecentTransactions.Any())
                 {
                     @foreach (var tx in Model.RecentTransactions)

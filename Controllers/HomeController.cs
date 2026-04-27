@@ -29,7 +29,7 @@ namespace ZoneBill_Lloren.Controllers
                 if (User.IsInRole("MainAdmin")) return RedirectToAction(nameof(Dashboard));
                 if (User.IsInRole("Manager")) return RedirectToAction("Index", "Reports");
                 if (User.IsInRole("Cashier")) return RedirectToAction("Index", "POS");
-                if (User.IsInRole("Staff")) return RedirectToAction("Index", "Bookings");
+
             }
 
             var plans = _context.SubscriptionPlans.Where(p => p.IsActive).ToList();
@@ -102,6 +102,13 @@ namespace ZoneBill_Lloren.Controllers
             var activeShiftCount = await _context.PosShifts
                 .CountAsync(s => s.BusinessId == businessId.Value && s.Status == "Open");
 
+            var paymentMethods = await _context.Payments
+                .Where(p => p.BusinessId == businessId.Value && p.PaymentDate >= sevenDaysAgo && p.PaymentDate < tomorrow)
+                .GroupBy(p => p.PaymentMethod)
+                .Select(g => new { Method = g.Key, Total = g.Sum(x => x.AmountPaid) })
+                .OrderByDescending(x => x.Total)
+                .ToListAsync();
+
             var viewModel = new DashboardViewModel
             {
                 TodayRevenue = dailyRevenueMap.TryGetValue(today, out var todayRevenue) ? todayRevenue : 0m,
@@ -115,7 +122,11 @@ namespace ZoneBill_Lloren.Controllers
                 TopSpaceLabels = topSpaces.Select(x => x.SpaceName).ToList(),
                 TopSpaceRevenueSeries = topSpaces.Select(x => Math.Round(x.Revenue, 2)).ToList(),
                 TopMenuLabels = topMenus.Select(x => x.ItemName).ToList(),
-                TopMenuQuantitySeries = topMenus.Select(x => x.Quantity).ToList()
+                TopMenuQuantitySeries = topMenus.Select(x => x.Quantity).ToList(),
+                PaymentMethodLabels = paymentMethods.Select(x => x.Method).ToList(),
+                PaymentMethodAmounts = paymentMethods.Select(x => x.Total).ToList(),
+                TodayBookings = await _context.Bookings.CountAsync(b => b.BusinessId == businessId.Value && b.StartTime >= today && b.StartTime < tomorrow),
+                ActiveBookings = await _context.Bookings.CountAsync(b => b.BusinessId == businessId.Value && b.BookingStatus == "Active")
             };
 
             return View(viewModel);

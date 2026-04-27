@@ -1,4 +1,4 @@
-@model ZoneBill_Lloren.Models.BillingPageViewModel
+﻿@model ZoneBill_Lloren.Models.BillingPageViewModel
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -102,7 +102,7 @@
                     <th>Reference</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
             @if (Model.RecentInvoices.Any())
             {
                 @foreach (var invoice in Model.RecentInvoices)

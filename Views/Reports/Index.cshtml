@@ -83,21 +83,22 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-6 col-xl-3">
-        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+    <div class="col-md-6 col-xl-3 d-flex">
+        <div class="zb-kpi-card w-100" style="border-color:rgba(6,182,212,0.4);">
             <div class="zb-kpi-label">Gross Sales</div>
             <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalSales.ToString("C")</div>
             <div class="small mt-2" style="color:var(--zb-text-muted);">@Model.TotalOrders orders / @Model.TotalUnitsSold units</div>
         </div>
     </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+    <div class="col-md-6 col-xl-3 d-flex">
+        <div class="zb-kpi-card w-100" style="border-color:rgba(239,68,68,0.4);">
             <div class="zb-kpi-label">Cost of Goods Sold</div>
             <div class="zb-kpi-value" style="color:#ef4444;">@Model.TotalCostOfGoods.ToString("C")</div>
+            <div class="small mt-2" style="color:var(--zb-text-muted);">Total cost of items sold</div>
         </div>
     </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+    <div class="col-md-6 col-xl-3 d-flex">
+        <div class="zb-kpi-card w-100" style="border-color:rgba(34,197,94,0.4);">
             <div class="zb-kpi-label">Gross Profit</div>
             <div class="zb-kpi-value" style="color:#22c55e;">@Model.GrossProfit.ToString("C")</div>
             <div class="small mt-2" style="color:var(--zb-text-muted);">Margin: @Model.ProfitMarginPercent.ToString("N2")%</div>
@@ -107,8 +108,8 @@
             }
         </div>
     </div>
-    <div class="col-md-6 col-xl-3">
-        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+    <div class="col-md-6 col-xl-3 d-flex">
+        <div class="zb-kpi-card w-100" style="border-color:rgba(249,115,22,0.4);">
             <div class="zb-kpi-label">Shift Variance</div>
             <div class="zb-kpi-value" style="color:@(Model.TotalShiftVariance < 0 ? "#ef4444" : "#22c55e");">@Model.TotalShiftVariance.ToString("C")</div>
             <div class="small mt-2" style="color:var(--zb-text-muted);">@Model.ClosedShiftCount closed shifts (@Model.ShortShiftCount short / @Model.OverShiftCount over)</div>

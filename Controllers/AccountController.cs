@@ -652,7 +652,6 @@ namespace ZoneBill_Lloren.Controllers
         {
             "SuperAdmin" => RedirectToAction("Index", "Businesses"),
             "MainAdmin"  => RedirectToAction("Index", "Spaces"),
-            "Staff"      => RedirectToAction("Index", "Bookings"),
             _            => RedirectToAction("Index", "Home")
         };
 

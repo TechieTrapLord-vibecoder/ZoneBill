@@ -1,4 +1,4 @@
-@model IEnumerable<ZoneBill_Lloren.Models.Payment>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.Payment>
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -63,7 +63,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model)
                 {
                     var methodClass = item.PaymentMethod == "Cash" ? "zb-badge-cyan" :

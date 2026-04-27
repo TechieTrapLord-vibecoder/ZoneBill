@@ -1,4 +1,4 @@
-@model IEnumerable<ZoneBill_Lloren.Models.Booking>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.Booking>
 
 @{
     ViewData["Title"] = "Bookings";
@@ -64,7 +64,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model)
                 {
                     var statusClass = item.BookingStatus == "Active" ? "zb-badge-cyan" :

@@ -43,6 +43,16 @@ namespace ZoneBill_Lloren.Controllers
                 .Select(g => new { BookingId = g.Key, Count = g.Sum(od => od.Quantity) })
                 .ToDictionaryAsync(x => x.BookingId, x => x.Count);
 
+            var orderTotals = activeBookingIds.Count > 0
+                ? await _context.OrderDetails
+                    .Where(od => activeBookingIds.Contains(od.Order.BookingId) && od.Order.BusinessId == businessId.Value)
+                    .GroupBy(od => od.Order.BookingId)
+                    .Select(g => new { BookingId = g.Key, Total = g.Sum(od => od.Quantity * od.LockedUnitPrice) })
+                    .ToDictionaryAsync(x => x.BookingId, x => x.Total)
+                : new Dictionary<int, decimal>();
+
+            var business = await _context.Businesses.FirstAsync(b => b.BusinessId == businessId.Value);
+
             var model = new PosDashboardViewModel
             {
                 Spaces = spaces.Select(space =>
@@ -52,12 +62,19 @@ namespace ZoneBill_Lloren.Controllers
                     {
                         SpaceId = space.SpaceId,
                         SpaceName = space.SpaceName,
+                        FloorArea = space.FloorArea,
+                        Capacity = space.Capacity,
                         HourlyRate = space.CurrentHourlyRate,
                         Status = activeBooking == null ? "Available" : "Occupied",
                         ActiveBookingId = activeBooking?.BookingId,
                         ActiveStartTime = activeBooking?.StartTime,
                         OrderItemCount = activeBooking != null && orderItemCounts.TryGetValue(activeBooking.BookingId, out var cnt) ? cnt : 0,
-                        CheckoutRequested = activeBooking?.CheckoutRequested ?? false
+                        CheckoutRequested = activeBooking?.CheckoutRequested ?? false,
+                        RequestedSplitCount = activeBooking?.RequestedSplitCount,
+                        MenuTotal = activeBooking != null && orderTotals.TryGetValue(activeBooking.BookingId, out var mt) ? mt : 0,
+                        TaxRatePercentage = business.TaxRatePercentage,
+                        LockedHourlyRate = activeBooking?.LockedHourlyRate ?? space.CurrentHourlyRate,
+                        ReferenceCode = activeBooking?.ReferenceCode
                     };
                 }).ToList(),
                 Customers = await _context.Customers
@@ -251,6 +268,94 @@ namespace ZoneBill_Lloren.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // POST /POS/BatchAddOrder  (JSON — used by the POS card cart)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BatchAddOrder([FromBody] PosBatchOrderRequest request)
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            if (!await HasOpenShiftAsync(businessId.Value))
+                return BadRequest(new { error = "You must have an open shift to add orders." });
+
+            if (request.Items == null || request.Items.Count == 0)
+                return BadRequest(new { error = "No items provided." });
+
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b =>
+                b.BookingId == request.BookingId &&
+                b.BusinessId == businessId.Value &&
+                b.BookingStatus == "Active");
+            if (booking == null) return NotFound();
+
+            var cashierId = GetUserId();
+            if (cashierId == null) return BadRequest(new { error = "Unable to determine current user." });
+
+            var order = await _context.Orders
+                .FirstOrDefaultAsync(o => o.BookingId == booking.BookingId && o.BusinessId == businessId.Value);
+            if (order == null)
+            {
+                order = new Order
+                {
+                    BusinessId = businessId.Value,
+                    BookingId = booking.BookingId,
+                    CashierId = cashierId.Value,
+                    OrderTime = PhilippineTime.Now
+                };
+                _context.Orders.Add(order);
+                await _context.SaveChangesAsync();
+            }
+
+            var added = new List<string>();
+            var errors = new List<string>();
+
+            foreach (var item in request.Items)
+            {
+                if (item.Quantity <= 0) continue;
+
+                var menuItem = await _context.MenuItems.FirstOrDefaultAsync(m =>
+                    m.ItemId == item.ItemId && m.BusinessId == businessId.Value && m.IsActive);
+                if (menuItem == null) { errors.Add($"Item #{item.ItemId} not found."); continue; }
+                if (menuItem.StockAvailable < item.Quantity)
+                {
+                    errors.Add($"Only {menuItem.StockAvailable} left for {menuItem.ItemName}.");
+                    continue;
+                }
+
+                _context.OrderDetails.Add(new OrderDetail
+                {
+                    OrderId = order.OrderId,
+                    ItemId = menuItem.ItemId,
+                    Quantity = item.Quantity,
+                    LockedUnitPrice = menuItem.CurrentPrice
+                });
+
+                menuItem.StockAvailable -= item.Quantity;
+                added.Add($"{item.Quantity}× {menuItem.ItemName}");
+
+                if (menuItem.StockAvailable <= 0)
+                {
+                    var mainAdmin = await _context.Users
+                        .FirstOrDefaultAsync(u => u.BusinessId == businessId.Value && u.UserRole == "MainAdmin" && u.IsActive);
+                    if (mainAdmin != null)
+                    {
+                        var business = await _context.Businesses.FindAsync(businessId.Value);
+                        _ = _emailService.SendLowStockAlertAsync(
+                            mainAdmin.EmailAddress,
+                            $"{mainAdmin.FirstName} {mainAdmin.LastName}",
+                            menuItem.ItemName,
+                            business?.BusinessName ?? "Your Business");
+                    }
+                }
+            }
+
+            if (added.Count == 0)
+                return BadRequest(new { error = string.Join(" ", errors) });
+
+            await _context.SaveChangesAsync();
+            return Ok(new { success = true, message = string.Join(", ", added) + " added.", errors });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Checkout(CheckoutRequest request)
@@ -407,7 +512,8 @@ namespace ZoneBill_Lloren.Controllers
                 InvoiceId = invoice.InvoiceId,
                 AmountPaid = total,
                 PaymentMethod = normalizedPaymentMethod,
-                PaymentDate = PhilippineTime.Now
+                PaymentDate = PhilippineTime.Now,
+                ReferenceNumber = string.IsNullOrWhiteSpace(request.ReferenceNumber) ? null : request.ReferenceNumber.Trim()
             };
 
             var cashAccountName = normalizedPaymentMethod.Equals("GCash", StringComparison.OrdinalIgnoreCase)
@@ -451,8 +557,65 @@ namespace ZoneBill_Lloren.Controllers
 
             await _context.SaveChangesAsync();
 
+            // ── Send customer receipt email if email was captured ──────────
+            if (!string.IsNullOrWhiteSpace(booking.CustomerEmail) && !booking.CustomerReceiptEmailSent)
+            {
+                var emailItems = orderDetails
+                    .Select(od => (od.MenuItem.ItemName, od.Quantity, Math.Round(od.Quantity * od.LockedUnitPrice, 2)))
+                    .ToList();
+
+                _ = _emailService.SendCustomerReceiptAsync(
+                    booking.CustomerEmail,
+                    business.BusinessName,
+                    booking.Space?.SpaceName ?? "",
+                    booking.ReferenceCode ?? "",
+                    tableCharge, menuCharge, taxAmount, total,
+                    emailItems);
+
+                booking.CustomerReceiptEmailSent = true;
+                await _context.SaveChangesAsync();
+            }
+
             TempData["Success"] = $"Checkout complete. Invoice #{invoice.InvoiceId} — Paid via {normalizedPaymentMethod} ({discountPercentage:0.##}% discount, {business.TaxRatePercentage:0.##}% tax).";
             return RedirectToAction(nameof(Index));
+        }
+
+        // ── Live Status (polling) ──────────────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> LiveStatus()
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            var activeBookings = await _context.Bookings
+                .Where(b => b.BusinessId == businessId.Value && b.BookingStatus == "Active")
+                .ToListAsync();
+
+            var ids = activeBookings.Select(b => b.BookingId).ToList();
+
+            var counts = ids.Count > 0
+                ? await _context.OrderDetails
+                    .Where(od => ids.Contains(od.Order.BookingId) && od.Order.BusinessId == businessId.Value)
+                    .GroupBy(od => od.Order.BookingId)
+                    .Select(g => new { BookingId = g.Key, Count = g.Sum(od => od.Quantity), Total = g.Sum(od => od.Quantity * od.LockedUnitPrice) })
+                    .ToListAsync()
+                : new List<object>().Select(x => new { BookingId = 0, Count = 0, Total = 0m }).ToList();
+
+            var result = activeBookings.Select(b =>
+            {
+                var c = counts.FirstOrDefault(x => x.BookingId == b.BookingId);
+                return new
+                {
+                    spaceId = b.SpaceId,
+                    bookingId = b.BookingId,
+                    orderItemCount = c?.Count ?? 0,
+                    menuTotal = c?.Total ?? 0m,
+                    checkoutRequested = b.CheckoutRequested,
+                    requestedSplitCount = b.RequestedSplitCount
+                };
+            });
+
+            return Json(result);
         }
 
         // ── Tables Floor Layout ────────────────────────────────────────────
@@ -479,6 +642,16 @@ namespace ZoneBill_Lloren.Controllers
                     .ToDictionaryAsync(x => x.BookingId, x => x.Count)
                 : new Dictionary<int, int>();
 
+            var orderTotals2 = activeBookingIds.Count > 0
+                ? await _context.OrderDetails
+                    .Where(od => activeBookingIds.Contains(od.Order.BookingId) && od.Order.BusinessId == businessId.Value)
+                    .GroupBy(od => od.Order.BookingId)
+                    .Select(g => new { BookingId = g.Key, Total = g.Sum(od => od.Quantity * od.LockedUnitPrice) })
+                    .ToDictionaryAsync(x => x.BookingId, x => x.Total)
+                : new Dictionary<int, decimal>();
+
+            var business2 = await _context.Businesses.FirstAsync(b => b.BusinessId == businessId.Value);
+
             var cards = spaces.Select(space =>
             {
                 var ab = activeBookings.FirstOrDefault(b => b.SpaceId == space.SpaceId);
@@ -493,7 +666,11 @@ namespace ZoneBill_Lloren.Controllers
                     ActiveBookingId = ab?.BookingId,
                     ActiveStartTime = ab?.StartTime,
                     OrderItemCount = ab != null && orderItemCounts.TryGetValue(ab.BookingId, out var cnt) ? cnt : 0,
-                    CheckoutRequested = ab?.CheckoutRequested ?? false
+                    CheckoutRequested = ab?.CheckoutRequested ?? false,
+                    MenuTotal = ab != null && orderTotals2.TryGetValue(ab.BookingId, out var mt) ? mt : 0,
+                    TaxRatePercentage = business2.TaxRatePercentage,
+                    LockedHourlyRate = ab?.LockedHourlyRate ?? space.CurrentHourlyRate,
+                    ReferenceCode = ab?.ReferenceCode
                 };
             }).ToList();
 
@@ -778,7 +955,8 @@ namespace ZoneBill_Lloren.Controllers
                     InvoiceId = invoice.InvoiceId,
                     AmountPaid = splitTotal,
                     PaymentMethod = normalizedPaymentMethod,
-                    PaymentDate = PhilippineTime.Now
+                    PaymentDate = PhilippineTime.Now,
+                    ReferenceNumber = string.IsNullOrWhiteSpace(request.ReferenceNumber) ? null : request.ReferenceNumber.Trim()
                 });
 
                 var payJournal = new JournalEntry
@@ -853,6 +1031,71 @@ namespace ZoneBill_Lloren.Controllers
         {
             var value = User.FindFirstValue(ClaimTypes.NameIdentifier);
             return int.TryParse(value, out var userId) ? userId : null;
+        }
+
+        // GET /POS/GetBookingOrders?bookingId=X  — returns current order items for a booking
+        [HttpGet]
+        public async Task<IActionResult> GetBookingOrders(int bookingId)
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            var booking = await _context.Bookings
+                .FirstOrDefaultAsync(b => b.BookingId == bookingId && b.BusinessId == businessId.Value && b.BookingStatus == "Active");
+            if (booking == null) return NotFound();
+
+            var details = await _context.OrderDetails
+                .Include(od => od.MenuItem)
+                .Include(od => od.Order)
+                .Where(od => od.Order.BookingId == bookingId && od.Order.BusinessId == businessId.Value)
+                .Select(od => new
+                {
+                    od.OrderDetailId,
+                    od.MenuItem.ItemName,
+                    od.Quantity,
+                    od.LockedUnitPrice,
+                    Subtotal = od.Quantity * od.LockedUnitPrice
+                })
+                .ToListAsync();
+
+            return Json(details);
+        }
+
+        // POST /POS/VoidOrderItem
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VoidOrderItem([FromForm] int orderDetailId)
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Json(new { ok = false, error = "Unauthorized" });
+
+            var detail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .Include(od => od.MenuItem)
+                .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId && od.Order.BusinessId == businessId.Value);
+
+            if (detail == null) return Json(new { ok = false, error = "Item not found" });
+
+            // Verify booking is still active
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b =>
+                b.BookingId == detail.Order.BookingId && b.BookingStatus == "Active");
+            if (booking == null) return Json(new { ok = false, error = "Session is no longer active" });
+
+            // Restore stock
+            detail.MenuItem.StockAvailable += detail.Quantity;
+
+            _context.OrderDetails.Remove(detail);
+
+            // Remove empty order if no more details remain after removal
+            var remaining = await _context.OrderDetails.CountAsync(od => od.OrderId == detail.OrderId && od.OrderDetailId != detail.OrderDetailId);
+            if (remaining == 0)
+            {
+                var order = await _context.Orders.FindAsync(detail.OrderId);
+                if (order != null) _context.Orders.Remove(order);
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { ok = true });
         }
 
         private async Task<bool> HasOpenShiftAsync(int businessId)

@@ -1,4 +1,4 @@
-@model IEnumerable<ZoneBill_Lloren.Models.Business>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.Business>
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -43,7 +43,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model)
                 {
                     <tr>

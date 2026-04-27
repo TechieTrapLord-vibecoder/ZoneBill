@@ -1,4 +1,4 @@
-@model IEnumerable<ZoneBill_Lloren.Models.MenuItem>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.MenuItem>
 
 @{
     ViewData["Title"] = "Menu Items";
@@ -55,7 +55,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model)
                 {
                     var isLow = item.IsActive && item.StockAvailable <= item.LowStockThreshold;

@@ -1,4 +1,4 @@
-@model IEnumerable<ZoneBill_Lloren.Models.Space>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.Space>
 
 @{
     ViewData["Title"] = "Spaces";
@@ -62,7 +62,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model)
                 {
                     var statusClass = item.CurrentStatus == "Available" ? "zb-badge-green" :
@@ -100,64 +100,62 @@
 
 <!-- QR Code Modal -->
 <div class="modal fade" id="qrModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.2);">
             <div class="modal-header" style="border-color:rgba(6,182,212,0.15);">
                 <h5 class="modal-title fw-bold" id="qrModalTitle" style="color:var(--zb-text);">QR Code</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <div id="qrCodeContainer" class="mb-3"></div>
-                <p class="text-muted small" id="qrUrl"></p>
+                <div class="p-2 d-inline-block rounded mb-3" style="background:#fff">
+                    <img id="qrImg" src="" alt="QR Code" style="width:300px;height:300px;display:block;" />
+                </div>
+                <p class="text-muted small mb-1" id="qrSpaceName"></p>
+                <p class="text-muted" style="font-size:0.7rem;word-break:break-all;" id="qrUrl"></p>
             </div>
-            <div class="modal-footer justify-content-center" style="border-color:rgba(6,182,212,0.15);">
-                <button type="button" class="btn btn-sm fw-semibold" style="background:var(--zb-secondary);color:#fff;border:none;" onclick="printQR()"><i class="bi bi-printer me-1"></i>Print QR</button>
+            <div class="modal-footer justify-content-center gap-2" style="border-color:rgba(6,182,212,0.15);">
+                <button type="button" class="btn btn-sm fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;" onclick="printQR()">
+                    <i class="bi bi-printer me-1"></i>Print
+                </button>
+                <a id="qrDownload" href="" download="qr-code.png" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                    <i class="bi bi-download me-1"></i>Download
+                </a>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        var qrInstance = null;
-
         function showQR(spaceId, spaceName) {
             var url = window.location.origin + '/Customer/Space/' + spaceId;
+            var qrSrc = 'https://quickchart.io/qr?text=' + encodeURIComponent(url) + '&size=300&margin=2';
+
             document.getElementById('qrModalTitle').textContent = spaceName + ' \u2014 QR Code';
+            document.getElementById('qrSpaceName').textContent = spaceName;
             document.getElementById('qrUrl').textContent = url;
+            document.getElementById('qrImg').src = qrSrc;
+            document.getElementById('qrDownload').href = qrSrc;
+            document.getElementById('qrDownload').download = 'QR-' + spaceName.replace(/\s+/g, '-') + '.png';
 
-            var container = document.getElementById('qrCodeContainer');
-            container.innerHTML = '';
-
-            qrInstance = new QRCode(container, {
-                text: url,
-                width: 220,
-                height: 220,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-
-            new bootstrap.Modal(document.getElementById('qrModal')).show();
+            var modalEl = document.getElementById('qrModal');
+            var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modal.show();
         }
 
         function printQR() {
-            var img = document.querySelector('#qrCodeContainer img');
-            var canvas = document.querySelector('#qrCodeContainer canvas');
-            var src = img ? img.src : (canvas ? canvas.toDataURL() : null);
-            if (!src) return;
-            var title = document.getElementById('qrModalTitle').textContent;
+            var src = document.getElementById('qrImg').src;
+            var title = document.getElementById('qrSpaceName').textContent;
             var url = document.getElementById('qrUrl').textContent;
             var win = window.open('', '_blank');
-            win.document.write('<html><head><title>Print QR</title></head><body style="text-align:center;font-family:sans-serif;padding:40px">');
+            win.document.write('<html><head><title>QR Code — ' + title + '</title><style>body{text-align:center;font-family:sans-serif;padding:40px;}</style></head><body>');
             win.document.write('<h2>' + title + '</h2>');
             win.document.write('<img src="' + src + '" style="width:300px;height:300px" />');
-            win.document.write('<p style="font-size:14px">Scan to view menu and order</p>');
-            win.document.write('<p style="font-size:11px;color:#666">' + url + '</p>');
+            win.document.write('<p style="font-size:14px;margin-top:16px;">Scan to view your tab &amp; order</p>');
+            win.document.write('<p style="font-size:11px;color:#666;">' + url + '</p>');
+            win.document.write('<script>window.onload=function(){window.print();}<\/script>');
             win.document.write('</body></html>');
             win.document.close();
-            win.print();
         }
     </script>
 }

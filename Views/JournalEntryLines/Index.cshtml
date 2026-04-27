@@ -1,4 +1,4 @@
-@model IEnumerable<ZoneBill_Lloren.Models.JournalEntryLine>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.JournalEntryLine>
 
 @{
     ViewData["Title"] = "Journal Entry Lines";
@@ -21,7 +21,7 @@
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @foreach (var item in Model)
                 {
                     <tr>

@@ -2,77 +2,131 @@
 
 @{
     ViewData["Title"] = "Log in";
+    Layout = "_LandingLayout";
 }
 
 <style>
-    .zb-auth-card { background:var(--zb-primary-mid); border:1px solid rgba(6,182,212,0.2); border-radius:.75rem; overflow:hidden; }
-    .zb-auth-header { background:rgba(6,182,212,0.08); padding:1.5rem; text-align:center; border-bottom:1px solid rgba(6,182,212,0.15); }
-    .zb-auth-header h3 { color:var(--zb-text); margin:0; font-weight:700; }
-    .zb-auth-header small { color:var(--zb-text-muted); }
-    .zb-auth-input { background:var(--zb-primary)!important; color:var(--zb-text)!important; border-color:rgba(6,182,212,0.25)!important; }
-    .zb-auth-input:focus { border-color:var(--zb-secondary)!important; box-shadow:0 0 0 2px rgba(6,182,212,0.15)!important; }
-    .zb-auth-input::placeholder { color:var(--zb-text-muted)!important; opacity:.6; }
-    .zb-auth-label { color:var(--zb-text-muted); font-size:.85rem; }
-    .zb-auth-card hr { border-color:rgba(6,182,212,0.15); }
-    .zb-auth-card .form-check-label { color:var(--zb-text-muted); font-size:.85rem; }
+    .zb-login-input:-webkit-autofill,
+    .zb-login-input:-webkit-autofill:hover,
+    .zb-login-input:-webkit-autofill:focus {
+        -webkit-box-shadow: 0 0 0 1000px #0f172a inset !important;
+        -webkit-text-fill-color: #f1f5f9 !important;
+        border-color: rgba(6,182,212,0.25) !important;
+        caret-color: #f1f5f9;
+        transition: background-color 5000s ease-in-out 0s;
+    }
 </style>
 
-@if (TempData["Error"] != null)
-{
-    <div class="alert border-0 text-center" role="alert" style="background:rgba(239,68,68,0.12);color:#fca5a5;">@TempData["Error"]</div>
-}
-@if (TempData["Success"] != null)
-{
-    <div class="alert border-0 text-center" role="alert" style="background:rgba(34,197,94,0.12);color:#86efac;">@TempData["Success"]</div>
-}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:2rem 1rem;position:relative;overflow:hidden;">
+    @* Background orbs *@
+    <div class="lp-orb lp-orb-cyan" style="width:500px;height:500px;top:-15%;left:-10%;opacity:0.10;"></div>
+    <div class="lp-orb lp-orb-orange" style="width:350px;height:350px;bottom:-10%;right:-8%;opacity:0.07;"></div>
 
-<div class="row justify-content-center">
-    <div class="col-md-5 mt-5">
-        <div class="zb-auth-card">
-            <div class="zb-auth-header">
-                <h3><i class="bi bi-shield-lock me-2" style="color:var(--zb-secondary);"></i>Login to ZoneBill</h3>
+    <div style="width:100%;max-width:420px;position:relative;z-index:2;">
+        @* Logo *@
+        <div class="text-center mb-4">
+            <a href="/">
+                <img src="~/images/ZoneBill.png" alt="ZoneBill" style="height:48px;width:auto;" />
+            </a>
+        </div>
+
+        @* Alerts *@
+        @if (TempData["Error"] != null)
+        {
+            <div style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;color:#fca5a5;font-size:0.88rem;text-align:center;">
+                <i class="bi bi-exclamation-triangle me-1"></i>@TempData["Error"]
             </div>
-            <div class="p-4">
+        }
+        @if (TempData["Success"] != null)
+        {
+            <div style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1rem;color:#86efac;font-size:0.88rem;text-align:center;">
+                <i class="bi bi-check-circle me-1"></i>@TempData["Success"]
+            </div>
+        }
+
+        @* Login Card *@
+        <div style="background:rgba(30,41,59,0.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(6,182,212,0.2);border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.35),0 0 40px rgba(6,182,212,0.05);">
+            @* Header *@
+            <div style="padding:1.75rem 2rem 1.25rem;text-align:center;border-bottom:1px solid rgba(6,182,212,0.12);">
+                <h2 style="color:#f1f5f9;font-size:1.5rem;font-weight:800;margin:0;">Welcome Back</h2>
+                <p style="color:#94a3b8;font-size:0.85rem;margin:0.25rem 0 0;">Sign in to your ZoneBill dashboard</p>
+            </div>
+
+            @* Form Body *@
+            <div style="padding:1.75rem 2rem 2rem;">
                 <form asp-action="Login" method="post">
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3" style="font-size:0.85rem;"></div>
 
-                    <div class="form-group mb-3">
-                        <label asp-for="Email" class="control-label zb-auth-label"></label>
-                        <input asp-for="Email" class="form-control zb-auth-input" placeholder="Enter your email" />
-                        <span asp-validation-for="Email" class="text-danger"></span>
-                    </div>
-
-                    <div class="form-group mb-3">
-                        <label asp-for="Password" class="control-label zb-auth-label"></label>
-                        <input asp-for="Password" type="password" class="form-control zb-auth-input" placeholder="Enter your password" />
-                        <span asp-validation-for="Password" class="text-danger"></span>
-                        <div class="text-end mt-1">
-                            <a asp-action="ForgotPassword" class="small" style="color:var(--zb-secondary);">Forgot password?</a>
+                    @* Email *@
+                    <div style="margin-bottom:1.25rem;">
+                        <label asp-for="Email" style="display:block;color:#94a3b8;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.4rem;"></label>
+                        <div style="position:relative;">
+                            <i class="bi bi-envelope" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:0.9rem;"></i>
+                            <input asp-for="Email" class="form-control zb-login-input" placeholder="you@example.com"
+                                   style="background:#0f172a;color:#f1f5f9;border:1px solid rgba(6,182,212,0.25);border-radius:10px;padding:0.65rem 0.75rem 0.65rem 2.25rem;font-size:0.9rem;transition:border-color 0.2s,box-shadow 0.2s;"
+                                   onfocus="this.style.borderColor='#06b6d4';this.style.boxShadow='0 0 0 3px rgba(6,182,212,0.12)'"
+                                   onblur="this.style.borderColor='rgba(6,182,212,0.25)';this.style.boxShadow='none'" />
                         </div>
+                        <span asp-validation-for="Email" class="text-danger" style="font-size:0.8rem;"></span>
                     </div>
 
-                    <div class="form-group form-check mb-4">
-                        <input asp-for="RememberMe" class="form-check-input" />
-                        <label asp-for="RememberMe" class="form-check-label">Remember me for 7 days</label>
+                    @* Password *@
+                    <div style="margin-bottom:0.5rem;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+                            <label asp-for="Password" style="color:#94a3b8;font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin:0;"></label>
+                            <a asp-action="ForgotPassword" style="color:#06b6d4;font-size:0.78rem;font-weight:500;text-decoration:none;transition:color 0.2s;"
+                               onmouseover="this.style.color='#22d3ee'" onmouseout="this.style.color='#06b6d4'">Forgot password?</a>
+                        </div>
+                        <div style="position:relative;">
+                            <i class="bi bi-lock" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:0.9rem;"></i>
+                            <input asp-for="Password" type="password" class="form-control zb-login-input" placeholder="••••••••"
+                                   style="background:#0f172a;color:#f1f5f9;border:1px solid rgba(6,182,212,0.25);border-radius:10px;padding:0.65rem 0.75rem 0.65rem 2.25rem;font-size:0.9rem;transition:border-color 0.2s,box-shadow 0.2s;"
+                                   onfocus="this.style.borderColor='#06b6d4';this.style.boxShadow='0 0 0 3px rgba(6,182,212,0.12)'"
+                                   onblur="this.style.borderColor='rgba(6,182,212,0.25)';this.style.boxShadow='none'" />
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger" style="font-size:0.8rem;"></span>
                     </div>
 
-                    <div class="d-grid mb-3">
-                        <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;">Log in</button>
+                    @* Remember Me *@
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin:1rem 0 1.5rem;">
+                        <input asp-for="RememberMe" class="form-check-input" style="background:#0f172a;border-color:rgba(6,182,212,0.3);width:16px;height:16px;margin:0;" />
+                        <label asp-for="RememberMe" style="color:#94a3b8;font-size:0.85rem;margin:0;cursor:pointer;">Remember me for 7 days</label>
                     </div>
+
+                    @* Submit *@
+                    <button type="submit"
+                            style="display:block;width:100%;padding:0.7rem;background:linear-gradient(135deg,#06b6d4,#0891b2);color:#0f172a;border:none;border-radius:10px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.2s;box-shadow:0 4px 15px rgba(6,182,212,0.25);"
+                            onmouseover="this.style.boxShadow='0 6px 25px rgba(6,182,212,0.35)';this.style.transform='translateY(-1px)'"
+                            onmouseout="this.style.boxShadow='0 4px 15px rgba(6,182,212,0.25)';this.style.transform='translateY(0)'">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+                    </button>
                 </form>
 
-                <hr />
+                @* Divider *@
+                <div style="display:flex;align-items:center;gap:0.75rem;margin:1.5rem 0;">
+                    <div style="flex:1;height:1px;background:rgba(6,182,212,0.15);"></div>
+                    <span style="color:#64748b;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">or</span>
+                    <div style="flex:1;height:1px;background:rgba(6,182,212,0.15);"></div>
+                </div>
 
+                @* Google SSO *@
                 <form asp-action="GoogleLogin" method="post">
                     <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-outline-danger btn-block">
-                            <i class="bi bi-google"></i> Log in with Google
-                        </button>
-                    </div>
+                    <button type="submit"
+                            style="display:flex;align-items:center;justify-content:center;gap:0.5rem;width:100%;padding:0.65rem;background:transparent;color:#f1f5f9;border:1px solid rgba(255,255,255,0.12);border-radius:10px;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.2s;"
+                            onmouseover="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.2)'"
+                            onmouseout="this.style.background='transparent';this.style.borderColor='rgba(255,255,255,0.12)'">
+                        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.03 24.03 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+                        Continue with Google
+                    </button>
                 </form>
             </div>
         </div>
+
+        @* Footer text *@
+        <p style="text-align:center;color:#475569;font-size:0.8rem;margin-top:1.5rem;">
+            Don't have an account? <a href="/#pricing" style="color:#06b6d4;font-weight:600;text-decoration:none;">Get Started</a>
+        </p>
     </div>
 </div>
 

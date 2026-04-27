@@ -1,14 +1,14 @@
-@model IEnumerable<ZoneBill_Lloren.Models.SubscriptionPlan>
+﻿@model IEnumerable<ZoneBill_Lloren.Models.SubscriptionPlan>
 
 @{
-    ViewData["Title"] = "ZoneBill – Venue &amp; Reservation Platform";
+    ViewData["Title"] = "ZoneBill – Venue & Reservation Platform";
     Layout = "_LandingLayout";
 }
 
 @* ═══════════════════════════════════════════════════════════════
    NAVBAR
 ═══════════════════════════════════════════════════════════════ *@
-<nav class="lp-navbar navbar navbar-expand-lg fixed-top">
+<nav class="lp-navbar navbar navbar-expand-lg fixed-top transition-all duration-300">
     <div class="container">
         <a class="navbar-brand" href="/">
             <img src="~/images/ZoneBill.png" alt="ZoneBill" class="lp-nav-logo" />
@@ -18,23 +18,31 @@
         </button>
         <div class="collapse navbar-collapse" id="lpNav">
             <ul class="navbar-nav mx-auto gap-lg-4">
-                <li class="nav-item"><a class="lp-nav-link" href="#features">Features</a></li>
-                <li class="nav-item"><a class="lp-nav-link" href="#pricing">Pricing</a></li>
-                <li class="nav-item"><a class="lp-nav-link" href="#faq">FAQ</a></li>
+                <li class="nav-item"><a class="lp-nav-link transition-colors duration-200" href="#features">Features</a></li>
+                <li class="nav-item"><a class="lp-nav-link transition-colors duration-200" href="#pricing">Pricing</a></li>
+                <li class="nav-item"><a class="lp-nav-link transition-colors duration-200" href="#faq">FAQ</a></li>
             </ul>
             <div class="d-flex gap-2 mt-3 mt-lg-0">
-                <a href="/Account/Login" class="btn lp-btn-outline">Login</a>
-                <a href="#pricing" class="btn lp-btn-accent">Get Started</a>
+                <a href="/Account/Login" class="btn lp-btn-outline hover:shadow-lg hover:shadow-cyan-500/10 transition-all duration-200">Login</a>
+                <a href="#pricing" class="btn lp-btn-accent hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-200">Get Started</a>
             </div>
         </div>
     </div>
 </nav>
 
 @* ═══════════════════════════════════════════════════════════════
-   HERO
+   HERO — with orbs, noise texture, staggered animations
 ═══════════════════════════════════════════════════════════════ *@
-<section class="lp-hero d-flex align-items-center">
-    <div class="container">
+<section class="lp-hero d-flex align-items-center relative overflow-hidden lp-noise">
+    @* Background glow orbs (parallax on mouse move) *@
+    <div class="lp-orb lp-orb-cyan animate-float-slow" style="width:500px;height:500px;top:-10%;left:-10%;"></div>
+    <div class="lp-orb lp-orb-orange animate-float-medium" style="width:350px;height:350px;bottom:5%;right:-5%;"></div>
+    <div class="lp-orb lp-orb-cyan animate-float-fast" style="width:200px;height:200px;top:50%;left:60%;opacity:0.08;"></div>
+
+    @* Dot grid subtle texture *@
+    <div class="absolute inset-0 lp-dot-grid opacity-30 pointer-events-none" style="z-index:0;"></div>
+
+    <div class="container" style="position:relative;z-index:2;">
         @if (TempData["Error"] != null)
         {
             <div class="alert alert-danger text-center mb-4" role="alert">@TempData["Error"]</div>
@@ -45,52 +53,80 @@
         }
         <div class="row align-items-center g-5">
             <div class="col-lg-6">
-                <div class="lp-hero-badge mb-3">
+                @* Badge with pulse ring *@
+                <div class="lp-hero-badge mb-3 animate-hero-badge-pulse lp-reveal lp-delay-1">
                     <i class="bi bi-lightning-charge-fill me-1" style="color:#F97316;"></i>
                     <span>All-in-One Venue Platform</span>
                 </div>
-                <h1 class="lp-hero-headline">
+
+                @* Headline *@
+                <h1 class="lp-hero-headline lp-reveal lp-delay-2">
                     The Smart Way to Run Your
                     <span class="lp-gradient-text">Entertainment Business</span>
                 </h1>
-                <p class="lp-hero-sub">
+
+                @* Subtext *@
+                <p class="lp-hero-sub lp-reveal lp-delay-3">
                     ZoneBill unifies front desk POS, smart bookings, customer QR portals,
                     inventory tracking, and double-entry accounting — in one sleek system built for
                     billiard halls, board game cafés, KTVs, escape rooms, and gaming shops.
                 </p>
-                <div class="d-flex gap-3 flex-wrap mt-4">
-                    <a href="#pricing" class="btn lp-btn-accent lp-btn-lg">
-                        Get Started <i class="bi bi-arrow-right ms-1"></i>
+
+                @* CTA buttons *@
+                <div class="d-flex gap-3 flex-wrap mt-4 lp-reveal lp-delay-4">
+                    <a href="#pricing" class="btn lp-btn-accent lp-btn-lg group hover:shadow-lg hover:shadow-orange-500/25 transition-all duration-300">
+                        Get Started <i class="bi bi-arrow-right ms-1 inline-block transition-transform duration-300 group-hover:translate-x-1"></i>
                     </a>
-                    <a href="#features" class="btn lp-btn-outline lp-btn-lg">
+                    <a href="#features" class="btn lp-btn-outline lp-btn-lg hover:shadow-lg hover:shadow-cyan-500/15 transition-all duration-300">
                         Explore Features
                     </a>
                 </div>
+
+                @* Trust indicators *@
+                <div class="d-flex gap-4 mt-4 lp-reveal lp-delay-5">
+                    <div class="d-flex align-items-center gap-1">
+                        <i class="bi bi-shield-check" style="color:#22c55e;font-size:0.85rem;"></i>
+                        <span style="color:#64748b;font-size:0.78rem;">SSL Secured</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <i class="bi bi-credit-card" style="color:#06b6d4;font-size:0.85rem;"></i>
+                        <span style="color:#64748b;font-size:0.78rem;">14-Day Free Trial</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <i class="bi bi-x-circle" style="color:#f97316;font-size:0.85rem;"></i>
+                        <span style="color:#64748b;font-size:0.78rem;">No Credit Card</span>
+                    </div>
+                </div>
             </div>
-            <div class="col-lg-6">
+
+            @* Hero mockup *@
+            <div class="col-lg-6 lp-reveal-right lp-delay-3">
                 <div class="lp-hero-mockup">
-                    <div class="lp-stat-card" style="top:8%;left:0;">
+                    @* Floating stat cards with enhanced glow *@
+                    <div class="lp-stat-card lp-glass animate-float-slow lp-hover-glow" style="top:8%;left:0;">
                         <div class="lp-stat-icon"><i class="bi bi-calendar2-check"></i></div>
                         <div>
                             <div class="lp-stat-label">Active Bookings</div>
-                            <div class="lp-stat-value">24</div>
+                            <div class="lp-stat-value" data-count-to="24">0</div>
                         </div>
                     </div>
-                    <div class="lp-stat-card lp-stat-accent" style="top:38%;right:0;">
+                    <div class="lp-stat-card lp-stat-accent lp-glass animate-float-medium lp-hover-glow-accent" style="top:38%;right:0;">
                         <div class="lp-stat-icon lp-stat-icon-accent"><i class="bi bi-cash-coin"></i></div>
                         <div>
                             <div class="lp-stat-label">Revenue Today</div>
-                            <div class="lp-stat-value">₱12,840</div>
+                            <div class="lp-stat-value" data-count-to="12840" data-count-prefix="₱">₱0</div>
                         </div>
                     </div>
-                    <div class="lp-stat-card" style="bottom:8%;left:12%;">
+                    <div class="lp-stat-card lp-glass animate-float-fast lp-hover-glow" style="bottom:8%;left:12%;">
                         <div class="lp-stat-icon"><i class="bi bi-grid-3x3-gap-fill"></i></div>
                         <div>
                             <div class="lp-stat-label">Open Tables</div>
                             <div class="lp-stat-value">7 / 12</div>
                         </div>
                     </div>
-                    <div class="lp-hero-screen">
+
+                    @* Screen mockup with glow border *@
+                    <div class="lp-hero-screen animate-glow-pulse">
                         <div class="lp-screen-header">
                             <span class="lp-screen-dot" style="background:#ef4444;"></span>
                             <span class="lp-screen-dot" style="background:#f97316;"></span>
@@ -146,53 +182,53 @@
 </section>
 
 @* ═══════════════════════════════════════════════════════════════
-   FEATURES GRID
+   FEATURES GRID — with glow cards & staggered scroll animation
 ═══════════════════════════════════════════════════════════════ *@
-<section class="lp-section" id="features">
+<section class="lp-section relative" id="features">
     <div class="container">
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 lp-reveal">
             <span class="lp-section-badge">Features</span>
             <h2 class="lp-section-title mt-2">Everything Your Venue Needs</h2>
             <p class="lp-section-sub">Purpose-built tools for entertainment businesses — no bloat, just what matters.</p>
         </div>
         <div class="row g-4">
-            <div class="col-sm-6 col-lg-4">
-                <div class="lp-feature-card">
+            <div class="col-sm-6 col-lg-4 lp-reveal lp-delay-1">
+                <div class="lp-feature-card lp-glow-card lp-hover-glow">
                     <div class="lp-feature-icon"><i class="bi bi-cash-stack"></i></div>
                     <h5>Front Desk POS</h5>
                     <p>Real-time table/room status, session timers, food &amp; drink orders, and cash drawer management — all in one view.</p>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="lp-feature-card">
+            <div class="col-sm-6 col-lg-4 lp-reveal lp-delay-2">
+                <div class="lp-feature-card lp-glow-card lp-hover-glow">
                     <div class="lp-feature-icon"><i class="bi bi-calendar2-check"></i></div>
                     <h5>Smart Bookings</h5>
                     <p>Accept walk-ins and advance bookings with automatic time tracking, overstay alerts, and customer history.</p>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="lp-feature-card lp-feature-card-accent">
+            <div class="col-sm-6 col-lg-4 lp-reveal lp-delay-3">
+                <div class="lp-feature-card lp-feature-card-accent lp-glow-card lp-hover-glow-accent">
                     <div class="lp-feature-icon lp-feature-icon-accent"><i class="bi bi-qr-code-scan"></i></div>
                     <h5>QR Customer Portal</h5>
                     <p>Guests scan a QR code at their table to view their bill, running time, and order items — no app needed.</p>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="lp-feature-card">
+            <div class="col-sm-6 col-lg-4 lp-reveal lp-delay-4">
+                <div class="lp-feature-card lp-glow-card lp-hover-glow">
                     <div class="lp-feature-icon"><i class="bi bi-boxes"></i></div>
                     <h5>Inventory Tracking</h5>
                     <p>Monitor stock levels per item, get low-stock email alerts, and see depletion trends to optimize purchases.</p>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="lp-feature-card">
+            <div class="col-sm-6 col-lg-4 lp-reveal lp-delay-5">
+                <div class="lp-feature-card lp-glow-card lp-hover-glow">
                     <div class="lp-feature-icon"><i class="bi bi-journal-text"></i></div>
                     <h5>Accounting Hub</h5>
                     <p>Full double-entry bookkeeping with chart of accounts, journal entries, and automatic posting from invoices.</p>
                 </div>
             </div>
-            <div class="col-sm-6 col-lg-4">
-                <div class="lp-feature-card">
+            <div class="col-sm-6 col-lg-4 lp-reveal lp-delay-6">
+                <div class="lp-feature-card lp-glow-card lp-hover-glow">
                     <div class="lp-feature-icon"><i class="bi bi-graph-up-arrow"></i></div>
                     <h5>Financial Reports</h5>
                     <p>Revenue breakdown, top spaces, best-selling items, payment method analysis — with CSV and PDF export.</p>
@@ -205,10 +241,13 @@
 @* ═══════════════════════════════════════════════════════════════
    FEATURE ROW A — Front Desk
 ═══════════════════════════════════════════════════════════════ *@
-<section class="lp-section lp-section-alt">
+<section class="lp-section lp-section-alt relative overflow-hidden">
+    @* Subtle orb *@
+    <div class="lp-orb lp-orb-cyan" style="width:300px;height:300px;top:10%;right:-10%;opacity:0.06;"></div>
+
     <div class="container">
         <div class="row align-items-center g-5">
-            <div class="col-lg-5">
+            <div class="col-lg-5 lp-reveal-left">
                 <span class="lp-section-badge mb-2 d-inline-block">Front Desk</span>
                 <h2 class="lp-section-title">Powerful Dashboard,<br>Zero Confusion</h2>
                 <p class="lp-section-sub text-start">
@@ -216,14 +255,14 @@
                     and shift totals. Start, extend, or close a session in seconds.
                 </p>
                 <ul class="lp-check-list mt-4">
-                    <li><i class="bi bi-check-circle-fill"></i> Real-time table grid with live timers</li>
-                    <li><i class="bi bi-check-circle-fill"></i> One-click order entry per table</li>
-                    <li><i class="bi bi-check-circle-fill"></i> Cash drawer open/close per shift</li>
-                    <li><i class="bi bi-check-circle-fill"></i> 10-second auto-refresh — always live</li>
+                    <li class="lp-reveal lp-delay-1"><i class="bi bi-check-circle-fill"></i> Real-time table grid with live timers</li>
+                    <li class="lp-reveal lp-delay-2"><i class="bi bi-check-circle-fill"></i> One-click order entry per table</li>
+                    <li class="lp-reveal lp-delay-3"><i class="bi bi-check-circle-fill"></i> Cash drawer open/close per shift</li>
+                    <li class="lp-reveal lp-delay-4"><i class="bi bi-check-circle-fill"></i> 10-second auto-refresh — always live</li>
                 </ul>
             </div>
-            <div class="col-lg-7">
-                <div class="lp-mockup-card">
+            <div class="col-lg-7 lp-reveal-right lp-delay-2">
+                <div class="lp-mockup-card animate-glow-pulse">
                     <div class="lp-mockup-titlebar">
                         <span class="lp-screen-dot" style="background:#ef4444;"></span>
                         <span class="lp-screen-dot" style="background:#f97316;"></span>
@@ -232,20 +271,20 @@
                     </div>
                     <div class="lp-mockup-body">
                         <div class="row g-2 mb-3">
-                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#06b6d4;"><div class="lp-ms-num" style="color:#06b6d4;">8</div><div class="lp-ms-lbl">Occupied</div></div></div>
-                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#22c55e;"><div class="lp-ms-num" style="color:#22c55e;">4</div><div class="lp-ms-lbl">Open</div></div></div>
-                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#f97316;"><div class="lp-ms-num" style="color:#f97316;">₱8,200</div><div class="lp-ms-lbl">Shift Rev.</div></div></div>
+                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#06b6d4;"><div class="lp-ms-num" style="color:#06b6d4;" data-count-to="8">0</div><div class="lp-ms-lbl">Occupied</div></div></div>
+                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#22c55e;"><div class="lp-ms-num" style="color:#22c55e;" data-count-to="4">0</div><div class="lp-ms-lbl">Open</div></div></div>
+                            <div class="col-3"><div class="lp-mockup-stat" style="border-color:#f97316;"><div class="lp-ms-num" style="color:#f97316;" data-count-to="8200" data-count-prefix="₱">₱0</div><div class="lp-ms-lbl">Shift Rev.</div></div></div>
                             <div class="col-3"><div class="lp-mockup-stat" style="border-color:#94a3b8;"><div class="lp-ms-num" style="color:#94a3b8;">6h 20m</div><div class="lp-ms-lbl">Shift Time</div></div></div>
                         </div>
                         <div class="lp-mockup-table-grid">
-                            <div class="lpc occupied">T1<br><small>1h 40m</small></div>
-                            <div class="lpc occupied">T2<br><small>0h 55m</small></div>
-                            <div class="lpc free">T3<br><small>Open</small></div>
-                            <div class="lpc occupied">T4<br><small>2h 10m</small></div>
-                            <div class="lpc free">T5<br><small>Open</small></div>
-                            <div class="lpc occupied">T6<br><small>0h 30m</small></div>
-                            <div class="lpc occupied">T7<br><small>3h 02m</small></div>
-                            <div class="lpc free">T8<br><small>Open</small></div>
+                            <div class="lpc occupied transition-all duration-200 hover:scale-105">T1<br><small>1h 40m</small></div>
+                            <div class="lpc occupied transition-all duration-200 hover:scale-105">T2<br><small>0h 55m</small></div>
+                            <div class="lpc free transition-all duration-200 hover:scale-105">T3<br><small>Open</small></div>
+                            <div class="lpc occupied transition-all duration-200 hover:scale-105">T4<br><small>2h 10m</small></div>
+                            <div class="lpc free transition-all duration-200 hover:scale-105">T5<br><small>Open</small></div>
+                            <div class="lpc occupied transition-all duration-200 hover:scale-105">T6<br><small>0h 30m</small></div>
+                            <div class="lpc occupied transition-all duration-200 hover:scale-105">T7<br><small>3h 02m</small></div>
+                            <div class="lpc free transition-all duration-200 hover:scale-105">T8<br><small>Open</small></div>
                         </div>
                     </div>
                 </div>
@@ -257,10 +296,12 @@
 @* ═══════════════════════════════════════════════════════════════
    FEATURE ROW B — Accounting
 ═══════════════════════════════════════════════════════════════ *@
-<section class="lp-section">
+<section class="lp-section relative overflow-hidden">
+    <div class="lp-orb lp-orb-orange" style="width:250px;height:250px;bottom:10%;left:-8%;opacity:0.06;"></div>
+
     <div class="container">
         <div class="row align-items-center g-5 flex-lg-row-reverse">
-            <div class="col-lg-5">
+            <div class="col-lg-5 lp-reveal-right">
                 <span class="lp-section-badge mb-2 d-inline-block">Accounting</span>
                 <h2 class="lp-section-title">Built-In Double-Entry<br>Accounting</h2>
                 <p class="lp-section-sub text-start">
@@ -268,14 +309,14 @@
                     reconcile cash, and export financial reports — without a separate accounting tool.
                 </p>
                 <ul class="lp-check-list mt-4">
-                    <li><i class="bi bi-check-circle-fill"></i> Chart of accounts &amp; journal entries</li>
-                    <li><i class="bi bi-check-circle-fill"></i> Auto-posting from POS invoices</li>
-                    <li><i class="bi bi-check-circle-fill"></i> Revenue &amp; payment method reports</li>
-                    <li><i class="bi bi-check-circle-fill"></i> CSV &amp; PDF export for audits</li>
+                    <li class="lp-reveal lp-delay-1"><i class="bi bi-check-circle-fill"></i> Chart of accounts &amp; journal entries</li>
+                    <li class="lp-reveal lp-delay-2"><i class="bi bi-check-circle-fill"></i> Auto-posting from POS invoices</li>
+                    <li class="lp-reveal lp-delay-3"><i class="bi bi-check-circle-fill"></i> Revenue &amp; payment method reports</li>
+                    <li class="lp-reveal lp-delay-4"><i class="bi bi-check-circle-fill"></i> CSV &amp; PDF export for audits</li>
                 </ul>
             </div>
-            <div class="col-lg-7">
-                <div class="lp-mockup-card">
+            <div class="col-lg-7 lp-reveal-left lp-delay-2">
+                <div class="lp-mockup-card animate-glow-pulse">
                     <div class="lp-mockup-titlebar">
                         <span class="lp-screen-dot" style="background:#ef4444;"></span>
                         <span class="lp-screen-dot" style="background:#f97316;"></span>
@@ -285,37 +326,37 @@
                     <div class="lp-mockup-body">
                         <div class="lp-chart-bars mb-3">
                             <div class="lp-chart-col">
-                                <div class="lp-bar" style="height:55%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar transition-all duration-500 hover:opacity-80" style="height:55%;background:var(--zb-secondary);"></div>
                                 <div class="lp-bar-lbl">Mon</div>
                             </div>
                             <div class="lp-chart-col">
-                                <div class="lp-bar" style="height:80%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar transition-all duration-500 hover:opacity-80" style="height:80%;background:var(--zb-secondary);"></div>
                                 <div class="lp-bar-lbl">Tue</div>
                             </div>
                             <div class="lp-chart-col">
-                                <div class="lp-bar" style="height:65%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar transition-all duration-500 hover:opacity-80" style="height:65%;background:var(--zb-secondary);"></div>
                                 <div class="lp-bar-lbl">Wed</div>
                             </div>
                             <div class="lp-chart-col">
-                                <div class="lp-bar" style="height:90%;background:var(--zb-accent);"></div>
+                                <div class="lp-bar transition-all duration-500 hover:opacity-80" style="height:90%;background:var(--zb-accent);"></div>
                                 <div class="lp-bar-lbl">Thu</div>
                             </div>
                             <div class="lp-chart-col">
-                                <div class="lp-bar" style="height:70%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar transition-all duration-500 hover:opacity-80" style="height:70%;background:var(--zb-secondary);"></div>
                                 <div class="lp-bar-lbl">Fri</div>
                             </div>
                             <div class="lp-chart-col">
-                                <div class="lp-bar" style="height:100%;background:var(--zb-accent);"></div>
+                                <div class="lp-bar transition-all duration-500 hover:opacity-80" style="height:100%;background:var(--zb-accent);"></div>
                                 <div class="lp-bar-lbl">Sat</div>
                             </div>
                             <div class="lp-chart-col">
-                                <div class="lp-bar" style="height:85%;background:var(--zb-secondary);"></div>
+                                <div class="lp-bar transition-all duration-500 hover:opacity-80" style="height:85%;background:var(--zb-secondary);"></div>
                                 <div class="lp-bar-lbl">Sun</div>
                             </div>
                         </div>
-                        <div class="lp-report-row"><span>Total Revenue</span><span style="color:#06b6d4;font-weight:700;">₱248,500.00</span></div>
-                        <div class="lp-report-row"><span>Cash Payments</span><span style="color:#22c55e;">₱180,200.00</span></div>
-                        <div class="lp-report-row"><span>GCash / Online</span><span style="color:#f97316;">₱68,300.00</span></div>
+                        <div class="lp-report-row"><span>Total Revenue</span><span style="color:#06b6d4;font-weight:700;" data-count-to="248500" data-count-prefix="₱" data-count-suffix=".00">₱0</span></div>
+                        <div class="lp-report-row"><span>Cash Payments</span><span style="color:#22c55e;" data-count-to="180200" data-count-prefix="₱" data-count-suffix=".00">₱0</span></div>
+                        <div class="lp-report-row"><span>GCash / Online</span><span style="color:#f97316;" data-count-to="68300" data-count-prefix="₱" data-count-suffix=".00">₱0</span></div>
                     </div>
                 </div>
             </div>
@@ -324,11 +365,11 @@
 </section>
 
 @* ═══════════════════════════════════════════════════════════════
-   PRICING
+   PRICING — with gradient border on popular card
 ═══════════════════════════════════════════════════════════════ *@
-<section class="lp-section lp-section-alt" id="pricing">
+<section class="lp-section lp-section-alt relative" id="pricing">
     <div class="container">
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 lp-reveal">
             <span class="lp-section-badge">Pricing</span>
             <h2 class="lp-section-title mt-2">Simple, Transparent Plans</h2>
             <p class="lp-section-sub">No hidden fees. Cancel anytime. Includes 14-day free trial.</p>
@@ -342,16 +383,16 @@
             {
                 var plan = plans[i];
                 var isPopular = i == popularIndex;
-                <div class="col-md-5 col-lg-4">
-                    <div class="lp-pricing-card @(isPopular ? "lp-pricing-popular" : "")">
+                <div class="col-md-5 col-lg-4 lp-reveal-scale lp-delay-@(i + 1)">
+                    <div class="lp-pricing-card @(isPopular ? "lp-pricing-popular lp-gradient-border" : "") lp-hover-glow">
                         @if (isPopular)
                         {
-                            <div class="lp-pricing-badge">Most Popular</div>
+                            <div class="lp-pricing-badge lp-shimmer-badge">Most Popular</div>
                         }
                         <h4 class="lp-pricing-name">@plan.PlanName</h4>
                         <div class="lp-pricing-price">
                             <span class="lp-price-currency">₱</span>
-                            <span class="lp-price-amount">@plan.MonthlyPrice.ToString("0")</span>
+                            <span class="lp-price-amount" data-count-to="@((int)plan.MonthlyPrice)">0</span>
                             <span class="lp-price-period">/mo</span>
                         </div>
                         <ul class="lp-pricing-features">
@@ -372,7 +413,7 @@
                             }
                         </ul>
                         <a href="/Account/RegisterBusiness?planId=@plan.PlanId"
-                           class="btn w-100 @(isPopular ? "lp-btn-accent" : "lp-btn-outline") lp-btn-lg mt-3">
+                           class="btn w-100 @(isPopular ? "lp-btn-accent hover:shadow-lg hover:shadow-orange-500/25" : "lp-btn-outline hover:shadow-lg hover:shadow-cyan-500/15") lp-btn-lg mt-3 transition-all duration-300">
                             Get Started
                         </a>
                     </div>
@@ -383,11 +424,11 @@
 </section>
 
 @* ═══════════════════════════════════════════════════════════════
-   FAQ
+   FAQ — with scroll reveal
 ═══════════════════════════════════════════════════════════════ *@
 <section class="lp-section" id="faq">
     <div class="container">
-        <div class="text-center mb-5">
+        <div class="text-center mb-5 lp-reveal">
             <span class="lp-section-badge">FAQ</span>
             <h2 class="lp-section-title mt-2">Frequently Asked Questions</h2>
             <p class="lp-section-sub">Got questions? We have answers.</p>
@@ -395,7 +436,7 @@
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="accordion lp-accordion" id="faqAccordion">
-                    <div class="accordion-item lp-faq-item">
+                    <div class="accordion-item lp-faq-item lp-reveal lp-delay-1">
                         <h2 class="accordion-header">
                             <button class="accordion-button lp-faq-btn" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
                                 What type of businesses can use ZoneBill?
@@ -407,7 +448,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="accordion-item lp-faq-item">
+                    <div class="accordion-item lp-faq-item lp-reveal lp-delay-2">
                         <h2 class="accordion-header">
                             <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
                                 How does the QR customer portal work?
@@ -419,7 +460,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="accordion-item lp-faq-item">
+                    <div class="accordion-item lp-faq-item lp-reveal lp-delay-3">
                         <h2 class="accordion-header">
                             <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
                                 Do I need accounting knowledge to use the accounting features?
@@ -431,7 +472,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="accordion-item lp-faq-item">
+                    <div class="accordion-item lp-faq-item lp-reveal lp-delay-4">
                         <h2 class="accordion-header">
                             <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
                                 Can I manage multiple staff roles?
@@ -439,11 +480,11 @@
                         </h2>
                         <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                             <div class="accordion-body lp-faq-body">
-                                Yes. ZoneBill supports four staff roles: Main Admin, Manager, Cashier, and Staff. Each role has tailored access — cashiers see the POS, managers see reports, and admins control everything including billing and user management.
+                                Yes. ZoneBill supports three staff roles: Main Admin, Manager, and Cashier. Each role has tailored access — cashiers operate the POS, managers see reports and manage inventory, and admins control everything including billing and user management.
                             </div>
                         </div>
                     </div>
-                    <div class="accordion-item lp-faq-item">
+                    <div class="accordion-item lp-faq-item lp-reveal lp-delay-5">
                         <h2 class="accordion-header">
                             <button class="accordion-button lp-faq-btn collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
                                 Is there a free trial?
@@ -462,23 +503,30 @@
 </section>
 
 @* ═══════════════════════════════════════════════════════════════
-   CTA BANNER
+   CTA BANNER — with mesh gradient background
 ═══════════════════════════════════════════════════════════════ *@
-<section class="lp-cta-section">
-    <div class="container text-center">
-        <h2 class="lp-cta-title">Ready to Modernize Your Venue?</h2>
-        <p class="lp-cta-sub">Join hundreds of entertainment businesses already using ZoneBill.</p>
-        <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
-            <a href="#pricing" class="btn lp-btn-accent lp-btn-lg">Start Free Trial</a>
-            <a href="/Account/Login" class="btn lp-btn-outline lp-btn-lg">Login to Dashboard</a>
+<section class="lp-cta-section relative overflow-hidden lp-mesh-bg">
+    <div class="lp-orb lp-orb-cyan animate-float-slow" style="width:400px;height:400px;top:-30%;left:10%;opacity:0.08;"></div>
+    <div class="lp-orb lp-orb-orange animate-float-medium" style="width:300px;height:300px;bottom:-20%;right:15%;opacity:0.06;"></div>
+
+    <div class="container text-center" style="position:relative;z-index:2;">
+        <div class="lp-reveal">
+            <h2 class="lp-cta-title">Ready to Modernize Your Venue?</h2>
+            <p class="lp-cta-sub">Join hundreds of entertainment businesses already using ZoneBill.</p>
+            <div class="d-flex gap-3 justify-content-center flex-wrap mt-4">
+                <a href="#pricing" class="btn lp-btn-accent lp-btn-lg hover:shadow-xl hover:shadow-orange-500/25 transition-all duration-300 group">
+                    Start Free Trial <i class="bi bi-arrow-right ms-1 inline-block transition-transform duration-300 group-hover:translate-x-1"></i>
+                </a>
+                <a href="/Account/Login" class="btn lp-btn-outline lp-btn-lg hover:shadow-lg hover:shadow-cyan-500/15 transition-all duration-300">Login to Dashboard</a>
+            </div>
         </div>
     </div>
 </section>
 
 @* ═══════════════════════════════════════════════════════════════
-   FOOTER
+   FOOTER — with line glow separator
 ═══════════════════════════════════════════════════════════════ *@
-<footer class="lp-footer">
+<footer class="lp-footer lp-line-glow">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-md-4 mb-3 mb-md-0">
@@ -489,15 +537,18 @@
             </div>
             <div class="col-md-4 mb-3 mb-md-0 text-md-center">
                 <div class="d-flex gap-4 justify-content-md-center lp-footer-links">
-                    <a href="/Account/Login">Login</a>
-                    <a href="#pricing">Register</a>
-                    <a href="/Home/Privacy">Privacy</a>
+                    <a href="/Account/Login" class="transition-colors duration-200 hover:text-cyan-400">Login</a>
+                    <a href="#pricing" class="transition-colors duration-200 hover:text-cyan-400">Register</a>
+                    <a href="/Home/Privacy" class="transition-colors duration-200 hover:text-cyan-400">Privacy</a>
                 </div>
             </div>
             <div class="col-md-4 text-md-end">
-                <p class="lp-footer-copy">© 2026 ZoneBill. All rights reserved.</p>
+                <p class="lp-footer-copy">&copy; 2026 ZoneBill. All rights reserved.</p>
             </div>
         </div>
     </div>
 </footer>
 
+@section Scripts {
+    <script src="~/js/landing.js" asp-append-version="true"></script>
+}

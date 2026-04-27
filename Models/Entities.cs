@@ -103,6 +103,9 @@ namespace ZoneBill_Lloren.Models
         [Required, MaxLength(20)] public string BookingStatus { get; set; } = null!;
         [MaxLength(20)] public string? ReferenceCode { get; set; }
         public bool CheckoutRequested { get; set; }
+        public int? RequestedSplitCount { get; set; }
+        [MaxLength(100)] public string? CustomerEmail { get; set; }
+        public bool CustomerReceiptEmailSent { get; set; }
     }
 
     public class PosShift

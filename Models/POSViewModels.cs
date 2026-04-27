@@ -14,6 +14,11 @@ namespace ZoneBill_Lloren.Models
         public DateTime? ActiveStartTime { get; set; }
         public int OrderItemCount { get; set; }
         public bool CheckoutRequested { get; set; }
+        public int? RequestedSplitCount { get; set; }
+        public decimal MenuTotal { get; set; }
+        public decimal TaxRatePercentage { get; set; }
+        public decimal LockedHourlyRate { get; set; }
+        public string? ReferenceCode { get; set; }
     }
 
     public class PosFloorAreaViewModel
@@ -55,6 +60,18 @@ namespace ZoneBill_Lloren.Models
         public int Quantity { get; set; } = 1;
     }
 
+    public class PosBatchOrderItem
+    {
+        public int ItemId { get; set; }
+        public int Quantity { get; set; }
+    }
+
+    public class PosBatchOrderRequest
+    {
+        public int BookingId { get; set; }
+        public List<PosBatchOrderItem> Items { get; set; } = new();
+    }
+
     public class CheckoutRequest
     {
         [Required]
@@ -65,6 +82,9 @@ namespace ZoneBill_Lloren.Models
 
         [MaxLength(50)]
         public string PaymentMethod { get; set; } = "Cash";
+
+        [MaxLength(100)]
+        public string? ReferenceNumber { get; set; }
     }
 
     public class TransferTableRequest
@@ -89,6 +109,9 @@ namespace ZoneBill_Lloren.Models
 
         [MaxLength(50)]
         public string PaymentMethod { get; set; } = "Cash";
+
+        [MaxLength(100)]
+        public string? ReferenceNumber { get; set; }
     }
 
     // ── Customer QR Portal ViewModels ─────────────────────────────────────
@@ -112,6 +135,7 @@ namespace ZoneBill_Lloren.Models
         public decimal TaxAmount { get; set; }
         public decimal EstimatedTotal { get; set; }
         public bool CheckoutRequested { get; set; }
+        public string? CustomerEmail { get; set; }
         public List<CustomerMenuItemViewModel> MenuItems { get; set; } = new();
     }
 
@@ -141,5 +165,25 @@ namespace ZoneBill_Lloren.Models
 
         [Range(1, 99)]
         public int Quantity { get; set; } = 1;
+    }
+
+    public class CustomerReceiptViewModel
+    {
+        public string SpaceName { get; set; } = string.Empty;
+        public string BusinessName { get; set; } = string.Empty;
+        public string? ReferenceCode { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
+        public decimal? DurationHours { get; set; }
+        public List<CustomerOrderItemViewModel> OrderItems { get; set; } = new();
+        public decimal TimeCharge { get; set; }
+        public decimal MenuTotal { get; set; }
+        public decimal TaxRatePercent { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public decimal PaidAmount { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string? CustomerEmail { get; set; }
+        public bool ReceiptEmailSent { get; set; }
     }
 }

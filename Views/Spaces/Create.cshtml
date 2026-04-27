@@ -5,58 +5,86 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-plus-circle me-2" style="color:var(--zb-secondary);"></i>Create Space</h4>
-    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-plus-circle me-2" style="color:var(--zb-secondary);"></i>Add New Space</h4>
+        <p class="text-muted small mb-0">Add a table, room, or area to your venue.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+        <i class="bi bi-arrow-left me-1"></i> Back to Spaces
+    </a>
 </div>
 
-<div class="zb-table-card">
-    <div class="p-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="BusinessId" class="form-label zb-form-label"></label>
-                    <select asp-for="BusinessId" class="form-select zb-form-input" asp-items="ViewBag.BusinessId"></select>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="SpaceName" class="form-label zb-form-label"></label>
-                    <input asp-for="SpaceName" class="form-control zb-form-input" />
-                    <span asp-validation-for="SpaceName" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="FloorArea" class="form-label zb-form-label"></label>
-                    <input asp-for="FloorArea" class="form-control zb-form-input" value="Main Floor" />
-                    <span asp-validation-for="FloorArea" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Capacity" class="form-label zb-form-label"></label>
-                    <input asp-for="Capacity" class="form-control zb-form-input" min="1" />
-                    <span asp-validation-for="Capacity" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="CurrentHourlyRate" class="form-label zb-form-label"></label>
-                    <input asp-for="CurrentHourlyRate" class="form-control zb-form-input" />
-                    <span asp-validation-for="CurrentHourlyRate" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="CurrentStatus" class="form-label zb-form-label"></label>
-                    <input asp-for="CurrentStatus" class="form-control zb-form-input" />
-                    <span asp-validation-for="CurrentStatus" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-check mt-4">
-                        <input class="form-check-input" asp-for="IsActive" style="background-color:var(--zb-primary-mid);border-color:var(--zb-text-muted);" />
-                        <label class="form-check-label zb-form-label" asp-for="IsActive">@Html.DisplayNameFor(model => model.IsActive)</label>
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="zb-table-card">
+            <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-grid-3x3-gap me-2"></i>Space Details</h6>
+            </div>
+            <div class="p-4">
+                <form asp-action="Create">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger small py-2 mb-3 d-none" id="valSummary"></div>
+
+                    <div class="row g-3">
+
+                        <div class="col-12">
+                            <label asp-for="SpaceName" class="form-label zb-form-label">Space / Table Name <span class="text-danger">*</span></label>
+                            <input asp-for="SpaceName" class="form-control zb-form-input" placeholder="e.g. Table 1, VIP Room A" />
+                            <span asp-validation-for="SpaceName" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="FloorArea" class="form-label zb-form-label">Floor / Area</label>
+                            <input asp-for="FloorArea" class="form-control zb-form-input" placeholder="e.g. Main Floor, 2nd Floor" value="Main Floor" />
+                            <span asp-validation-for="FloorArea" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Capacity" class="form-label zb-form-label">Capacity (pax) <span class="text-danger">*</span></label>
+                            <input asp-for="Capacity" class="form-control zb-form-input" type="number" min="1" placeholder="e.g. 4" />
+                            <span asp-validation-for="Capacity" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="CurrentHourlyRate" class="form-label zb-form-label">Hourly Rate (₱) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text" style="background:var(--zb-primary-alt);border-color:var(--zb-primary-alt);color:var(--zb-text-muted);">₱</span>
+                                <input asp-for="CurrentHourlyRate" class="form-control zb-form-input" type="number" step="0.01" min="0" placeholder="0.00" style="border-left:none;" />
+                            </div>
+                            <span asp-validation-for="CurrentHourlyRate" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="CurrentStatus" class="form-label zb-form-label">Initial Status <span class="text-danger">*</span></label>
+                            <select asp-for="CurrentStatus" class="form-select zb-form-input">
+                                <option value="Available" selected>Available</option>
+                                <option value="Unavailable">Unavailable</option>
+                            </select>
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:0.75rem;">"Occupied" is set automatically by the POS when a session starts.</div>
+                            <span asp-validation-for="CurrentStatus" class="text-danger small"></span>
+                        </div>
+
                     </div>
-                </div>
+
+                    <div class="mt-4 d-flex gap-2">
+                        <button type="submit" class="btn fw-semibold px-4" style="background:var(--zb-accent);color:#fff;border:none;">
+                            <i class="bi bi-check-lg me-1"></i> Create Space
+                        </button>
+                        <a asp-action="Index" class="btn fw-semibold px-4" style="background:rgba(148,163,184,0.1);color:var(--zb-text-muted);border:1px solid rgba(148,163,184,0.2);">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
             </div>
-            <div class="mt-4">
-                <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;"><i class="bi bi-check-lg me-1"></i>Create</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Show validation summary if it has content
+        var vs = document.getElementById('valSummary');
+        if (vs && vs.querySelectorAll('li').length > 0) vs.classList.remove('d-none');
+    </script>
 }

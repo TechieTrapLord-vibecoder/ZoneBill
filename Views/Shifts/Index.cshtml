@@ -1,4 +1,4 @@
-@model ZoneBill_Lloren.Models.ShiftIndexViewModel
+﻿@model ZoneBill_Lloren.Models.ShiftIndexViewModel
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -132,7 +132,7 @@ else
                                     <th>Notes</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody data-paginate="5">
                                 @if (Model.ActiveShiftTransactions.Any())
                                 {
                                     @foreach (var tx in Model.ActiveShiftTransactions)
@@ -277,7 +277,7 @@ else
                     <th>Status</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody data-paginate="5">
                 @if (Model.RecentShifts.Any())
                 {
                     @foreach (var shift in Model.RecentShifts)

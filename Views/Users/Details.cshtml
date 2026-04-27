@@ -1,32 +1,99 @@
-@model ZoneBill_Lloren.Models.User
+﻿@model ZoneBill_Lloren.Models.UserDetailsViewModel
+@using ZoneBill_Lloren.Helpers
 
 @{
     ViewData["Title"] = "User Details";
+    var u = Model.User;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-info-circle me-2" style="color:var(--zb-secondary);"></i>User Details</h4>
     <div class="d-flex gap-2">
-        <a asp-action="Edit" asp-route-id="@Model?.UserId" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);"><i class="bi bi-pencil-square me-1"></i>Edit</a>
-        <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+        <a asp-action="ResetPassword" asp-route-id="@u.UserId" class="btn btn-sm fw-semibold"
+           style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+            <i class="bi bi-key me-1"></i>Reset Password
+        </a>
+        <a asp-action="Edit" asp-route-id="@u.UserId" class="btn btn-sm fw-semibold"
+           style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
+            <i class="bi bi-pencil-square me-1"></i>Edit
+        </a>
+        <a asp-action="Index" class="btn btn-sm fw-semibold"
+           style="background:rgba(100,116,139,0.15);color:var(--zb-text-muted);border:1px solid rgba(100,116,139,0.3);">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
     </div>
 </div>
 
-<div class="zb-table-card">
-    <div class="p-4">
-        <dl class="row mb-0">
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Business)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@(Model.Business?.BusinessName ?? "-")</dd>
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.UserRole)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.UserRole)</dd>
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.FirstName)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.FirstName)</dd>
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.LastName)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.LastName)</dd>
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.EmailAddress)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.EmailAddress)</dd>
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.IsActive)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.IsActive)</dd>
-        </dl>
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-person-circle me-2"></i>Profile</h6>
+            </div>
+            <div class="p-4">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4 zb-form-label py-2">Business</dt>
+                    <dd class="col-sm-8 py-2" style="color:var(--zb-text);">@(u.Business?.BusinessName ?? "—")</dd>
+                    <dt class="col-sm-4 zb-form-label py-2">Role</dt>
+                    <dd class="col-sm-8 py-2">
+                        @{ var roleBadge = u.UserRole switch { "MainAdmin" => "zb-badge-cyan", "Manager" => "zb-badge-orange", "Cashier" => "zb-badge-green", _ => "zb-badge-cyan" }; }
+                        <span class="zb-badge @roleBadge">@u.UserRole</span>
+                    </dd>
+                    <dt class="col-sm-4 zb-form-label py-2">First Name</dt>
+                    <dd class="col-sm-8 py-2" style="color:var(--zb-text);">@u.FirstName</dd>
+                    <dt class="col-sm-4 zb-form-label py-2">Last Name</dt>
+                    <dd class="col-sm-8 py-2" style="color:var(--zb-text);">@u.LastName</dd>
+                    <dt class="col-sm-4 zb-form-label py-2">Email</dt>
+                    <dd class="col-sm-8 py-2" style="color:var(--zb-text);">@u.EmailAddress</dd>
+                    <dt class="col-sm-4 zb-form-label py-2">Status</dt>
+                    <dd class="col-sm-8 py-2">
+                        @if (u.IsActive) { <span class="zb-badge zb-badge-green">Active</span> }
+                        else { <span class="zb-badge zb-badge-red">Inactive</span> }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-clock-history me-2"></i>Recent Activity</h6>
+            </div>
+            @if (!Model.RecentActivity.Any())
+            {
+                <div class="p-4 text-center" style="color:var(--zb-text-muted);">
+                    <i class="bi bi-clipboard-x fs-3 d-block mb-2"></i>No recorded activity yet.
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table zb-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>Details</th>
+                                <th>When</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in Model.RecentActivity)
+                            {
+                                <tr>
+                                    <td><span class="zb-badge zb-badge-cyan" style="font-size:.7rem;">@log.ActionType</span></td>
+                                    <td style="font-size:.82rem;color:var(--zb-text-muted);">
+                                        @if (log.SourceSpaceName != null) { <span>@log.SourceSpaceName</span> }
+                                        @if (log.TargetSpaceName != null) { <span> → @log.TargetSpaceName</span> }
+                                        @if (log.Details != null) { <span>@log.Details</span> }
+                                    </td>
+                                    <td><span class="zb-mono" style="font-size:.78rem;">@PhilippineTime.ToDateTime(log.CreatedAt).ToString("MMM d, h:mm tt")</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     </div>
 </div>

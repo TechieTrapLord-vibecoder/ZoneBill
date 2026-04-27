@@ -11,7 +11,7 @@ using ZoneBill_Lloren.Models;
 
 namespace ZoneBill_Lloren.Controllers
 {
-    [Authorize(Roles = "MainAdmin,Manager,Cashier,Staff")]
+    [Authorize(Roles = "MainAdmin,Manager,Cashier")]
     public class BookingsController : Controller
     {
         private readonly ApplicationDbContext _context;

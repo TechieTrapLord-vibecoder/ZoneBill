@@ -11,250 +11,312 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@Model.SpaceName — @Model.BusinessName</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
-    <style>
-        :root {
-            --bg-primary: #0F172A;
-            --bg-card: #1E293B;
-            --bg-card-alt: #334155;
-            --accent-cyan: #06B6D4;
-            --accent-orange: #F97316;
-            --text-main: #F1F5F9;
-            --text-muted: #94A3B8;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'zb-primary': '#0F172A',
+                        'zb-mid': '#1E293B',
+                        'zb-alt': '#334155',
+                        'zb-cyan': '#06B6D4',
+                        'zb-orange': '#F97316',
+                        'zb-text': '#F1F5F9',
+                        'zb-muted': '#94A3B8',
+                    }
+                }
+            }
         }
-        body {
-            background: var(--bg-primary);
-            color: var(--text-main);
-            min-height: 100vh;
-        }
-        .card {
-            background: var(--bg-card);
-            border: 1px solid var(--bg-card-alt);
-        }
-        .card-header {
-            background: var(--bg-card-alt) !important;
-            border-bottom: 1px solid var(--accent-cyan);
-            color: var(--accent-cyan);
-            font-weight: 600;
-        }
-        .text-muted { color: var(--text-muted) !important; }
-        .btn-order {
-            background: var(--accent-orange);
-            color: #fff;
-            border: none;
-            font-weight: 600;
-        }
-        .btn-order:hover { background: #ea6c10; color: #fff; }
-        .badge-stock { background: var(--accent-cyan); color: var(--bg-primary); font-weight: 600; }
-        .timer-display {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--accent-cyan);
-            font-family: 'Consolas', 'Courier New', monospace;
-        }
-        .bill-row { display: flex; justify-content: space-between; padding: 0.25rem 0; color: var(--text-main); }
-        .bill-total { border-top: 2px solid var(--accent-cyan); font-size: 1.2rem; font-weight: 700; padding-top: 0.5rem; margin-top: 0.5rem; color: var(--text-main); }
-        .menu-grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
-        .menu-item-card {
-            background: var(--bg-card-alt);
-            border-radius: 0.5rem;
-            padding: 0.75rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .order-table th { color: var(--accent-cyan); border-color: var(--bg-card-alt); }
-        .order-table td { border-color: var(--bg-card-alt); }
-        .form-control, .form-select {
-            background: var(--bg-card-alt);
-            color: var(--text-main);
-            border-color: var(--bg-card-alt);
-        }
-        .form-control:focus, .form-select:focus {
-            background: var(--bg-card-alt);
-            color: var(--text-main);
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.25);
-        }
-    </style>
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 </head>
-<body>
+<body class="bg-zb-primary text-zb-text min-h-screen">
 
-<div class="container py-3" style="max-width: 540px;">
+<div class="max-w-md mx-auto px-4 py-4">
 
     <!-- Header -->
-    <div class="text-center mb-3">
-        <div class="text-muted small">@Model.BusinessName</div>
-        <h3 class="mb-0" style="color: var(--accent-cyan);">@Model.SpaceName</h3>
+    <div class="text-center mb-4">
+        <p class="text-zb-muted text-sm">@Model.BusinessName</p>
+        <h1 class="text-2xl font-bold text-zb-cyan">@Model.SpaceName</h1>
     </div>
+
+    <!-- Toast Container (fixed at top) -->
+    <div id="toastContainer" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 w-80 space-y-2"></div>
 
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger py-2">@TempData["Error"]</div>
+        <div class="rounded-lg bg-red-900/60 border border-red-500/50 text-red-200 px-4 py-3 mb-3 text-sm">
+            <i class="bi bi-exclamation-circle me-1"></i> @TempData["Error"]
+        </div>
     }
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success py-2">@TempData["Success"]</div>
+        <div id="successAlert" class="rounded-lg bg-emerald-900/60 border border-emerald-500/50 text-emerald-200 px-4 py-3 mb-3 text-sm">
+            <i class="bi bi-check-circle me-1"></i> @TempData["Success"]
+        </div>
     }
 
     @if (!Model.HasActiveSession)
     {
-        <div class="card text-center p-4 mt-4">
-            <div style="font-size: 3rem;">🎱</div>
-            <h5 class="mt-2">This table is not in use</h5>
-            <p class="text-muted mb-0">Please ask the front desk to start a session.</p>
+        <div class="bg-zb-mid border border-zb-alt rounded-xl text-center p-8 mt-6">
+            <div class="text-5xl mb-3">🎱</div>
+            <h2 class="text-lg font-semibold mb-1">This table is not in use</h2>
+            <p class="text-zb-muted text-sm">Please ask the front desk to start a session.</p>
         </div>
     }
     else
     {
-        <!-- Session Info -->
-        <div class="card mb-3">
-            <div class="card-header">Session</div>
-            <div class="card-body text-center">
-                <div class="timer-display" id="elapsedTimer"
+        <!-- Session Timer Card -->
+        <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-3">
+            <div class="bg-zb-alt border-b border-zb-cyan px-4 py-2.5 text-zb-cyan font-semibold text-sm">
+                <i class="bi bi-clock me-1"></i> Session
+            </div>
+            <div class="p-4 text-center">
+                <div id="elapsedTimer"
                      data-start-time="@Model.StartTime?.ToString("o")"
-                     data-hourly-rate="@Model.HourlyRate">
+                     data-hourly-rate="@Model.HourlyRate"
+                     class="text-4xl font-bold text-zb-cyan font-mono tracking-wider">
                     00:00:00
                 </div>
-                <div class="text-muted small mt-1">
-                    ₱@Model.HourlyRate.ToString("0.00") / hr &bull; Ref: @Model.ReferenceCode
-                </div>
+                <p class="text-zb-muted text-xs mt-2">
+                    ₱@Model.HourlyRate.ToString("0.00") / hr &bull; Ref: <span class="text-zb-cyan">@Model.ReferenceCode</span>
+                </p>
             </div>
         </div>
 
         <!-- Current Orders -->
-        @if (Model.OrderItems.Any())
-        {
-            <div class="card mb-3">
-                <div class="card-header">Your Orders</div>
-                <div class="card-body p-0">
-                    <table class="table table-sm table-dark order-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th class="text-center">Qty</th>
-                                <th class="text-end">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model.OrderItems)
-                            {
-                                <tr>
-                                    <td>@item.ItemName</td>
-                                    <td class="text-center">@item.Quantity</td>
-                                    <td class="text-end">₱@item.LineTotal.ToString("0.00")</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
+        <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-3">
+            <div class="bg-zb-alt border-b border-zb-cyan px-4 py-2.5 text-zb-cyan font-semibold text-sm flex justify-between items-center">
+                <span><i class="bi bi-receipt me-1"></i> Your Orders</span>
+                <span id="orderCount" class="text-xs text-zb-muted">@Model.OrderItems.Count item(s)</span>
             </div>
-        }
-
-        <!-- Running Bill -->
-        <div class="card mb-3">
-            <div class="card-header">Estimated Bill</div>
-            <div class="card-body">
-                <div class="bill-row">
-                    <span>Table time</span>
-                    <span id="billTimeCharge">₱@Model.TimeCharge.ToString("0.00")</span>
-                </div>
-                <div class="bill-row">
-                    <span>Food & drinks</span>
-                    <span>₱@Model.MenuTotal.ToString("0.00")</span>
-                </div>
-                <div class="bill-row text-muted small">
-                    <span>Tax (@Model.TaxRatePercent.ToString("0.##")%)</span>
-                    <span id="billTax">₱@Model.TaxAmount.ToString("0.00")</span>
-                </div>
-                <div class="bill-row bill-total" style="color: var(--accent-orange);">
-                    <span>Estimated Total</span>
-                    <span id="billTotal">₱@Model.EstimatedTotal.ToString("0.00")</span>
-                </div>
-                <div class="text-muted small text-center mt-2">Final bill will be at the front desk</div>
+            <div id="orderTableBody" class="divide-y divide-zb-alt">
+                @if (Model.OrderItems.Any())
+                {
+                    @foreach (var item in Model.OrderItems)
+                    {
+                        <div class="flex justify-between items-center px-4 py-2.5 text-sm">
+                            <span class="flex-1">@item.ItemName</span>
+                            <span class="text-zb-muted w-12 text-center">×@item.Quantity</span>
+                            <span class="w-24 text-right font-medium">₱@item.LineTotal.ToString("0.00")</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="px-4 py-4 text-center text-zb-muted text-sm">No orders yet</div>
+                }
             </div>
         </div>
 
-        <!-- Request Checkout -->
-        <div class="card mb-3">
-            <div class="card-body text-center">
+        <!-- Running Bill -->
+        <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-3">
+            <div class="bg-zb-alt border-b border-zb-cyan px-4 py-2.5 text-zb-cyan font-semibold text-sm">
+                <i class="bi bi-calculator me-1"></i> Estimated Bill
+            </div>
+            <div class="p-4 space-y-1.5">
+                <div class="flex justify-between text-sm">
+                    <span>Table time</span>
+                    <span id="billTimeCharge">₱@Model.TimeCharge.ToString("0.00")</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span>Food & drinks</span>
+                    <span id="billMenuTotal">₱@Model.MenuTotal.ToString("0.00")</span>
+                </div>
+                <div class="flex justify-between text-xs text-zb-muted">
+                    <span>Tax (@Model.TaxRatePercent.ToString("0.##")%)</span>
+                    <span id="billTax">₱@Model.TaxAmount.ToString("0.00")</span>
+                </div>
+                <div class="flex justify-between text-lg font-bold text-zb-orange border-t-2 border-zb-cyan pt-3 mt-2">
+                    <span>Estimated Total</span>
+                    <span id="billTotal">₱@Model.EstimatedTotal.ToString("0.00")</span>
+                </div>
+                <p class="text-center text-zb-muted text-xs pt-1">Final bill will be at the front desk</p>
+            </div>
+        </div>
+
+        <!-- Request Checkout + Email -->
+        <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-3">
+            <div class="p-4" id="checkoutSection">
                 @if (Model.CheckoutRequested)
                 {
-                    <div class="py-2">
-                        <i class="bi bi-check-circle-fill" style="font-size:2rem;color:#22c55e;"></i>
-                        <p class="mt-2 mb-0 fw-semibold" style="color:#22c55e;">Checkout requested — front desk has been notified.</p>
+                    <div class="py-2 text-center">
+                        <i class="bi bi-check-circle-fill text-3xl text-emerald-400"></i>
+                        <p class="mt-2 font-semibold text-emerald-400">Checkout requested — front desk notified.</p>
                     </div>
                 }
                 else
                 {
-                    <form method="post" action="/Customer/Space/@Model.SpaceId/RequestCheckout">
-                        @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-order w-100 py-2" style="background:#ef4444;">
+                    <!-- Step 1: Initial button -->
+                    <div id="coStep1" class="text-center">
+                        <button type="button" onclick="showCoStep2()"
+                                class="w-full py-3 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold text-base transition">
                             <i class="bi bi-box-arrow-right me-1"></i> Request Checkout
                         </button>
+                        <p class="text-zb-muted text-xs mt-2">Notify front desk you're ready to pay</p>
+                    </div>
+
+                    <!-- Step 2: Split question -->
+                    <div id="coStep2" style="display:none;">
+                        <p class="font-semibold text-center mb-3" style="color:var(--zb-text);">
+                            <i class="bi bi-people me-1" style="color:var(--zb-secondary);"></i>Split the bill?
+                        </p>
+                        <div class="grid grid-cols-2 gap-3 mb-2">
+                            <button type="button" onclick="submitCheckout(null)"
+                                    class="py-3 rounded-xl font-semibold text-sm transition border"
+                                    style="background:rgba(34,197,94,0.12);color:#86efac;border-color:rgba(34,197,94,0.3);">
+                                <i class="bi bi-person-fill me-1"></i>Just me
+                            </button>
+                            <button type="button" onclick="showCoStep3()"
+                                    class="py-3 rounded-xl font-semibold text-sm transition border"
+                                    style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border-color:rgba(6,182,212,0.3);">
+                                <i class="bi bi-people-fill me-1"></i>Split it
+                            </button>
+                        </div>
+                        <button type="button" onclick="showCoStep1()" class="w-full text-xs mt-1" style="color:var(--zb-text-muted);background:none;border:none;">
+                            &#8592; Back
+                        </button>
+                    </div>
+
+                    <!-- Step 3: How many ways? -->
+                    <div id="coStep3" style="display:none;">
+                        <p class="font-semibold text-center mb-1" style="color:var(--zb-text);">
+                            <i class="bi bi-scissors me-1" style="color:var(--zb-secondary);"></i>Split how many ways?
+                        </p>
+                        <p class="text-center text-xs mb-3" style="color:var(--zb-text-muted);">Total will be divided equally</p>
+                        <div class="flex items-center justify-center gap-4 mb-4">
+                            <button type="button" onclick="adjSplit(-1)"
+                                    class="w-12 h-12 rounded-full font-bold text-xl flex items-center justify-center"
+                                    style="background:rgba(148,163,184,0.1);color:var(--zb-text);border:1px solid rgba(148,163,184,0.2);">&#8722;</button>
+                            <span id="coSplitNum" class="font-bold text-4xl" style="color:var(--zb-secondary);min-width:2.5rem;text-align:center;">2</span>
+                            <button type="button" onclick="adjSplit(1)"
+                                    class="w-12 h-12 rounded-full font-bold text-xl flex items-center justify-center"
+                                    style="background:rgba(148,163,184,0.1);color:var(--zb-text);border:1px solid rgba(148,163,184,0.2);">+</button>
+                        </div>
+                        <button type="button" onclick="submitCheckout(parseInt(document.getElementById('coSplitNum').textContent))"
+                                class="w-full py-3 rounded-xl font-semibold text-sm"
+                                style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);">
+                            <i class="bi bi-box-arrow-right me-1"></i>Confirm &amp; Notify Front Desk
+                        </button>
+                        <button type="button" onclick="showCoStep2()" class="w-full text-xs mt-2" style="color:var(--zb-text-muted);background:none;border:none;">
+                            &#8592; Back
+                        </button>
+                    </div>
+
+                    <!-- Hidden form (submitted via JS) -->
+                    <form id="coCheckoutForm" method="post" action="/Customer/Space/@Model.SpaceId/RequestCheckout" style="display:none;">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="splitCount" id="coSplitCountInput" value="" />
                     </form>
-                    <div class="text-muted small mt-2">Notify front desk you're ready to pay</div>
                 }
             </div>
         </div>
 
+        <!-- Email Capture -->
+        <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-3">
+            <div class="p-4">
+                <p class="text-sm text-zb-muted mb-2">
+                    <i class="bi bi-envelope me-1"></i>
+                    @if (string.IsNullOrWhiteSpace(Model.CustomerEmail))
+                    {
+                        <span>Get your receipt via email after checkout:</span>
+                    }
+                    else
+                    {
+                        <span>Receipt will be sent to:</span>
+                    }
+                </p>
+                <form method="post" action="/Customer/Space/@Model.SpaceId/SaveEmail" class="flex gap-2">
+                    @Html.AntiForgeryToken()
+                    <input type="email" name="email" value="@Model.CustomerEmail"
+                           placeholder="your@email.com" required
+                           class="flex-1 rounded-lg bg-zb-alt border border-zb-alt text-zb-text px-3 py-2 text-sm
+                                  focus:outline-none focus:border-zb-cyan focus:ring-1 focus:ring-zb-cyan/30
+                                  placeholder:text-zb-muted/60" />
+                    <button type="submit"
+                            class="px-4 py-2 rounded-lg bg-zb-cyan hover:bg-zb-cyan/80 text-zb-primary font-semibold text-sm transition">
+                        Save
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Menu & Order Form -->
-        <div class="card mb-3">
-            <div class="card-header">Order Food & Drinks</div>
-            <div class="card-body">
+        <div class="bg-zb-mid border border-zb-alt rounded-xl overflow-hidden mb-3">
+            <div class="bg-zb-alt border-b border-zb-cyan px-4 py-2.5 text-zb-cyan font-semibold text-sm">
+                <i class="bi bi-cup-straw me-1"></i> Order Food & Drinks
+            </div>
+            <div class="p-4">
                 @if (Model.MenuItems.Any())
                 {
-                    <form method="post" action="/Customer/Space/@Model.SpaceId/Order">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="SpaceId" value="@Model.SpaceId" />
+                    <!-- ── Menu tiles ── -->
+                    <p class="text-zb-muted text-xs mb-3">Tap an item to add it to your cart.</p>
+                    <div class="grid grid-cols-2 gap-2 mb-4" id="menuTiles">
+                        @foreach (var item in Model.MenuItems)
+                        {
+                            <button type="button"
+                                    onclick="cartAdd(@item.ItemId, '@Html.Raw(item.ItemName.Replace("'","\\'"))', @item.Price.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture), @item.StockAvailable)"
+                                    class="flex flex-col items-start bg-zb-alt rounded-lg p-3 text-left border border-zb-alt hover:border-zb-cyan/60 active:scale-95 transition w-full"
+                                    data-item-id="@item.ItemId" data-stock="@item.StockAvailable">
+                                <span class="font-semibold text-sm leading-snug">@item.ItemName</span>
+                                <span class="text-zb-cyan text-xs mt-1">₱@item.Price.ToString("0.00")</span>
+                                <span class="text-zb-muted text-xs">@item.StockAvailable in stock</span>
+                            </button>
+                        }
+                    </div>
 
-                        <div class="mb-3">
-                            <select class="form-select" name="ItemId" id="menuSelect" required>
-                                <option value="">Select an item...</option>
-                                @foreach (var item in Model.MenuItems)
-                                {
-                                    <option value="@item.ItemId" data-price="@item.Price" data-stock="@item.StockAvailable">
-                                        @item.ItemName — ₱@item.Price.ToString("0.00")
-                                    </option>
-                                }
-                            </select>
+                    <!-- ── Cart ── -->
+                    <div id="cartSection" class="hidden">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="font-semibold text-sm">Your Cart</h3>
+                            <button type="button" onclick="cartClear()"
+                                    class="text-xs text-red-400 hover:text-red-300">Clear all</button>
                         </div>
-
-                        <div id="selectedItemInfo" class="mb-3" style="display:none;">
-                            <div class="menu-item-card">
-                                <div>
-                                    <strong id="selItemName"></strong>
-                                    <div class="text-muted small">₱<span id="selItemPrice"></span> each</div>
-                                </div>
-                                <span class="badge badge-stock" id="selItemStock"></span>
-                            </div>
-                        </div>
-
-                        <div class="row g-2 mb-3">
-                            <div class="col-5">
-                                <label class="form-label small text-muted">Quantity</label>
-                                <input class="form-control" type="number" name="Quantity" id="qtyInput" value="1" min="1" max="99" required />
-                            </div>
-                            <div class="col-7 d-flex align-items-end">
-                                <button type="submit" class="btn btn-order w-100 py-2">Add to Order</button>
-                            </div>
-                        </div>
-                    </form>
+                        <div id="cartList" class="space-y-1 mb-3"></div>
+                        <button type="button" onclick="cartSubmit()"
+                                class="w-full py-2.5 rounded-lg bg-zb-orange hover:bg-zb-orange/80 text-white font-semibold text-sm transition">
+                            <i class="bi bi-bag-check me-1"></i>
+                            Place Order (<span id="cartCount">0</span> item<span id="cartCountS">s</span>)
+                        </button>
+                    </div>
                 }
                 else
                 {
-                    <p class="text-muted text-center mb-0">No items available right now.</p>
+                    <p class="text-zb-muted text-center text-sm py-2">No items available right now.</p>
                 }
             </div>
         </div>
     }
 
-    <div class="text-center text-muted small pb-3">
-        Powered by <strong style="color: var(--accent-cyan);">ZoneBill</strong>
-    </div>
+    <p class="text-center text-zb-muted text-xs pb-4">
+        Powered by <span class="text-zb-cyan font-semibold">ZoneBill</span>
+    </p>
 </div>
 
 <script>
+    // ── Toast helper ──
+    function showToast(message, type) {
+        var c = document.getElementById('toastContainer');
+        var bg = type === 'error' ? 'bg-red-900/90 border-red-500/50 text-red-200'
+               : type === 'info'  ? 'bg-sky-900/90 border-sky-500/50 text-sky-200'
+               : 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200';
+        var el = document.createElement('div');
+        el.className = 'rounded-lg border px-4 py-3 text-sm shadow-lg transition-all duration-300 ' + bg;
+        el.textContent = message;
+        c.appendChild(el);
+        setTimeout(function () {
+            el.style.opacity = '0';
+            setTimeout(function () { el.remove(); }, 300);
+        }, 4000);
+    }
+
+    // Auto-dismiss server-side success alert
+    (function () {
+        var sa = document.getElementById('successAlert');
+        if (sa) setTimeout(function () { sa.style.opacity = '0'; sa.style.transition = 'opacity 0.5s'; setTimeout(function () { sa.remove(); }, 500); }, 4000);
+    })();
+
     // ── Live elapsed timer & dynamic bill update ──
     (function () {
         var timerEl = document.getElementById('elapsedTimer');
@@ -270,6 +332,9 @@
 
         function pad(n) { return n < 10 ? '0' + n : '' + n; }
 
+        window._currentMenuTotal = menuTotal;
+        window._taxPct = taxPct;
+
         function tick() {
             var now = Date.now();
             var diff = Math.max(0, Math.floor((now - startMs) / 1000));
@@ -282,37 +347,222 @@
             if (hours < 0.01) hours = 0.01;
 
             var timeCharge = Math.round(hours * hourlyRate * 100) / 100;
-            var sub = timeCharge + menuTotal;
-            var tax = Math.round(sub * taxPct * 100) / 100;
+            var mt = window._currentMenuTotal;
+            var sub = timeCharge + mt;
+            var tax = Math.round(sub * window._taxPct * 100) / 100;
             var total = Math.round((sub + tax) * 100) / 100;
 
             var tcEl = document.getElementById('billTimeCharge');
+            var mtEl = document.getElementById('billMenuTotal');
             var txEl = document.getElementById('billTax');
             var ttEl = document.getElementById('billTotal');
-            if (tcEl) tcEl.textContent = '₱' + timeCharge.toFixed(2);
-            if (txEl) txEl.textContent = '₱' + tax.toFixed(2);
-            if (ttEl) ttEl.textContent = '₱' + total.toFixed(2);
+            if (tcEl) tcEl.textContent = '\u20B1' + timeCharge.toFixed(2);
+            if (mtEl) mtEl.textContent = '\u20B1' + mt.toFixed(2);
+            if (txEl) txEl.textContent = '\u20B1' + tax.toFixed(2);
+            if (ttEl) ttEl.textContent = '\u20B1' + total.toFixed(2);
         }
 
         tick();
         setInterval(tick, 1000);
     })();
 
-    // ── Menu item selection info ──
+    // ── Server polling every 10s ──
     (function () {
-        var sel = document.getElementById('menuSelect');
-        var info = document.getElementById('selectedItemInfo');
-        if (!sel || !info) return;
+        var spaceId = @Model.SpaceId;
+        var bookingId = @(Model.BookingId.HasValue ? Model.BookingId.Value.ToString() : "null");
+        var hasSession = @(Model.HasActiveSession ? "true" : "false");
 
-        sel.addEventListener('change', function () {
-            var opt = sel.options[sel.selectedIndex];
-            if (!opt.value) { info.style.display = 'none'; return; }
-            document.getElementById('selItemName').textContent = opt.textContent.split('—')[0].trim();
-            document.getElementById('selItemPrice').textContent = parseFloat(opt.getAttribute('data-price')).toFixed(2);
-            document.getElementById('selItemStock').textContent = opt.getAttribute('data-stock') + ' in stock';
-            info.style.display = 'block';
-        });
+        var lastOrderCount = @(Model.OrderItems.Count);
+
+        function poll() {
+            var url = '/Customer/Space/' + spaceId + '/Status' + (bookingId ? '?bookingId=' + bookingId : '');
+            fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+
+                // No session was active when page loaded — check if one started now
+                if (!hasSession) {
+                    if (d.bookingStatus === 'Active') {
+                        window.location.reload();
+                    }
+                    return;
+                }
+
+                if (d.bookingStatus === 'Completed') {
+                    window.location.href = '/Customer/Space/' + spaceId + '/Receipt';
+                    return;
+                }
+                if (!d.bookingStatus) return;
+
+                // Update checkout section
+                if (d.checkoutRequested) {
+                    var cs = document.getElementById('checkoutSection');
+                    if (cs && !cs.querySelector('.text-emerald-400')) {
+                        cs.innerHTML = '<div class="py-2"><i class="bi bi-check-circle-fill text-3xl text-emerald-400"></i><p class="mt-2 font-semibold text-emerald-400">Checkout requested — front desk notified.</p></div>';
+                    }
+                }
+
+                // Update orders table
+                var body = document.getElementById('orderTableBody');
+                var countEl = document.getElementById('orderCount');
+                if (body && d.orderItems) {
+                    if (d.orderItems.length === 0) {
+                        body.innerHTML = '<div class="px-4 py-4 text-center text-zb-muted text-sm">No orders yet</div>';
+                    } else {
+                        var html = '';
+                        for (var i = 0; i < d.orderItems.length; i++) {
+                            var it = d.orderItems[i];
+                            html += '<div class="flex justify-between items-center px-4 py-2.5 text-sm">'
+                                + '<span class="flex-1">' + it.itemName + '</span>'
+                                + '<span class="text-zb-muted w-12 text-center">\u00d7' + it.quantity + '</span>'
+                                + '<span class="w-24 text-right font-medium">\u20B1' + it.lineTotal.toFixed(2) + '</span>'
+                                + '</div>';
+                        }
+                        body.innerHTML = html;
+                    }
+                    if (countEl) countEl.textContent = d.orderItems.length + ' item(s)';
+
+                    // Toast if new orders appeared
+                    if (d.orderItems.length > lastOrderCount) {
+                        showToast('Tab updated — new items added!', 'info');
+                    }
+                    lastOrderCount = d.orderItems.length;
+                }
+
+                // Update bill values for the 1s timer
+                if (typeof d.menuTotal === 'number') {
+                    window._currentMenuTotal = d.menuTotal;
+                }
+            }).catch(function () { /* silent */ });
+        }
+
+        setInterval(poll, 10000);
     })();
+
+    // ── Checkout step flow ──
+    function showCoStep1() {
+        document.getElementById('coStep1').style.display = '';
+        document.getElementById('coStep2').style.display = 'none';
+        document.getElementById('coStep3').style.display = 'none';
+    }
+    function showCoStep2() {
+        document.getElementById('coStep1').style.display = 'none';
+        document.getElementById('coStep2').style.display = '';
+        document.getElementById('coStep3').style.display = 'none';
+    }
+    function showCoStep3() {
+        document.getElementById('coStep2').style.display = 'none';
+        document.getElementById('coStep3').style.display = '';
+    }
+    function adjSplit(delta) {
+        var el = document.getElementById('coSplitNum');
+        var v = parseInt(el.textContent) + delta;
+        if (v < 2) v = 2;
+        if (v > 20) v = 20;
+        el.textContent = v;
+    }
+    function submitCheckout(splitCount) {
+        var form = document.getElementById('coCheckoutForm');
+        if (!form) return;
+        document.getElementById('coSplitCountInput').value = splitCount && splitCount >= 2 ? splitCount : '';
+        form.submit();
+    }
+
+    // ── Cart logic ──
+    var _cart = [];  // [{itemId, name, price, qty}]
+    var _token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+    function cartAdd(itemId, name, price, stock) {
+        var existing = _cart.find(function (c) { return c.itemId === itemId; });
+        var currentQty = existing ? existing.qty : 0;
+        if (currentQty >= stock) { showToast('No more stock available for ' + name + '.', 'error'); return; }
+        if (existing) { existing.qty++; }
+        else { _cart.push({ itemId: itemId, name: name, price: price, qty: 1, stock: stock }); }
+        cartRender();
+    }
+
+    function cartRemove(itemId) {
+        _cart = _cart.filter(function (c) { return c.itemId !== itemId; });
+        cartRender();
+    }
+
+    function cartQty(itemId, delta) {
+        var item = _cart.find(function (c) { return c.itemId === itemId; });
+        if (!item) return;
+        item.qty += delta;
+        if (item.qty <= 0) { _cart = _cart.filter(function (c) { return c.itemId !== itemId; }); }
+        else if (item.qty > item.stock) { item.qty = item.stock; showToast('Max stock reached.', 'info'); }
+        cartRender();
+    }
+
+    function cartClear() {
+        _cart = [];
+        cartRender();
+    }
+
+    function cartRender() {
+        var list = document.getElementById('cartList');
+        var section = document.getElementById('cartSection');
+        var countEl = document.getElementById('cartCount');
+        var countSEl = document.getElementById('cartCountS');
+        if (!list) return;
+
+        var total = _cart.reduce(function (s, c) { return s + c.qty; }, 0);
+        if (countEl) countEl.textContent = total;
+        if (countSEl) countSEl.textContent = total === 1 ? '' : 's';
+
+        if (_cart.length === 0) {
+            section.classList.add('hidden');
+            list.innerHTML = '';
+            return;
+        }
+        section.classList.remove('hidden');
+
+        var html = '';
+        _cart.forEach(function (c) {
+            var lineTotal = (c.price * c.qty).toFixed(2);
+            html += '<div class="flex items-center gap-2 bg-zb-alt rounded-lg px-3 py-2 text-sm">'
+                + '<span class="flex-1 leading-snug">' + c.name + '</span>'
+                + '<button type="button" onclick="cartQty(' + c.itemId + ', -1)" class="w-6 h-6 rounded bg-zb-primary text-zb-muted flex items-center justify-center text-lg leading-none">&minus;</button>'
+                + '<span class="w-5 text-center font-semibold">' + c.qty + '</span>'
+                + '<button type="button" onclick="cartQty(' + c.itemId + ', 1)" class="w-6 h-6 rounded bg-zb-primary text-zb-muted flex items-center justify-center text-lg leading-none">+</button>'
+                + '<span class="w-20 text-right text-zb-cyan font-medium">\u20B1' + lineTotal + '</span>'
+                + '<button type="button" onclick="cartRemove(' + c.itemId + ')" class="text-red-400 ml-1">&times;</button>'
+                + '</div>';
+        });
+        list.innerHTML = html;
+    }
+
+    function cartSubmit() {
+        if (_cart.length === 0) return;
+        var btn = document.querySelector('button[onclick="cartSubmit()"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Placing order...'; }
+
+        var payload = _cart.map(function (c) { return { itemId: c.itemId, quantity: c.qty }; });
+        fetch('/Customer/Space/@Model.SpaceId/BatchOrder', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': _token
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+            if (res.ok) {
+                showToast(res.data.message || 'Order placed!', 'success');
+                cartClear();
+                // Let the 10s poll refresh the order list automatically; force an immediate update
+                setTimeout(function () {
+                    window._currentMenuTotal = typeof res.data.menuTotal === 'number' ? res.data.menuTotal : window._currentMenuTotal;
+                }, 200);
+            } else {
+                showToast(res.data.error || 'Order failed. Try again.', 'error');
+            }
+        })
+        .catch(function () { showToast('Network error. Try again.', 'error'); })
+        .finally(function () {
+            if (btn) { btn.disabled = false; cartRender(); }
+        });
+    }
 </script>
 
 </body>

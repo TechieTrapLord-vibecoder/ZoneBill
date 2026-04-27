@@ -7,25 +7,30 @@
 ```mermaid
 flowchart LR
     SA([Level 1: Super Admin])
-    MA([Level 2: Main Admin])
+    MA([Level 2: Main Admin / Owner])
     MGR([Level 3: Manager])
-    EMP([Level 4: Employee/Cashier])
+    EMP([Level 4: Cashier])
 
     subgraph MKH Solutions: Web-Based Centralized Accounting System
         UC1(Manage SaaS and Multi-Tenancy)
-        UC2(Manage Accounting Core)
-        UC3(Manage Operations and POS)
-        UC4(Process Orders, Invoices, Payments)
+        UC2(Manage Business Settings and Accounting)
+        UC3(Manage Operations, Reports, and Venue Setup)
+        UC4(Operate POS, Orders, and Payments)
     end
 
     SA --> UC1
+    MA --> UC1
     MA --> UC2
+    MA --> UC3
+    MA --> UC4
     MGR --> UC3
-    EMP --> UC4
     MGR --> UC4
+    EMP --> UC4
 ```
 
 ## Role-Based Access Control (RBAC)
+
+> **Design Note:** MainAdmin and Manager are intentionally separate roles. The owner (MainAdmin) can create a Manager account and assign it to a trusted employee who runs daily operations — without giving that employee access to billing, business settings, or accounting records.
 
 ### 1. Super Admin (System Creator / SaaS Provider)
 
@@ -34,24 +39,34 @@ flowchart LR
 - Views the global revenue dashboard to monitor the SaaS platform's total income and active subscriptions.
 - Activates, suspends, or upgrades business owner accounts based on their billing status.
 
-### 2. Main Admin (The Business Owner / Venue Manager)
+### 2. Main Admin (Business Owner)
 
-- Signs up for the SaaS and sets up their specific venue details (e.g., adding 10 Billiard Tables at ₱150/hr).
-- Views their specific Revenue Monitoring dashboard to see daily income and profit strictly from their venue.
-- Checks the Accounting Integration module to pull their financial reports.
+- Signs up for the SaaS and sets up their specific venue (e.g., adding 10 Billiard Tables at ₱150/hr).
+- Full access to all modules: business settings, accounting, reports, venue setup, and user management.
+- Creates and manages user accounts — including assigning the Manager role to a trusted employee.
+- Controls subscription billing and plan upgrades.
+- Can also perform all Manager and Cashier actions if needed.
 
-### 3. Staff / Cashier (Front Desk)
+### 3. Manager (Appointed Venue Manager)
+
+- A trusted employee assigned the Manager role by the business owner.
+- Manages day-to-day venue operations: financial reports, inventory, menu items, and spaces.
+- Can operate the POS, handle bookings, process orders, payments, and adjustments.
+- Cannot access business settings, subscription billing, accounting records, or user management.
+
+### 4. Cashier (Front Desk / POS Operator)
 
 - Uses the POS system to start and stop timers for walk-in customers.
 - Punches in food and drink orders to add to a customer's running tab.
-- Generates the final invoice and processes cash or digital payments.
-- Applies credits (like a VIP discount) or debits (like a fee for a broken item).
+- Generates the final invoice and processes cash or digital payments (Cash, GCash, Card).
+- Cannot access reports, inventory management, or menu item configuration.
 
-### 4. Customer (End User)
+### 5. Customer (End User — No Login Required)
 
-- Visits the venue's booking portal on their phone.
-- Checks which tables or rooms are available right now.
-- Books a space, pre-orders food, and pays a downpayment online.
+- Visits the venue's customer portal on their phone via a QR code at the table.
+- Views their active session timer and running tab in real time.
+- Can request checkout directly from the portal.
+- Pre-orders food and drinks to add to their tab.
 
 ---
 
@@ -368,7 +383,7 @@ erDiagram
 | Details          | Text (Nullable) | 500    | Action details      |
 | CreatedAt        | DateTime        | N/A    | Audit timestamp     |
 
-## Level 4 - Employee (Cashier and Staff)
+## Level 4 - Employee (Cashier)
 
 ### 16. PosShifts table
 

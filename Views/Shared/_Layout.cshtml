@@ -15,7 +15,6 @@
         var isMainAdmin = User.IsInRole("MainAdmin");
         var isManager = User.IsInRole("Manager");
         var isCashier = User.IsInRole("Cashier");
-        var isStaff = User.IsInRole("Staff");
         var canUsePos = isMainAdmin || isManager || isCashier;
         var isAuthenticated = User.Identity != null && User.Identity.IsAuthenticated;
 
@@ -62,19 +61,35 @@
                     </a>
                 }
 
+                @* ── SuperAdmin ── *@
                 @if (User.IsInRole("SuperAdmin"))
                 {
-                    <div class="zb-nav-label">Global SaaS Admin</div>
+                    <div class="zb-nav-label"><i class="bi bi-globe2 me-1"></i>Global SaaS Admin</div>
                     <a class="zb-nav-link @Nav("Home","SuperAdminDashboard")" asp-controller="Home" asp-action="SuperAdminDashboard"><i class="bi bi-speedometer2"></i> SaaS Dashboard</a>
-                    <a class="zb-nav-link @NavCtrl("SubscriptionInvoices")" asp-controller="SubscriptionInvoices" asp-action="Index"><i class="bi bi-receipt"></i> Subscription Invoices</a>
-                    <a class="zb-nav-link @NavCtrl("SubscriptionPlans")" asp-controller="SubscriptionPlans" asp-action="Index"><i class="bi bi-card-list"></i> Subscription Plans</a>
                     <a class="zb-nav-link @NavCtrl("Businesses")" asp-controller="Businesses" asp-action="Index"><i class="bi bi-building"></i> Manage Businesses</a>
+                    <a class="zb-nav-link @NavCtrl("SubscriptionPlans")" asp-controller="SubscriptionPlans" asp-action="Index"><i class="bi bi-card-list"></i> Subscription Plans</a>
+                    <a class="zb-nav-link @NavCtrl("SubscriptionInvoices")" asp-controller="SubscriptionInvoices" asp-action="Index"><i class="bi bi-receipt"></i> Subscription Invoices</a>
                     <a class="zb-nav-link @NavCtrl("Users")" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i> System Users</a>
                 }
 
+                @* ── Front Desk / POS (daily operations — shown first) ── *@
+                @if (canUsePos)
+                {
+                    <div class="zb-nav-label"><i class="bi bi-display me-1"></i>Front Desk / POS</div>
+                    <a class="zb-nav-link @NavCtrl("POS")" asp-controller="POS" asp-action="Index"><i class="bi bi-display"></i> POS Dashboard</a>
+                    <a class="zb-nav-link @NavCtrl("Shifts")" asp-controller="Shifts" asp-action="Index"><i class="bi bi-shop"></i> Shift &amp; Cash Drawer</a>
+                    <a class="zb-nav-link @NavCtrl("Bookings")" asp-controller="Bookings" asp-action="Index"><i class="bi bi-calendar-check"></i> Active Bookings</a>
+                    <a class="zb-nav-link @NavCtrl("Customers")" asp-controller="Customers" asp-action="Index"><i class="bi bi-person-lines-fill"></i> Customers</a>
+                    <a class="zb-nav-link @NavCtrl("Orders")" asp-controller="Orders" asp-action="Index"><i class="bi bi-bag"></i> Orders</a>
+                    <a class="zb-nav-link @NavCtrl("Invoices")" asp-controller="Invoices" asp-action="Index"><i class="bi bi-receipt-cutoff"></i> Invoices</a>
+                    <a class="zb-nav-link @NavCtrl("Payments")" asp-controller="Payments" asp-action="Index"><i class="bi bi-cash-coin"></i> Payments</a>
+                    <a class="zb-nav-link @NavCtrl("Adjustments")" asp-controller="Adjustments" asp-action="Index"><i class="bi bi-sliders"></i> Adjustments</a>
+                }
+
+                @* ── Management ── *@
                 @if (isMainAdmin || isManager)
                 {
-                    <div class="zb-nav-label">Management</div>
+                    <div class="zb-nav-label"><i class="bi bi-bar-chart-line me-1"></i>Management</div>
                     @if (isMainAdmin)
                     {
                         <a class="zb-nav-link @Nav("Home","Dashboard")" asp-controller="Home" asp-action="Dashboard"><i class="bi bi-bar-chart-line"></i> Analytics Dashboard</a>
@@ -84,8 +99,12 @@
                     {
                         <a class="zb-nav-link @NavCtrl("Billing")" asp-controller="Billing" asp-action="Index"><i class="bi bi-credit-card"></i> Billing &amp; Plan</a>
                     }
+                }
 
-                    <div class="zb-nav-label">Venue Setup</div>
+                @* ── Venue Setup ── *@
+                @if (isMainAdmin || isManager)
+                {
+                    <div class="zb-nav-label"><i class="bi bi-grid-3x3-gap me-1"></i>Venue Setup</div>
                     <a class="zb-nav-link @NavCtrl("Spaces")" asp-controller="Spaces" asp-action="Index"><i class="bi bi-grid-3x3-gap"></i> Spaces</a>
                     <a class="zb-nav-link @NavCtrl("MenuItems")" asp-controller="MenuItems" asp-action="Index"><i class="bi bi-cup-straw"></i> Menu Items</a>
                     <a class="zb-nav-link @NavCtrl("Inventory")" asp-controller="Inventory" asp-action="Index"><i class="bi bi-boxes"></i> Inventory</a>
@@ -93,33 +112,15 @@
                     {
                         <a class="zb-nav-link @NavCtrl("Users")" asp-controller="Users" asp-action="Index"><i class="bi bi-person-badge"></i> Staff Members</a>
                     }
-
-                    @if (isMainAdmin)
-                    {
-                        <div class="zb-nav-label">Accounting</div>
-                        <a class="zb-nav-link @NavCtrl("ChartOfAccounts")" asp-controller="ChartOfAccounts" asp-action="Index"><i class="bi bi-journal-text"></i> Chart of Accounts</a>
-                        <a class="zb-nav-link @NavCtrl("JournalEntrys")" asp-controller="JournalEntrys" asp-action="Index"><i class="bi bi-journal-bookmark"></i> Journal Entries</a>
-                        <a class="zb-nav-link @NavCtrl("JournalEntryLines")" asp-controller="JournalEntryLines" asp-action="Index"><i class="bi bi-list-columns"></i> Journal Lines</a>
-                    }
                 }
 
-                @if (canUsePos || isStaff)
+                @* ── Accounting (MainAdmin only) ── *@
+                @if (isMainAdmin)
                 {
-                    <div class="zb-nav-label">Front Desk / POS</div>
-                    @if (canUsePos)
-                    {
-                        <a class="zb-nav-link @NavCtrl("Shifts")" asp-controller="Shifts" asp-action="Index"><i class="bi bi-shop"></i> Shift &amp; Cash Drawer</a>
-                        <a class="zb-nav-link @NavCtrl("POS")" asp-controller="POS" asp-action="Index"><i class="bi bi-display"></i> POS Dashboard</a>
-                    }
-                    <a class="zb-nav-link @NavCtrl("Bookings")" asp-controller="Bookings" asp-action="Index"><i class="bi bi-calendar-check"></i> Active Bookings</a>
-                    <a class="zb-nav-link @NavCtrl("Customers")" asp-controller="Customers" asp-action="Index"><i class="bi bi-person-lines-fill"></i> Customers</a>
-                    @if (canUsePos)
-                    {
-                        <a class="zb-nav-link @NavCtrl("Orders")" asp-controller="Orders" asp-action="Index"><i class="bi bi-bag"></i> Orders</a>
-                        <a class="zb-nav-link @NavCtrl("Invoices")" asp-controller="Invoices" asp-action="Index"><i class="bi bi-receipt-cutoff"></i> Invoices</a>
-                        <a class="zb-nav-link @NavCtrl("Payments")" asp-controller="Payments" asp-action="Index"><i class="bi bi-cash-coin"></i> Payments</a>
-                        <a class="zb-nav-link @NavCtrl("Adjustments")" asp-controller="Adjustments" asp-action="Index"><i class="bi bi-sliders"></i> Adjustments</a>
-                    }
+                    <div class="zb-nav-label"><i class="bi bi-journal-bookmark me-1"></i>Accounting</div>
+                    <a class="zb-nav-link @NavCtrl("ChartOfAccounts")" asp-controller="ChartOfAccounts" asp-action="Index"><i class="bi bi-journal-text"></i> Chart of Accounts</a>
+                    <a class="zb-nav-link @NavCtrl("JournalEntrys")" asp-controller="JournalEntrys" asp-action="Index"><i class="bi bi-journal-bookmark"></i> Journal Entries</a>
+                    <a class="zb-nav-link @NavCtrl("JournalEntryLines")" asp-controller="JournalEntryLines" asp-action="Index"><i class="bi bi-list-columns"></i> Journal Lines</a>
                 }
             </nav>
 
