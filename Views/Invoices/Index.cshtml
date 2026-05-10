@@ -4,10 +4,20 @@
 @{
     ViewData["Title"] = "Invoices";
     var today = PhilippineTime.Now.Date;
-    var totalAmt = Model.Sum(i => i.TotalAmount);
-    var paid = Model.Count(i => i.PaymentStatus == "Paid");
-    var unpaid = Model.Count(i => i.PaymentStatus != "Paid");
-    var overdue = Model.Count(i => i.PaymentStatus != "Paid" && PhilippineTime.ToDateTime(i.GeneratedDate).Date < today.AddDays(-3));
+    var totalAmt = (decimal)(ViewBag.TotalRevenue ?? 0m);
+    var paid = (int)(ViewBag.PaidCount ?? 0);
+    var unpaid = (int)(ViewBag.UnpaidCount ?? 0);
+    var overdue = (int)(ViewBag.OverdueCount ?? 0);
+    var search = ViewBag.Search as string;
+    var status = ViewBag.Status as string;
+    var fromDate = ViewBag.FromDate as string;
+    var toDate = ViewBag.ToDate as string;
+    var currentPage = (int)(ViewBag.CurrentPage ?? 1);
+    var totalPages = (int)(ViewBag.TotalPages ?? 1);
+    var totalCount = (int)(ViewBag.TotalCount ?? 0);
+    string StatusUrl(string? nextStatus) => Url.Action("Index", new { search, status = nextStatus, fromDate, toDate, page = 1 }) ?? "#";
+    string PageUrl(int nextPage) => Url.Action("Index", new { search, status, fromDate, toDate, page = nextPage }) ?? "#";
+    var paging = new ZoneBill_Lloren.Models.PagingInfo { CurrentPage = currentPage, TotalPages = totalPages, TotalCount = totalCount, UrlTemplate = PageUrl(0).Replace("page=0", "page=__PAGE__") };
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -15,9 +25,9 @@
         <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-receipt-cutoff me-2" style="color:var(--zb-secondary);"></i>Invoices</h4>
         <p class="text-muted small mb-0">Billing records for all completed sessions.</p>
     </div>
-    <a asp-action="Create" class="btn btn-sm fw-semibold" style="background:var(--zb-accent);color:#fff;border:none;">
-        <i class="bi bi-plus-lg me-1"></i> New Invoice
-    </a>
+    <span class="zb-badge" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+        <i class="bi bi-robot me-1"></i>Auto-generated from checkout
+    </span>
 </div>
 
 <div class="row g-3 mb-4">
@@ -47,16 +57,35 @@
     </div>
 </div>
 
-<!-- Status filter tabs -->
+<form method="get" class="zb-table-card p-3 mb-3">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-5">
+            <label class="form-label small" style="color:var(--zb-text-muted);">Search</label>
+            <input type="text" name="search" value="@search" class="form-control zb-form-input" placeholder="Invoice ID, booking ID, reference, status" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small" style="color:var(--zb-text-muted);">From</label>
+            <input type="date" name="fromDate" value="@fromDate" class="form-control zb-form-input" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small" style="color:var(--zb-text-muted);">To</label>
+            <input type="date" name="toDate" value="@toDate" class="form-control zb-form-input" />
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <input type="hidden" name="status" value="@status" />
+            <button type="submit" class="btn btn-sm fw-semibold flex-grow-1" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                <i class="bi bi-search me-1"></i>Apply
+            </button>
+            <a href="@Url.Action("Index")" class="btn btn-sm" style="background:rgba(255,255,255,0.06);color:var(--zb-text-muted);border:1px solid rgba(255,255,255,0.1);">Reset</a>
+        </div>
+    </div>
+</form>
+
 <div class="d-flex gap-2 mb-3">
-    <button type="button" class="inv-filter-btn zb-badge active-filter" data-filter="all"
-            style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(6,182,212,0.35);background:rgba(6,182,212,0.15);color:var(--zb-secondary);">All</button>
-    <button type="button" class="inv-filter-btn zb-badge" data-filter="Paid"
-            style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(34,197,94,0.35);background:transparent;color:#94a3b8;">Paid</button>
-    <button type="button" class="inv-filter-btn zb-badge" data-filter="Unpaid"
-            style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(249,115,22,0.35);background:transparent;color:#94a3b8;">Unpaid</button>
-    <button type="button" class="inv-filter-btn zb-badge" data-filter="overdue"
-            style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:#94a3b8;">Overdue</button>
+    <a href="@StatusUrl(null)" class="zb-badge text-decoration-none" style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(6,182,212,0.35);background:@(string.IsNullOrWhiteSpace(status) ? "rgba(6,182,212,0.15)" : "transparent");color:@(string.IsNullOrWhiteSpace(status) ? "var(--zb-secondary)" : "#94a3b8");">All</a>
+    <a href="@StatusUrl("Paid")" class="zb-badge text-decoration-none" style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(34,197,94,0.35);background:@(status == "Paid" ? "rgba(34,197,94,0.15)" : "transparent");color:@(status == "Paid" ? "#22c55e" : "#94a3b8");">Paid</a>
+    <a href="@StatusUrl("Unpaid")" class="zb-badge text-decoration-none" style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(249,115,22,0.35);background:@(status == "Unpaid" ? "rgba(249,115,22,0.15)" : "transparent");color:@(status == "Unpaid" ? "var(--zb-accent)" : "#94a3b8");">Unpaid</a>
+    <a href="@StatusUrl("overdue")" class="zb-badge text-decoration-none" style="cursor:pointer;padding:4px 14px;border-radius:20px;border:1px solid rgba(239,68,68,0.35);background:@(status == "overdue" ? "rgba(239,68,68,0.15)" : "transparent");color:@(status == "overdue" ? "#ef4444" : "#94a3b8");">Overdue</a>
 </div>
 
 <form asp-action="BulkMarkPaid" method="post" id="bulkPaidForm">
@@ -76,6 +105,7 @@
                 <thead>
                     <tr>
                         <th style="width:36px;"></th>
+                        <th>Invoice No</th>
                         <th>Business</th>
                         <th>Booking</th>
                         <th>Total</th>
@@ -85,7 +115,7 @@
                         <th></th>
                     </tr>
                 </thead>
-                <tbody data-paginate="5">
+                <tbody>
                     @foreach (var item in Model)
                     {
                         var statusClass = item.PaymentStatus == "Paid" ? "zb-badge-green" : "zb-badge-orange";
@@ -101,6 +131,7 @@
                                 }
                             </td>
                             <td class="fw-semibold" style="color:var(--zb-text);">@item.Business?.BusinessName</td>
+                            <td><span class="zb-mono" style="color:var(--zb-secondary);font-size:.78rem;">@(string.IsNullOrEmpty(item.InvoiceNumber) ? $"#{item.InvoiceId}" : item.InvoiceNumber)</span></td>
                             <td>@item.Booking?.BookingStatus</td>
                             <td class="fw-semibold" style="color:var(--zb-secondary);">@item.TotalAmount.ToString("C")</td>
                             <td>@item.TaxRateApplied.ToString("0.##")%</td>
@@ -118,7 +149,6 @@
                                         <a asp-action="Details" asp-route-id="@item.InvoiceId" class="zb-action-btn" title="Receive Payment" style="color:#22c55e;"><i class="bi bi-cash-coin"></i></a>
                                     }
                                     <a asp-action="Edit" asp-route-id="@item.InvoiceId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
-                                    <a asp-action="Delete" asp-route-id="@item.InvoiceId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
                                 </div>
                             </td>
                         </tr>
@@ -126,34 +156,13 @@
                 </tbody>
             </table>
         </div>
+        @await Html.PartialAsync("_Pagination", paging)
     </div>
 </form>
 
 @section Scripts {
 <script>
-// Status filter tabs
 (function () {
-    var allRows = Array.from(document.querySelectorAll('#bulkPaidForm tbody tr'));
-    var btns = document.querySelectorAll('.inv-filter-btn');
-    btns.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            btns.forEach(function (b) {
-                b.style.background = 'transparent';
-                b.style.color = '#94a3b8';
-            });
-            btn.style.color = 'var(--zb-secondary)';
-            btn.style.background = 'rgba(6,182,212,0.15)';
-            var f = btn.getAttribute('data-filter');
-            allRows.forEach(function (r) {
-                if (f === 'all') r.setAttribute('data-hidden-filter', '');
-                else if (f === 'overdue') r.setAttribute('data-hidden-filter', r.getAttribute('data-overdue') === 'true' ? '' : 'y');
-                else r.setAttribute('data-hidden-filter', r.getAttribute('data-status') === f ? '' : 'y');
-                r.style.display = r.getAttribute('data-hidden-filter') === 'y' ? 'none' : '';
-            });
-        });
-    });
-
-    // Bulk select / mark paid button visibility
     var selectAll = document.getElementById('selectAll');
     var bulkBtn = document.getElementById('bulkPaidBtn');
     function updateBulkBtn() {
@@ -162,12 +171,23 @@
         bulkBtn.textContent = '';
         bulkBtn.innerHTML = '<i class="bi bi-check2-all me-1"></i> Mark ' + checked + ' as Paid';
     }
-    selectAll.addEventListener('change', function () {
-        document.querySelectorAll('.inv-chk').forEach(function (c) { c.checked = selectAll.checked; });
-        updateBulkBtn();
-    });
+    if (selectAll) {
+        selectAll.addEventListener('change', function () {
+            document.querySelectorAll('.inv-chk').forEach(function (c) { c.checked = selectAll.checked; });
+            updateBulkBtn();
+        });
+    }
     document.querySelectorAll('.inv-chk').forEach(function (c) {
         c.addEventListener('change', updateBulkBtn);
+    });
+    document.getElementById('bulkPaidForm')?.addEventListener('submit', function (event) {
+        if (document.querySelectorAll('.inv-chk:checked').length === 0) {
+            event.preventDefault();
+            return;
+        }
+        if (!confirm('Create payment and journal records for the selected invoices?')) {
+            event.preventDefault();
+        }
     });
 })();
 </script>

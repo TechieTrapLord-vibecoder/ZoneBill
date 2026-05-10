@@ -2,108 +2,214 @@
 
 @{
     ViewData["Title"] = "Business Dashboard";
+    string RangeUrl(string preset) => Url.Action("Dashboard", new { range = preset, startDate = preset == "custom" ? Model.RangeStart.ToString("yyyy-MM-dd") : null, endDate = preset == "custom" ? Model.RangeEnd.ToString("yyyy-MM-dd") : null }) ?? "#";
 }
+
+<style>
+    .zb-dashboard-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        align-items: stretch;
+    }
+
+    @@media (max-width: 767.98px) {
+        .zb-dashboard-kpis {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 399.98px) {
+        .zb-dashboard-kpis {
+            grid-template-columns: repeat(1, 1fr);
+        }
+    }
+
+    .zb-dashboard-kpi {
+        border: 1px solid var(--zb-border);
+        background: linear-gradient(180deg, var(--zb-surface), var(--zb-surface-alt));
+        box-shadow: var(--zb-shadow);
+    }
+
+    .zb-dashboard-kpi--alert {
+        border-color: rgba(249, 115, 22, 0.28);
+    }
+
+    .zb-dashboard-filter-btn {
+        background: var(--zb-soft-accent);
+        color: var(--zb-secondary);
+        border: 1px solid color-mix(in srgb, var(--zb-secondary) 35%, var(--zb-border) 65%);
+    }
+
+    .zb-dashboard-filter-btn:hover {
+        background: var(--zb-hover);
+        color: var(--zb-secondary);
+        border-color: var(--zb-secondary);
+    }
+
+    .zb-dashboard-range-btn {
+        color: var(--zb-secondary);
+        border: 1px solid color-mix(in srgb, var(--zb-secondary) 28%, var(--zb-border) 72%);
+        font-size: .78rem;
+    }
+
+    .zb-dashboard-range-btn--active {
+        background: var(--zb-soft-accent);
+    }
+
+    .zb-dashboard-range-btn--idle {
+        background: color-mix(in srgb, var(--zb-soft-accent) 75%, transparent);
+    }
+
+    .zb-dashboard-warning {
+        background: rgba(249, 115, 22, 0.12);
+        border: 1px solid rgba(249, 115, 22, 0.25);
+        color: #9a3412;
+    }
+
+    .zb-dashboard-warning .btn {
+        background: rgba(249, 115, 22, 0.12);
+        color: #9a3412;
+        border: 1px solid rgba(249, 115, 22, 0.25);
+    }
+
+    .zb-dashboard-kpi .zb-kpi-value {
+        color: var(--zb-secondary);
+    }
+
+    .zb-dashboard-kpi--alert .zb-kpi-value {
+        color: var(--zb-accent);
+    }
+
+    .zb-dashboard-chart-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .zb-dashboard-chart-body {
+        flex: 1 1 auto;
+        min-height: 320px;
+    }
+
+    .zb-dashboard-chart-body canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    @@media (max-width: 991.98px) {
+        .zb-dashboard-chart-body {
+            min-height: 280px;
+        }
+    }
+</style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-speedometer2 me-2" style="color:var(--zb-secondary);"></i>Business Dashboard</h4>
-        <p class="text-muted small mb-0">7-day revenue pulse, top spaces, and top menu movers.</p>
+        <p class="text-muted small mb-0">Revenue pulse, top spaces, and top menu movers for your selected period.</p>
     </div>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-6 col-lg">
-        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
-            <div class="zb-kpi-label">Today Revenue</div>
-            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TodayRevenue.ToString("C")</div>
+<div class="zb-table-card p-3 mb-4">
+    <form method="get" class="row g-3 align-items-end">
+        <div class="col-md-3 col-lg-2">
+            <label for="dashboardStartDate" class="form-label small" style="color:var(--zb-text-muted);">Custom Start</label>
+            <input id="dashboardStartDate" type="date" name="startDate" value="@Model.RangeStart.ToString("yyyy-MM-dd")" class="form-control zb-form-input" />
         </div>
+        <div class="col-md-3 col-lg-2">
+            <label for="dashboardEndDate" class="form-label small" style="color:var(--zb-text-muted);">Custom End</label>
+            <input id="dashboardEndDate" type="date" name="endDate" value="@Model.RangeEnd.ToString("yyyy-MM-dd")" class="form-control zb-form-input" />
+        </div>
+        <div class="col-md-3 col-lg-2">
+            <input type="hidden" name="range" value="custom" />
+            <button type="submit" class="btn btn-sm fw-semibold w-100 zb-dashboard-filter-btn">Apply Custom</button>
+        </div>
+        <div class="col-lg-6">
+            <div class="small" style="color:var(--zb-text-muted);">Quick Ranges</div>
+            <div class="d-flex gap-2 mt-1 flex-wrap">
+                <a href="@RangeUrl("today")" class="btn btn-sm zb-dashboard-range-btn @(Model.RangePreset == "today" ? "zb-dashboard-range-btn--active" : "zb-dashboard-range-btn--idle")">Today</a>
+                <a href="@RangeUrl("7d")" class="btn btn-sm zb-dashboard-range-btn @(Model.RangePreset == "7d" ? "zb-dashboard-range-btn--active" : "zb-dashboard-range-btn--idle")">7 Days</a>
+                <a href="@RangeUrl("30d")" class="btn btn-sm zb-dashboard-range-btn @(Model.RangePreset == "30d" ? "zb-dashboard-range-btn--active" : "zb-dashboard-range-btn--idle")">30 Days</a>
+                <a href="@RangeUrl("mtd")" class="btn btn-sm zb-dashboard-range-btn @(Model.RangePreset == "mtd" ? "zb-dashboard-range-btn--active" : "zb-dashboard-range-btn--idle")">MTD</a>
+                <a href="@RangeUrl("ytd")" class="btn btn-sm zb-dashboard-range-btn @(Model.RangePreset == "ytd" ? "zb-dashboard-range-btn--active" : "zb-dashboard-range-btn--idle")">YTD</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="zb-dashboard-kpis gap-3 mb-4">
+    <div class="zb-kpi-card zb-dashboard-kpi">
+        <div class="zb-kpi-label">Today Revenue</div>
+        <div class="zb-kpi-value">@Model.TodayRevenue.ToString("C")</div>
     </div>
-    <div class="col-6 col-lg">
-        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
-            <div class="zb-kpi-label">Last 7 Days Revenue</div>
-            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.SevenDayRevenue.ToString("C")</div>
-        </div>
+    <div class="zb-kpi-card zb-dashboard-kpi">
+        <div class="zb-kpi-label">@Model.RangeLabel Revenue</div>
+        <div class="zb-kpi-value">@Model.RangeRevenue.ToString("C")</div>
     </div>
-    <div class="col-6 col-lg">
-        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
-            <div class="zb-kpi-label">Unpaid Invoices</div>
-            <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.UnpaidInvoices</div>
-        </div>
+    <div class="zb-kpi-card zb-dashboard-kpi">
+        <div class="zb-kpi-label">MTD Revenue</div>
+        <div class="zb-kpi-value">@Model.MonthToDateRevenue.ToString("C")</div>
     </div>
-    <div class="col-6 col-lg">
-        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
-            <div class="zb-kpi-label">Low Stock Alerts</div>
-            <div class="zb-kpi-value" style="color:#ef4444;">@Model.LowStockCount</div>
-        </div>
+    <div class="zb-kpi-card zb-dashboard-kpi">
+        <div class="zb-kpi-label">YTD Revenue</div>
+        <div class="zb-kpi-value">@Model.YearToDateRevenue.ToString("C")</div>
     </div>
-    <div class="col-6 col-lg">
-        <div class="zb-kpi-card" style="border-color:rgba(168,85,247,0.4);">
-            <div class="zb-kpi-label">Active Shifts</div>
-            <div class="zb-kpi-value" style="color:#a855f7;">@Model.ActiveShiftCount</div>
-        </div>
+    <div class="zb-kpi-card zb-dashboard-kpi zb-dashboard-kpi--alert">
+        <div class="zb-kpi-label">Low Stock Alerts</div>
+        <div class="zb-kpi-value">@Model.LowStockCount</div>
     </div>
-    <div class="col-6 col-lg">
-        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
-            <div class="zb-kpi-label">Today's Bookings</div>
-            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TodayBookings</div>
-        </div>
+    <div class="zb-kpi-card zb-dashboard-kpi">
+        <div class="zb-kpi-label">Active Shifts</div>
+        <div class="zb-kpi-value">@Model.ActiveShiftCount</div>
     </div>
-    <div class="col-6 col-lg">
-        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
-            <div class="zb-kpi-label">Active Sessions</div>
-            <div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveBookings</div>
-        </div>
+    <div class="zb-kpi-card zb-dashboard-kpi">
+        <div class="zb-kpi-label">Today's Bookings</div>
+        <div class="zb-kpi-value">@Model.TodayBookings</div>
+    </div>
+    <div class="zb-kpi-card zb-dashboard-kpi">
+        <div class="zb-kpi-label">Active Sessions</div>
+        <div class="zb-kpi-value">@Model.ActiveBookings</div>
     </div>
 </div>
 
 @if (Model.LowStockItems.Any())
 {
-    <div class="d-flex justify-content-between align-items-center mb-4 px-3 py-2 rounded" role="alert" style="background:rgba(249,115,22,0.12);border:1px solid rgba(249,115,22,0.25);">
-        <div style="color:#fdba74;">
+    <div class="d-flex justify-content-between align-items-center mb-4 px-3 py-2 rounded zb-dashboard-warning" role="alert">
+        <div>
             <strong><i class="bi bi-exclamation-triangle me-1"></i>Low stock warning:</strong> @string.Join(", ", Model.LowStockItems)
         </div>
-        <a asp-controller="Inventory" asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">Open Inventory</a>
+        <a asp-controller="Inventory" asp-action="Index" class="btn btn-sm fw-semibold">Open Inventory</a>
     </div>
 }
 
 <div class="row g-4">
     <div class="col-lg-12">
-        <div class="zb-table-card">
+        <div class="zb-table-card zb-dashboard-chart-card">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
-                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-graph-up me-2"></i>Daily Revenue (Last 7 Days)</h6>
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-graph-up me-2"></i>Daily Revenue (@Model.RangeLabel)</h6>
             </div>
-            <div class="p-4">
-                <canvas id="dailyRevenueChart" height="100"></canvas>
+            <div class="p-4 zb-dashboard-chart-body">
+                <canvas id="dailyRevenueChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="zb-table-card">
+        <div class="zb-table-card zb-dashboard-chart-card">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
                 <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-bar-chart-line me-2"></i>Top Spaces By Revenue</h6>
             </div>
-            <div class="p-4">
-                <canvas id="spaceRevenueChart" height="160"></canvas>
+            <div class="p-4 zb-dashboard-chart-body">
+                <canvas id="spaceRevenueChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-lg-6">
-        <div class="zb-table-card">
+        <div class="zb-table-card zb-dashboard-chart-card">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
-                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-pie-chart me-2"></i>Top Menu Items By Quantity</h6>
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-bar-chart me-2"></i>Top Menu Items By Quantity</h6>
             </div>
-            <div class="p-4">
-                <canvas id="menuQtyChart" height="160"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="zb-table-card">
-            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
-                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-credit-card me-2"></i>Payment Methods (Last 7 Days)</h6>
-            </div>
-            <div class="p-4">
-                <canvas id="payMethodChart" height="160"></canvas>
+            <div class="p-4 zb-dashboard-chart-body">
+                <canvas id="menuQtyChart"></canvas>
             </div>
         </div>
     </div>
@@ -112,8 +218,14 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        Chart.defaults.color = '#94a3b8';
-        Chart.defaults.borderColor = 'rgba(51,65,85,0.5)';
+        const rootStyle = getComputedStyle(document.documentElement);
+        const chartText = rootStyle.getPropertyValue('--zb-text-muted').trim() || '#64748b';
+        const chartBorder = rootStyle.getPropertyValue('--zb-border').trim() || 'rgba(148,163,184,0.2)';
+        const chartSecondary = rootStyle.getPropertyValue('--zb-secondary').trim() || '#06b6d4';
+        const chartSoftAccent = rootStyle.getPropertyValue('--zb-soft-accent').trim() || 'rgba(6,182,212,0.12)';
+
+        Chart.defaults.color = chartText;
+        Chart.defaults.borderColor = chartBorder;
 
         const dailyLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DailyLabels));
         const dailySeries = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DailyRevenueSeries));
@@ -129,12 +241,15 @@
                 datasets: [{
                     label: 'Revenue',
                     data: dailySeries,
-                    borderColor: '#06b6d4',
-                    backgroundColor: 'rgba(6,182,212,0.15)',
+                    borderColor: chartSecondary,
+                    backgroundColor: chartSoftAccent,
                     tension: 0.35,
                     fill: true,
-                    pointBackgroundColor: '#06b6d4'
+                    pointBackgroundColor: chartSecondary
                 }]
+            },
+            options: {
+                maintainAspectRatio: false
             }
         });
 
@@ -145,42 +260,41 @@
                 datasets: [{
                     label: 'Revenue',
                     data: spaceSeries,
-                    backgroundColor: '#06b6d4',
+                    backgroundColor: chartSecondary,
                     borderRadius: 4
                 }]
             },
             options: {
-                indexAxis: 'y'
+                indexAxis: 'y',
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
             }
         });
 
         new Chart(document.getElementById('menuQtyChart'), {
-            type: 'doughnut',
+            type: 'bar',
             data: {
                 labels: menuLabels,
                 datasets: [{
                     data: menuSeries,
-                    backgroundColor: ['#06b6d4', '#f97316', '#a855f7', '#22c55e', '#eab308'],
-                    borderColor: '#1e293b',
-                    borderWidth: 2
-                }]
-            }
-        });
-
-        const payMethodLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PaymentMethodLabels));
-        const payMethodAmounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PaymentMethodAmounts));
-        new Chart(document.getElementById('payMethodChart'), {
-            type: 'doughnut',
-            data: {
-                labels: payMethodLabels,
-                datasets: [{
-                    data: payMethodAmounts,
-                    backgroundColor: ['#06b6d4', '#22c55e', '#f97316', '#a855f7', '#eab308'],
-                    borderColor: '#1e293b',
-                    borderWidth: 2
+                    label: 'Qty Sold',
+                    backgroundColor: chartSecondary,
+                    borderColor: chartSecondary,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    maxBarThickness: 34
                 }]
             },
-            options: { plugins: { legend: { position: 'bottom' } } }
+            options: {
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
         });
     </script>
 }

@@ -22,16 +22,25 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: ChartOfAccounts
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
 
-            var chart = _context.ChartOfAccounts
+            const int pageSize = 10;
+            var query = _context.ChartOfAccounts
                 .Include(c => c.Business)
                 .Where(c => c.BusinessId == businessId.Value);
-
-            return View(await chart.ToListAsync());
+            var totalCount = await query.CountAsync();
+            var activeCount = await query.CountAsync(c => c.IsActive);
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.ActiveCount = activeCount;
+            return View(await query.OrderBy(c => c.AccountType).ThenBy(c => c.AccountName)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync());
         }
 
         // GET: ChartOfAccounts/Details/5
@@ -146,43 +155,32 @@ namespace ZoneBill_Lloren.Controllers
             return View(chartOfAccount);
         }
 
-        // GET: ChartOfAccounts/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: ChartOfAccounts/Delete — Redirects to Archive
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var chartOfAccount = await _context.ChartOfAccounts
-                .Include(c => c.Business)
-                .FirstOrDefaultAsync(m => m.AccountId == id && m.BusinessId == businessId.Value);
-            if (chartOfAccount == null)
-            {
-                return NotFound();
-            }
-
-            return View(chartOfAccount);
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: ChartOfAccounts/Delete/5
+        // POST: ChartOfAccounts/Delete — Redirects to Archive
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
+        {
+            return RedirectToAction(nameof(Index));
+        }
+
+        // POST: ChartOfAccounts/Archive/5 — Toggle IsActive
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Archive(int id)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
-
-            var chartOfAccount = await _context.ChartOfAccounts.FirstOrDefaultAsync(c => c.AccountId == id && c.BusinessId == businessId.Value);
-            if (chartOfAccount != null)
-            {
-                _context.ChartOfAccounts.Remove(chartOfAccount);
-            }
-
+            var account = await _context.ChartOfAccounts.FirstOrDefaultAsync(c => c.AccountId == id && c.BusinessId == businessId.Value);
+            if (account == null) return NotFound();
+            account.IsActive = !account.IsActive;
             await _context.SaveChangesAsync();
+            TempData["Success"] = account.IsActive ? $"Account \u2018{account.AccountName}\u2019 has been restored." : $"Account \u2018{account.AccountName}\u2019 has been archived.";
             return RedirectToAction(nameof(Index));
         }
 

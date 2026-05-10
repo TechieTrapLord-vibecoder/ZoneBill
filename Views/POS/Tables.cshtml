@@ -12,15 +12,6 @@
     <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back To POS</a>
 </div>
 
-@if (TempData["Error"] != null)
-{
-    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;">@TempData["Error"]</div>
-}
-@if (TempData["Success"] != null)
-{
-    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;">@TempData["Success"]</div>
-}
-
 @foreach (var floor in Model.Floors)
 {
     <div class="zb-table-card mb-4">
@@ -53,7 +44,7 @@
                                         </div>
                                     }
                                     <p class="mb-1 small" style="color:var(--zb-text);">Booking #@space.ActiveBookingId</p>
-                                    <p class="mb-3 small" style="color:var(--zb-text-muted);">Elapsed: <strong class="pos-timer" style="color:var(--zb-secondary);" data-start-time="@space.ActiveStartTime?.ToString("o")">00:00:00</strong></p>
+                                    <p class="mb-3 small" style="color:var(--zb-text-muted);">Elapsed: <strong class="pos-timer" style="color:var(--zb-secondary);" data-start-time="@(space.ActiveStartTime.HasValue ? new DateTimeOffset(space.ActiveStartTime.Value, TimeSpan.FromHours(8)).ToUnixTimeMilliseconds().ToString() : "")">00:00:00</strong></p>
 
                                     <form asp-action="TransferTable" method="post" class="row g-2 mb-3">
                                         @Html.AntiForgeryToken()
@@ -76,12 +67,12 @@
                                     <div class="d-grid gap-2">
                                         <button type="button" class="btn btn-sm fw-semibold"
                                                 style="background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.3);"
-                                                onclick="openCheckoutModal({ bookingId:@space.ActiveBookingId, spaceName:'@space.SpaceName.Replace("'","\\'")' , refCode:'@(space.ReferenceCode ?? "")', startTime:'@space.ActiveStartTime?.ToString("o")', hourlyRate:@space.LockedHourlyRate, menuTotal:@space.MenuTotal, taxPct:@space.TaxRatePercentage, orderCount:@space.OrderItemCount, mode:'split' })">
+                                                onclick="openCheckoutModal({ bookingId:@space.ActiveBookingId, spaceName:'@space.SpaceName.Replace("'","\\'")' , refCode:'@(space.ReferenceCode ?? "")', startTime:@(space.ActiveStartTime.HasValue ? new DateTimeOffset(space.ActiveStartTime.Value, TimeSpan.FromHours(8)).ToUnixTimeMilliseconds().ToString() : "0"), hourlyRate:@space.LockedHourlyRate, menuTotal:@space.MenuTotal, taxPct:@space.TaxRatePercentage, orderCount:@space.OrderItemCount, mode:'split' })">
                                             <i class="bi bi-scissors me-1"></i>Split Checkout
                                         </button>
                                         <button type="button" class="btn btn-sm fw-semibold"
                                                 style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);"
-                                                onclick="openCheckoutModal({ bookingId:@space.ActiveBookingId, spaceName:'@space.SpaceName.Replace("'","\\'")' , refCode:'@(space.ReferenceCode ?? "")', startTime:'@space.ActiveStartTime?.ToString("o")', hourlyRate:@space.LockedHourlyRate, menuTotal:@space.MenuTotal, taxPct:@space.TaxRatePercentage, orderCount:@space.OrderItemCount, mode:'regular' })">
+                                                onclick="openCheckoutModal({ bookingId:@space.ActiveBookingId, spaceName:'@space.SpaceName.Replace("'","\\'")' , refCode:'@(space.ReferenceCode ?? "")', startTime:@(space.ActiveStartTime.HasValue ? new DateTimeOffset(space.ActiveStartTime.Value, TimeSpan.FromHours(8)).ToUnixTimeMilliseconds().ToString() : "0"), hourlyRate:@space.LockedHourlyRate, menuTotal:@space.MenuTotal, taxPct:@space.TaxRatePercentage, orderCount:@space.OrderItemCount, mode:'regular' })">
                                             <i class="bi bi-box-arrow-right me-1"></i>Checkout
                                         </button>
                                     </div>
@@ -236,7 +227,7 @@
 
         function recalcBill() {
             var d = _coData;
-            var startMs = new Date(d.startTime).getTime();
+            var startMs = new Date(+d.startTime).getTime(); // epoch ms — safe regardless of server timezone
             var elapsed = Math.max(0.01, (Date.now() - startMs) / 3600000);
             var timeCharge = Math.round(elapsed * d.hourlyRate * 100) / 100;
             var menuTotal = d.menuTotal;

@@ -1,7 +1,14 @@
 @model ZoneBill_Lloren.Models.Order
+@using ZoneBill_Lloren.Helpers
 
 @{
     ViewData["Title"] = "Order Details";
+    var lines = ViewBag.OrderLines as IEnumerable<ZoneBill_Lloren.Models.OrderDetail>
+        ?? Enumerable.Empty<ZoneBill_Lloren.Models.OrderDetail>();
+    var menuTotal = (decimal)(ViewBag.MenuTotal ?? 0m);
+    var totalQty = (int)(ViewBag.TotalQty ?? 0);
+    var lineCount = (int)(ViewBag.LineCount ?? 0);
+    var source = string.IsNullOrWhiteSpace(Model.OrderSource) ? "POS" : Model.OrderSource;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -19,13 +26,100 @@
             <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.Business.BusinessName)</dd>
 
             <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Booking)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.Booking.BookingStatus)</dd>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">
+                <span class="zb-mono">#@Model.BookingId</span>
+                <span class="mx-2" style="color:var(--zb-text-muted);">|</span>
+                <span>@Model.Booking?.ReferenceCode</span>
+                <span class="mx-2" style="color:var(--zb-text-muted);">|</span>
+                <span>@Html.DisplayFor(model => model.Booking.BookingStatus)</span>
+            </dd>
+
+            <dt class="col-sm-3 zb-form-label py-2">Source</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">
+                @if (source == "Portal")
+                {
+                    <span class="zb-badge" style="background:rgba(6,182,212,0.18);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.35);">Portal</span>
+                }
+                else
+                {
+                    <span class="zb-badge" style="background:rgba(249,115,22,0.16);color:#fb923c;border:1px solid rgba(249,115,22,0.35);">POS</span>
+                }
+            </dd>
 
             <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Cashier)</dt>
             <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.Cashier.EmailAddress)</dd>
 
             <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.OrderTime)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.OrderTime)</dd>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@PhilippineTime.ToDateTime(Model.OrderTime).ToString("MMM d, yyyy h:mm tt")</dd>
+        </dl>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Line Items</div>
+            <div class="zb-kpi-value">@lineCount</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Qty Ordered</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@totalQty</div>
+        </div>
+    </div>
+    <div class="col-12 col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+            <div class="zb-kpi-label">Menu Total</div>
+            <div class="zb-kpi-value" style="color:var(--zb-accent);">₱@menuTotal.ToString("N2")</div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card">
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th class="text-center">Qty</th>
+                    <th class="text-end">Unit Price</th>
+                    <th class="text-end">Subtotal</th>
+                    <th>Served</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!lines.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center py-4" style="color:var(--zb-text-muted);">No order lines found.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var line in lines)
+                    {
+                        var subtotal = line.Quantity * line.LockedUnitPrice;
+                        <tr>
+                            <td class="fw-semibold" style="color:var(--zb-text);">@line.MenuItem?.ItemName</td>
+                            <td class="text-center">@line.Quantity</td>
+                            <td class="text-end zb-mono">₱@line.LockedUnitPrice.ToString("N2")</td>
+                            <td class="text-end zb-mono">₱@subtotal.ToString("N2")</td>
+                            <td>
+                                @if (line.IsServed)
+                                {
+                                    <span class="zb-badge" style="background:rgba(34,197,94,0.16);color:#86efac;border:1px solid rgba(34,197,94,0.35);">Served</span>
+                                }
+                                else
+                                {
+                                    <span class="zb-badge" style="background:rgba(239,68,68,0.16);color:#fca5a5;border:1px solid rgba(239,68,68,0.35);">Pending</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
         </dl>
     </div>
 </div>

@@ -1,0 +1,346 @@
+@model ZoneBill_Lloren.Models.PurchaseOrderDetailsViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = $"Purchase Order {Model.PurchaseOrderNumber}";
+
+    var statusBadgeClass = Model.Status switch
+    {
+        "Draft" => "zb-badge-orange",
+        "Ordered" => "zb-badge-cyan",
+        "PartiallyReceived" => "zb-badge-red",
+        "Received" => "zb-badge-green",
+        "Closed" => "zb-badge-yellow",
+        "Cancelled" => "zb-badge-purple",
+        _ => "zb-badge"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+        <a asp-action="Index" class="text-decoration-none small" style="color:var(--zb-text-muted);">
+            <i class="bi bi-arrow-left me-1"></i>Back to Inventory
+        </a>
+        <h4 class="fw-bold mt-2 mb-1" style="color:var(--zb-text);">Purchase Order @Model.PurchaseOrderNumber</h4>
+        <div class="small" style="color:var(--zb-text-muted);">
+            Supplier: <span class="fw-semibold" style="color:var(--zb-text);">@Model.SupplierName</span>
+            • Created @PhilippineTime.ToDateTime(Model.CreatedAt).ToString("MMM d, yyyy h:mm tt") (PH)
+        </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <span class="zb-badge @statusBadgeClass">@Model.Status</span>
+        <a asp-action="PrintablePurchaseOrder" asp-route-id="@Model.PurchaseOrderId" target="_blank" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
+            <i class="bi bi-printer me-1"></i>Print / Export
+        </a>
+        @if (Model.CanMarkOrdered)
+        {
+            <form asp-action="MarkPurchaseOrderOrdered" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="PurchaseOrderId" value="@Model.PurchaseOrderId" />
+                <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                    <i class="bi bi-send-check me-1"></i>Mark Ordered
+                </button>
+            </form>
+        }
+        @if (Model.CanReceive)
+        {
+            <a href="#partial-receive" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.14);color:#22c55e;border:1px solid rgba(34,197,94,0.32);">
+                <i class="bi bi-box-seam me-1"></i>Receive Stock
+            </a>
+        }
+        @if (Model.CanClose)
+        {
+            <form asp-action="ClosePurchaseOrder" method="post" class="d-inline" onsubmit="return confirm('Close this purchase order with outstanding items still unreceived?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="PurchaseOrderId" value="@Model.PurchaseOrderId" />
+                <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
+                    <i class="bi bi-archive me-1"></i>Close PO
+                </button>
+            </form>
+        }
+        @if (Model.CanCancel)
+        {
+            <form asp-action="CancelPurchaseOrder" method="post" class="d-inline" onsubmit="return confirm('Cancel this purchase order? This should only be used before any stock has been received.');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="PurchaseOrderId" value="@Model.PurchaseOrderId" />
+                <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.14);color:#ef4444;border:1px solid rgba(239,68,68,0.32);">
+                    <i class="bi bi-x-circle me-1"></i>Cancel PO
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Supplier</div>
+            <div class="fw-semibold" style="color:var(--zb-text);font-size:1.05rem;">@Model.SupplierName</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Items</div>
+            <div class="zb-kpi-value">@Model.Lines.Count</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Units</div>
+            <div class="zb-kpi-value">@Model.TotalUnits</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Received Units</div>
+            <div class="zb-kpi-value">@Model.TotalReceivedUnits</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Estimated Cost</div>
+            <div class="zb-kpi-value">@Model.TotalCost.ToString("C")</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <div>
+                        <h6 class="fw-bold mb-1" style="color:var(--zb-secondary);"><i class="bi bi-list-check me-2"></i>Purchase Order Lines</h6>
+                        <div class="small" style="color:var(--zb-text-muted);">
+                            @if (Model.CanEditDraft)
+                            {
+                                <text>Update quantities and unit costs before sending this order. Set quantity to 0 to remove a line.</text>
+                            }
+                            else
+                            {
+                                <text>This order is locked because it is no longer in draft status.</text>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @if (Model.CanReceive)
+            {
+                <form asp-action="ReceivePurchaseOrder" method="post" id="partial-receive" class="border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PurchaseOrderId" value="@Model.PurchaseOrderId" />
+                    <div class="p-4">
+                        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap mb-3">
+                            <div>
+                                <div class="fw-semibold" style="color:var(--zb-text);">Partial Receiving</div>
+                                <div class="small" style="color:var(--zb-text-muted);">Enter only what arrived today. Remaining units stay outstanding on this PO.</div>
+                            </div>
+                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.14);color:#22c55e;border:1px solid rgba(34,197,94,0.32);">
+                                <i class="bi bi-box-seam me-1"></i>Post Receipt
+                            </button>
+                        </div>
+                        <div class="mb-3">
+                            <label for="receiptNotes" class="form-label small" style="color:var(--zb-text-muted);">Receipt Notes</label>
+                            <input id="receiptNotes" type="text" name="Notes" class="form-control zb-form-input" maxlength="255" placeholder="Optional note for this receiving batch" />
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table zb-table mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Ordered</th>
+                                        <th>Received</th>
+                                        <th>Outstanding</th>
+                                        <th>Receive Now</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var line in Model.Lines)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <input type="hidden" name="PurchaseOrderLineIds" value="@line.PurchaseOrderLineId" />
+                                                <div class="fw-semibold" style="color:var(--zb-text);">@line.ItemName</div>
+                                            </td>
+                                            <td>@line.Quantity</td>
+                                            <td>@line.ReceivedQuantity</td>
+                                            <td>@line.OutstandingQuantity</td>
+                                            <td style="width:160px;">
+                                                <input class="form-control form-control-sm zb-form-input" type="number" name="ReceiveQuantities" value="0" min="0" max="@line.OutstandingQuantity" />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </form>
+            }
+            @if (Model.CanEditDraft)
+            {
+                <form asp-action="UpdatePurchaseOrderDraft" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="PurchaseOrderId" value="@Model.PurchaseOrderId" />
+                    <div class="p-4 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                        <label for="poNotes" class="form-label small" style="color:var(--zb-text-muted);">Notes</label>
+                        <textarea id="poNotes" name="Notes" rows="2" class="form-control zb-form-input">@Model.Notes</textarea>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table zb-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Item</th>
+                                    <th>Current Stock</th>
+                                    <th>Quantity</th>
+                                    <th>Received</th>
+                                    <th>Outstanding</th>
+                                    <th>Unit Cost</th>
+                                    <th>Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var line in Model.Lines)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input type="hidden" name="PurchaseOrderLineIds" value="@line.PurchaseOrderLineId" />
+                                            <div class="fw-semibold" style="color:var(--zb-text);">@line.ItemName</div>
+                                            <div class="small" style="color:var(--zb-text-muted);">Item ID: @line.ItemId</div>
+                                        </td>
+                                        <td>@line.CurrentStock</td>
+                                        <td style="width:140px;">
+                                            <input class="form-control form-control-sm zb-form-input" type="number" name="Quantities" value="@line.Quantity" min="0" max="100000" />
+                                        </td>
+                                        <td>@line.ReceivedQuantity</td>
+                                        <td>@line.OutstandingQuantity</td>
+                                        <td style="width:160px;">
+                                            <input class="form-control form-control-sm zb-form-input" type="number" name="UnitCosts" value="@line.UnitCost" min="0" max="1000000" step="0.01" />
+                                        </td>
+                                        <td>@line.LineTotal.ToString("C")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="px-4 py-3 border-top d-flex justify-content-end" style="border-color:rgba(6,182,212,0.15)!important;">
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
+                            <i class="bi bi-save me-1"></i>Save Draft Changes
+                        </button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="p-4 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <div class="small mb-1" style="color:var(--zb-text-muted);">Notes</div>
+                    <div style="color:var(--zb-text);">@(string.IsNullOrWhiteSpace(Model.Notes) ? "No notes recorded." : Model.Notes)</div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table zb-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Current Stock</th>
+                                <th>Quantity</th>
+                                <th>Received</th>
+                                <th>Outstanding</th>
+                                <th>Unit Cost</th>
+                                <th>Line Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in Model.Lines)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold" style="color:var(--zb-text);">@line.ItemName</div>
+                                        <div class="small" style="color:var(--zb-text-muted);">Item ID: @line.ItemId</div>
+                                    </td>
+                                    <td>@line.CurrentStock</td>
+                                    <td>@line.Quantity</td>
+                                    <td>@line.ReceivedQuantity</td>
+                                    <td>@line.OutstandingQuantity</td>
+                                    <td>@line.UnitCost.ToString("C")</td>
+                                    <td>@line.LineTotal.ToString("C")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-1" style="color:var(--zb-secondary);"><i class="bi bi-truck me-2"></i>Supplier Snapshot</h6>
+            </div>
+            <div class="p-4">
+                <div class="small mb-1" style="color:var(--zb-text-muted);">Supplier</div>
+                <div class="fw-semibold mb-3">
+                    <a asp-action="SupplierDetails" asp-route-id="@Model.SupplierId" class="text-decoration-none" style="color:var(--zb-text);">@Model.SupplierName</a>
+                </div>
+
+                <div class="small mb-1" style="color:var(--zb-text-muted);">Contact</div>
+                <div class="mb-3" style="color:var(--zb-text);">@(string.IsNullOrWhiteSpace(Model.ContactPerson) ? "Not set" : Model.ContactPerson)</div>
+
+                <div class="small mb-1" style="color:var(--zb-text-muted);">Email</div>
+                <div class="mb-3" style="color:var(--zb-text);">@(string.IsNullOrWhiteSpace(Model.EmailAddress) ? "Not set" : Model.EmailAddress)</div>
+
+                <div class="small mb-1" style="color:var(--zb-text-muted);">Phone</div>
+                <div class="mb-3" style="color:var(--zb-text);">@(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "Not set" : Model.PhoneNumber)</div>
+
+                <div class="small mb-1" style="color:var(--zb-text-muted);">Expected Delivery</div>
+                <div style="color:var(--zb-text);">@(Model.ExpectedDeliveryDate.HasValue ? PhilippineTime.ToDateTime(Model.ExpectedDeliveryDate.Value).ToString("MMM d, yyyy") : "Not scheduled")</div>
+
+                <div class="small mt-3 mb-1" style="color:var(--zb-text-muted);">Ordered At</div>
+                <div style="color:var(--zb-text);">@(Model.OrderedAt.HasValue ? PhilippineTime.ToDateTime(Model.OrderedAt.Value).ToString("MMM d, yyyy h:mm tt") : "Not ordered yet")</div>
+
+                <div class="small mt-3 mb-1" style="color:var(--zb-text-muted);">Received At</div>
+                <div style="color:var(--zb-text);">@(Model.ReceivedAt.HasValue ? PhilippineTime.ToDateTime(Model.ReceivedAt.Value).ToString("MMM d, yyyy h:mm tt") : "Not fully received yet")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-clock-history me-2"></i>Receiving History</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Received (PH)</th>
+                    <th>Item</th>
+                    <th>Batch Qty</th>
+                    <th>Received Total</th>
+                    <th>Stock Change</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.ReceiptHistory.Any())
+                {
+                    @foreach (var receipt in Model.ReceiptHistory)
+                    {
+                        <tr>
+                            <td><span class="zb-mono">@PhilippineTime.ToDateTime(receipt.ReceivedAt).ToString("MMM d, yyyy h:mm tt")</span></td>
+                            <td>@receipt.ItemName</td>
+                            <td>@receipt.QuantityReceived</td>
+                            <td>@receipt.PreviousReceivedQuantity -> @receipt.NewReceivedQuantity</td>
+                            <td>@receipt.PreviousStock -> @receipt.NewStock</td>
+                            <td>@(string.IsNullOrWhiteSpace(receipt.Notes) ? "—" : receipt.Notes)</td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-3" style="color:var(--zb-text-muted);">No receiving history yet for this purchase order.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

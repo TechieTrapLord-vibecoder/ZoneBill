@@ -1,0 +1,45 @@
+@model ZoneBill_Lloren.Models.PagingInfo
+@{
+    int startP = Math.Max(1, Model.CurrentPage - 2);
+    int endP   = Math.Min(Model.TotalPages, Model.CurrentPage + 2);
+    string PageUrl(int p) => Model.UrlTemplate.Replace("__PAGE__", p.ToString());
+    const string btnBase   = "background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);";
+    const string btnActive = "background:var(--zb-secondary);color:#0F172A;font-weight:600;border:none;cursor:default;";
+}
+<div class="px-4 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2"
+     style="border-color:rgba(6,182,212,0.15)!important;">
+    <span class="small" style="color:var(--zb-text-muted);">
+        Page @Model.CurrentPage of @Model.TotalPages &nbsp;&middot;&nbsp; @Model.TotalCount.ToString("N0") records
+    </span>
+    <div class="d-flex gap-1 align-items-center">
+        @if (Model.CurrentPage > 1)
+        {
+            <a href="@PageUrl(1)" class="btn btn-sm px-2" title="First" style="@btnBase">«</a>
+            <a href="@PageUrl(Model.CurrentPage - 1)" class="btn btn-sm px-2" style="@btnBase">‹</a>
+        }
+        @if (startP > 1)
+        {
+            <span class="px-1" style="color:var(--zb-text-muted);">…</span>
+        }
+        @for (int p = startP; p <= endP; p++)
+        {
+            if (p == Model.CurrentPage)
+            {
+                <span class="btn btn-sm px-3" style="@btnActive">@p</span>
+            }
+            else
+            {
+                <a href="@PageUrl(p)" class="btn btn-sm px-3" style="@btnBase">@p</a>
+            }
+        }
+        @if (endP < Model.TotalPages)
+        {
+            <span class="px-1" style="color:var(--zb-text-muted);">…</span>
+        }
+        @if (Model.CurrentPage < Model.TotalPages)
+        {
+            <a href="@PageUrl(Model.CurrentPage + 1)" class="btn btn-sm px-2" style="@btnBase">›</a>
+            <a href="@PageUrl(Model.TotalPages)" class="btn btn-sm px-2" title="Last" style="@btnBase">»</a>
+        }
+    </div>
+</div>

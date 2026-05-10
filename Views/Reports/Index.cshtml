@@ -5,6 +5,7 @@
     var today = ZoneBill_Lloren.Helpers.PhilippineTime.Now.Date;
     var sevenDaysAgo = today.AddDays(-6);
     var thirtyDaysAgo = today.AddDays(-29);
+    var monthStart = new DateTime(today.Year, today.Month, 1);
 }
 
 <style>
@@ -16,9 +17,17 @@
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
     <div>
         <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-file-earmark-bar-graph me-2" style="color:var(--zb-secondary);"></i>Financial Reports</h4>
-        <p class="text-muted small mb-0">Track sales, COGS, gross profit, item mix, and drawer variance.</p>
+        <p class="text-muted small mb-0">Track sales, occupancy, staff performance, item mix, and drawer variance.</p>
     </div>
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="IncomeStatement"
+           class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);"><i class="bi bi-graph-up-arrow me-1"></i>Income Statement</a>
+        <a asp-action="BalanceSheet"
+           class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-bank me-1"></i>Balance Sheet</a>
+        <a asp-action="CashFlow"
+           class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3);"><i class="bi bi-currency-exchange me-1"></i>Cash Flow</a>
+        <a asp-action="TrialBalance"
+           class="btn btn-sm fw-semibold" style="background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);"><i class="bi bi-calculator me-1"></i>Trial Balance</a>
         <a asp-action="ExportCsv"
            asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
            asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
@@ -76,6 +85,7 @@
                     <a asp-action="Index" asp-route-startDate="@today.ToString("yyyy-MM-dd")" asp-route-endDate="@today.ToString("yyyy-MM-dd")" asp-route-cashierId="@Model.SelectedCashierId" asp-route-paymentMethod="@Model.SelectedPaymentMethod" class="btn btn-sm" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">Today</a>
                     <a asp-action="Index" asp-route-startDate="@sevenDaysAgo.ToString("yyyy-MM-dd")" asp-route-endDate="@today.ToString("yyyy-MM-dd")" asp-route-cashierId="@Model.SelectedCashierId" asp-route-paymentMethod="@Model.SelectedPaymentMethod" class="btn btn-sm" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">7 Days</a>
                     <a asp-action="Index" asp-route-startDate="@thirtyDaysAgo.ToString("yyyy-MM-dd")" asp-route-endDate="@today.ToString("yyyy-MM-dd")" asp-route-cashierId="@Model.SelectedCashierId" asp-route-paymentMethod="@Model.SelectedPaymentMethod" class="btn btn-sm" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">30 Days</a>
+                    <a asp-action="Index" asp-route-startDate="@monthStart.ToString("yyyy-MM-dd")" asp-route-endDate="@today.ToString("yyyy-MM-dd")" asp-route-cashierId="@Model.SelectedCashierId" asp-route-paymentMethod="@Model.SelectedPaymentMethod" class="btn btn-sm" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">MTD</a>
                 </div>
             </div>
         </form>
@@ -83,21 +93,35 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-md-6 col-xl-3 d-flex">
+    <div class="col-md-4 d-flex">
+        <div class="zb-kpi-card w-100" style="border-color:rgba(168,85,247,0.4);">
+            <div class="zb-kpi-label">Occupancy</div>
+            <div class="zb-kpi-value" style="color:#a855f7;">@Model.OccupancyRatePercent.ToString("N2")%</div>
+            <div class="small mt-2" style="color:var(--zb-text-muted);">@Model.SpacesUsedCount of @Model.ActiveSpaceCount active spaces used</div>
+        </div>
+    </div>
+    <div class="col-md-4 d-flex">
+        <div class="zb-kpi-card w-100" style="border-color:rgba(14,165,233,0.4);">
+            <div class="zb-kpi-label">Staff Tracked</div>
+            <div class="zb-kpi-value" style="color:#0ea5e9;">@Model.StaffPerformance.Count</div>
+            <div class="small mt-2" style="color:var(--zb-text-muted);">Cashiers with activity in this range</div>
+        </div>
+    </div>
+    <div class="col-md-4 d-flex">
         <div class="zb-kpi-card w-100" style="border-color:rgba(6,182,212,0.4);">
             <div class="zb-kpi-label">Gross Sales</div>
             <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalSales.ToString("C")</div>
             <div class="small mt-2" style="color:var(--zb-text-muted);">@Model.TotalOrders orders / @Model.TotalUnitsSold units</div>
         </div>
     </div>
-    <div class="col-md-6 col-xl-3 d-flex">
+    <div class="col-md-4 d-flex">
         <div class="zb-kpi-card w-100" style="border-color:rgba(239,68,68,0.4);">
             <div class="zb-kpi-label">Cost of Goods Sold</div>
             <div class="zb-kpi-value" style="color:#ef4444;">@Model.TotalCostOfGoods.ToString("C")</div>
             <div class="small mt-2" style="color:var(--zb-text-muted);">Total cost of items sold</div>
         </div>
     </div>
-    <div class="col-md-6 col-xl-3 d-flex">
+    <div class="col-md-4 d-flex">
         <div class="zb-kpi-card w-100" style="border-color:rgba(34,197,94,0.4);">
             <div class="zb-kpi-label">Gross Profit</div>
             <div class="zb-kpi-value" style="color:#22c55e;">@Model.GrossProfit.ToString("C")</div>
@@ -108,7 +132,7 @@
             }
         </div>
     </div>
-    <div class="col-md-6 col-xl-3 d-flex">
+    <div class="col-md-4 d-flex">
         <div class="zb-kpi-card w-100" style="border-color:rgba(249,115,22,0.4);">
             <div class="zb-kpi-label">Shift Variance</div>
             <div class="zb-kpi-value" style="color:@(Model.TotalShiftVariance < 0 ? "#ef4444" : "#22c55e");">@Model.TotalShiftVariance.ToString("C")</div>
@@ -128,7 +152,7 @@
 </div>
 
 <div class="row g-4 mb-4">
-    <div class="col-lg-7">
+    <div class="col-lg-7 d-flex flex-column">
         <div class="zb-table-card h-100">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
                 <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-graph-up me-2"></i>Daily Sales Trend</h6>
@@ -138,7 +162,7 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-5">
+    <div class="col-lg-5 d-flex flex-column">
         <div class="zb-table-card h-100">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
                 <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-bar-chart-line me-2"></i>Top Selling Items (By Units)</h6>
@@ -150,8 +174,152 @@
     </div>
 </div>
 
+@if (Model.CategoryBreakdown.Any())
+{
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5 d-flex flex-column">
+            <div class="zb-table-card h-100">
+                <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-pie-chart me-2"></i>Revenue by Category</h6>
+                </div>
+                <div class="p-4 d-flex align-items-center justify-content-center">
+                    <canvas id="categoryChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-7 d-flex flex-column">
+            <div class="zb-table-card h-100">
+                <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-list-ul me-2"></i>Category Breakdown</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="color:var(--zb-text);">
+                        <thead>
+                            <tr style="border-bottom:1px solid rgba(6,182,212,0.2); background:rgba(15,23,42,0.6);">
+                                <th class="ps-4 py-2" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase;">Category</th>
+                                <th class="py-2 text-end" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase;">Units Sold</th>
+                                <th class="pe-4 py-2 text-end" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase;">Revenue</th>
+                                <th class="pe-4 py-2 text-end" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase;">% of Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ var totalCatRev = Model.CategoryBreakdown.Sum(c => c.Revenue); }
+                            @foreach (var cat in Model.CategoryBreakdown)
+                            {
+                                var pct = totalCatRev <= 0 ? 0m : Math.Round(cat.Revenue / totalCatRev * 100m, 1);
+                                <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                    <td class="ps-4 py-2 fw-semibold">@cat.Category</td>
+                                    <td class="py-2 text-end">@cat.UnitsSold.ToString("N0")</td>
+                                    <td class="pe-4 py-2 text-end font-monospace">₱@cat.Revenue.ToString("N2")</td>
+                                    <td class="pe-4 py-2 text-end">
+                                        <div class="d-flex align-items-center justify-content-end gap-2">
+                                            <div style="width:60px; height:6px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden;">
+                                                <div style="width:@pct%; height:100%; background:var(--zb-secondary); border-radius:3px;"></div>
+                                            </div>
+                                            <span class="small">@pct%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-6 d-flex flex-column">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-grid-3x3-gap me-2"></i>Space Utilization</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table zb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Space</th>
+                            <th>Floor</th>
+                            <th class="text-end">Bookings</th>
+                            <th class="text-end">Hours</th>
+                            <th class="text-end">Revenue</th>
+                            <th class="text-end">Utilization</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.SpaceUtilization.Any())
+                    {
+                        @foreach (var space in Model.SpaceUtilization)
+                        {
+                            <tr>
+                                <td class="fw-semibold" style="color:var(--zb-text);">@space.SpaceName</td>
+                                <td>@space.FloorArea</td>
+                                <td class="text-end">@space.BookingCount</td>
+                                <td class="text-end">@space.HoursBooked.ToString("N2")</td>
+                                <td class="text-end" style="color:var(--zb-secondary);">@space.Revenue.ToString("C")</td>
+                                <td class="text-end">@space.UtilizationPercent.ToString("N2")%</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4" style="color:var(--zb-text-muted);">No space occupancy found in the selected range.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-6 d-flex flex-column">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-people me-2"></i>Staff Performance Comparison</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table zb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Cashier</th>
+                            <th class="text-end">Orders</th>
+                            <th class="text-end">Sales</th>
+                            <th class="text-end">Profit</th>
+                            <th class="text-end">Avg Ticket</th>
+                            <th class="text-end">Audit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (Model.StaffPerformance.Any())
+                    {
+                        @foreach (var staff in Model.StaffPerformance)
+                        {
+                            <tr>
+                                <td class="fw-semibold" style="color:var(--zb-text);">@staff.CashierName</td>
+                                <td class="text-end">@staff.Orders</td>
+                                <td class="text-end" style="color:var(--zb-secondary);">@staff.Sales.ToString("C")</td>
+                                <td class="text-end" style="color:@(staff.GrossProfit < 0 ? "#ef4444" : "#22c55e");">@staff.GrossProfit.ToString("C")</td>
+                                <td class="text-end">@staff.AverageTicket.ToString("C")</td>
+                                <td class="text-end">@staff.AuditEvents</td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4" style="color:var(--zb-text-muted);">No staff activity found in the selected range.</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
-    <div class="col-xl-7">
+    <div class="col-xl-6 d-flex flex-column">
         <div class="zb-table-card h-100">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
                 <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-calculator me-2"></i>Top Item Financials</h6>
@@ -193,7 +361,7 @@
         </div>
     </div>
 
-    <div class="col-xl-5">
+    <div class="col-xl-6 d-flex flex-column">
         <div class="zb-table-card h-100">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
                 <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-cash-stack me-2"></i>Recent Shift Closures (Variance)</h6>
@@ -294,6 +462,9 @@
         const dailySales = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DailySalesSeries));
         const topItemLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopItems.Select(x => x.ItemName).ToList()));
         const topItemQty = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TopItems.Select(x => x.Quantity).ToList()));
+        const categoryLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryBreakdown.Select(x => x.Category).ToList()));
+        const categoryRevenue = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.CategoryBreakdown.Select(x => x.Revenue).ToList()));
+        const categoryColors = ['#06b6d4','#f97316','#22c55e','#a855f7','#f59e0b','#ef4444','#3b82f6','#10b981'];
 
         new Chart(document.getElementById('dailySalesChart'), {
             type: 'line',
@@ -326,5 +497,25 @@
                 indexAxis: 'y'
             }
         });
+
+        if (categoryLabels.length > 0) {
+            new Chart(document.getElementById('categoryChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: categoryLabels,
+                    datasets: [{
+                        data: categoryRevenue,
+                        backgroundColor: categoryColors.slice(0, categoryLabels.length),
+                        borderWidth: 2,
+                        borderColor: '#0f172a'
+                    }]
+                },
+                options: {
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 12, padding: 14 } }
+                    }
+                }
+            });
+        }
     </script>
 }

@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using ZoneBill_Lloren.Data;
+using ZoneBill_Lloren.Helpers;
 using ZoneBill_Lloren.Models;
 
 namespace ZoneBill_Lloren.Controllers
@@ -25,7 +27,7 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: Users
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             var query = _context.Users.Include(u => u.Business).AsQueryable();
 
@@ -33,11 +35,20 @@ namespace ZoneBill_Lloren.Controllers
             {
                 var businessId = GetBusinessId();
                 if (businessId == null) return Forbid();
-
                 query = query.Where(u => u.BusinessId == businessId.Value);
             }
 
-            return View(await query.OrderBy(u => u.FirstName).ThenBy(u => u.LastName).ToListAsync());
+            const int pageSize = 10;
+            var totalCount = await query.CountAsync();
+            var activeCount = await query.CountAsync(u => u.IsActive);
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.ActiveCount = activeCount;
+            return View(await query.OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync());
         }
 
         // GET: Users/Details/5
@@ -190,6 +201,9 @@ namespace ZoneBill_Lloren.Controllers
                 return NotFound();
             }
 
+            var previousRole = existingUser.UserRole;
+            var previousBusinessId = existingUser.BusinessId;
+
             if (!isSuperAdmin)
             {
                 var businessId = GetBusinessId();
@@ -229,6 +243,21 @@ namespace ZoneBill_Lloren.Controllers
             {
                 try
                 {
+                    if (isSuperAdmin && (previousRole != existingUser.UserRole || previousBusinessId != existingUser.BusinessId))
+                    {
+                        _context.SuperAdminAuditLogs.Add(new SuperAdminAuditLog
+                        {
+                            ActionType = "UserRoleChanged",
+                            EntityType = "User",
+                            EntityId = existingUser.UserId,
+                            BusinessId = existingUser.BusinessId,
+                            Details = $"User {existingUser.EmailAddress} role {previousRole} -> {existingUser.UserRole}; business {(previousBusinessId?.ToString() ?? "null")} -> {(existingUser.BusinessId?.ToString() ?? "null")}.",
+                            ActorUserId = TryGetCurrentUserId(),
+                            ActorName = User.Identity?.Name ?? "SuperAdmin",
+                            CreatedAt = PhilippineTime.Now
+                        });
+                    }
+
                     _context.Update(existingUser);
                     await _context.SaveChangesAsync();
                 }
@@ -256,36 +285,39 @@ namespace ZoneBill_Lloren.Controllers
             return View(existingUser);
         }
 
-        // GET: Users/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: Users/Delete — Redirects to Archive
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            return RedirectToAction(nameof(Index));
+        }
 
-            var query = _context.Users
-                .Include(u => u.Business)
-                .AsQueryable();
+        // POST: Users/Delete — Redirects to Archive
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public IActionResult DeleteConfirmed(int id)
+        {
+            return RedirectToAction(nameof(Index));
+        }
 
+        // POST: Users/Archive/5 — Toggle IsActive
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Archive(int id)
+        {
+            var query = _context.Users.AsQueryable();
             if (User.IsInRole("MainAdmin"))
             {
                 var businessId = GetBusinessId();
                 if (businessId == null) return Forbid();
-
                 query = query.Where(u => u.BusinessId == businessId.Value);
             }
-
-            var user = await query.FirstOrDefaultAsync(m => m.UserId == id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return View(user);
+            var user = await query.FirstOrDefaultAsync(u => u.UserId == id);
+            if (user == null) return NotFound();
+            user.IsActive = !user.IsActive;
+            await _context.SaveChangesAsync();
+            TempData["Success"] = user.IsActive ? $"User \u2018{user.FirstName} {user.LastName}\u2019 has been restored." : $"User \u2018{user.FirstName} {user.LastName}\u2019 has been archived.";
+            return RedirectToAction(nameof(Index));
         }
-
-        // GET: Users/ResetPassword/5
         public async Task<IActionResult> ResetPassword(int? id)
         {
             if (id == null) return NotFound();
@@ -332,28 +364,6 @@ namespace ZoneBill_Lloren.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: Users/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
-        {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
-            if (user != null)
-            {
-                if (User.IsInRole("MainAdmin"))
-                {
-                    var businessId = GetBusinessId();
-                    if (businessId == null) return Forbid();
-                    if (user.BusinessId != businessId.Value) return Forbid();
-                }
-
-                _context.Users.Remove(user);
-            }
-
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
         private bool UserExists(int id)
         {
             return _context.Users.Any(e => e.UserId == id);
@@ -363,6 +373,12 @@ namespace ZoneBill_Lloren.Controllers
         {
             var value = User.FindFirst("BusinessId")?.Value;
             return int.TryParse(value, out var businessId) ? businessId : null;
+        }
+
+        private int? TryGetCurrentUserId()
+        {
+            var raw = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            return int.TryParse(raw, out var id) ? id : null;
         }
 
         private void SetRoleOptions(bool isSuperAdmin, string? selectedRole)

@@ -83,7 +83,9 @@ namespace ZoneBill_Lloren.Controllers
                     .ToListAsync(),
                 MenuItems = await _context.MenuItems
                     .Where(m => m.BusinessId == businessId.Value && m.IsActive)
-                    .OrderBy(m => m.ItemName)
+                    .OrderBy(m => m.Category)
+                    .ThenBy(m => m.SortOrder)
+                    .ThenBy(m => m.ItemName)
                     .ToListAsync()
             };
 
@@ -357,7 +359,7 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Checkout(CheckoutRequest request)
         {
             var businessId = GetBusinessId();
@@ -422,6 +424,9 @@ namespace ZoneBill_Lloren.Controllers
             _context.Invoices.Add(invoice);
             await _context.SaveChangesAsync();
 
+            invoice.InvoiceNumber = $"INV-{PhilippineTime.Now.Year}-{invoice.InvoiceId:D5}";
+            await _context.SaveChangesAsync();
+
             var accountsReceivable = await GetOrCreateAccountAsync(businessId.Value, "Accounts Receivable", "Asset");
             var salesRevenue = await GetOrCreateAccountAsync(businessId.Value, "Sales Revenue", "Revenue");
             var taxPayable = taxAmount > 0m
@@ -434,7 +439,7 @@ namespace ZoneBill_Lloren.Controllers
                 ReferenceId = invoice.InvoiceId,
                 ReferenceType = "Invoice",
                 EntryDate = PhilippineTime.Now,
-                Description = $"Invoice #{invoice.InvoiceId} posted from POS checkout"
+                Description = $"{invoice.InvoiceNumber} posted from POS checkout"
             };
 
             _context.JournalEntries.Add(journalEntry);
@@ -601,9 +606,22 @@ namespace ZoneBill_Lloren.Controllers
                     .ToListAsync()
                 : new List<object>().Select(x => new { BookingId = 0, Count = 0, Total = 0m }).ToList();
 
+            // Count unserved portal order lines per booking
+            var pendingPortal = ids.Count > 0
+                ? await _context.OrderDetails
+                    .Where(od => ids.Contains(od.Order.BookingId)
+                        && od.Order.BusinessId == businessId.Value
+                        && od.Order.OrderSource == "Portal"
+                        && !od.IsServed)
+                    .GroupBy(od => od.Order.BookingId)
+                    .Select(g => new { BookingId = g.Key, Count = g.Count() })
+                    .ToListAsync()
+                : new List<object>().Select(x => new { BookingId = 0, Count = 0 }).ToList();
+
             var result = activeBookings.Select(b =>
             {
                 var c = counts.FirstOrDefault(x => x.BookingId == b.BookingId);
+                var p = pendingPortal.FirstOrDefault(x => x.BookingId == b.BookingId);
                 return new
                 {
                     spaceId = b.SpaceId,
@@ -611,7 +629,9 @@ namespace ZoneBill_Lloren.Controllers
                     orderItemCount = c?.Count ?? 0,
                     menuTotal = c?.Total ?? 0m,
                     checkoutRequested = b.CheckoutRequested,
-                    requestedSplitCount = b.RequestedSplitCount
+                    requestedSplitCount = b.RequestedSplitCount,
+                    pendingPortalOrders = p?.Count ?? 0,
+                    startTimeMs = new DateTimeOffset(b.StartTime, TimeSpan.FromHours(8)).ToUnixTimeMilliseconds()
                 };
             });
 
@@ -772,7 +792,7 @@ namespace ZoneBill_Lloren.Controllers
 
         // ── Split Checkout ─────────────────────────────────────────────────
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> SplitCheckout(SplitCheckoutRequest request)
         {
             var businessId = GetBusinessId();
@@ -881,6 +901,9 @@ namespace ZoneBill_Lloren.Controllers
                 };
 
                 _context.Invoices.Add(invoice);
+                await _context.SaveChangesAsync();
+
+                invoice.InvoiceNumber = $"INV-{PhilippineTime.Now.Year}-{invoice.InvoiceId:D5}";
                 await _context.SaveChangesAsync();
                 invoiceIds.Add(invoice.InvoiceId);
 
@@ -1054,18 +1077,87 @@ namespace ZoneBill_Lloren.Controllers
                     od.MenuItem.ItemName,
                     od.Quantity,
                     od.LockedUnitPrice,
-                    Subtotal = od.Quantity * od.LockedUnitPrice
+                    Subtotal = od.Quantity * od.LockedUnitPrice,
+                    OrderSource = od.Order.OrderSource,
+                    od.IsServed,
+                    od.ServedAt
                 })
                 .ToListAsync();
 
             return Json(details);
         }
 
+        private bool IsAjaxRequest()
+        {
+            return string.Equals(Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+        }
+
+        // POST /POS/MarkServed  — mark a portal order line as served
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> MarkServed([FromForm] int orderDetailId)
+        {
+            if (!IsAjaxRequest()) return BadRequest();
+
+            var businessId = GetBusinessId();
+            if (businessId == null) return Json(new { ok = false, error = "Unauthorized" });
+
+            var detail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId && od.Order.BusinessId == businessId.Value);
+
+            if (detail == null) return Json(new { ok = false, error = "Item not found" });
+
+            detail.IsServed = true;
+            detail.ServedAt = PhilippineTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Json(new { ok = true });
+        }
+
+        // POST /POS/UpdateOrderQty — adjust quantity of any order detail by a delta (+N or -N)
+        [HttpPost]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> UpdateOrderQty([FromForm] int orderDetailId, [FromForm] int delta)
+        {
+            if (!IsAjaxRequest()) return BadRequest();
+
+            var businessId = GetBusinessId();
+            if (businessId == null) return Json(new { ok = false, error = "Unauthorized" });
+
+            if (delta == 0) return Json(new { ok = false, error = "Delta cannot be zero" });
+
+            var detail = await _context.OrderDetails
+                .Include(od => od.Order)
+                .Include(od => od.MenuItem)
+                .FirstOrDefaultAsync(od => od.OrderDetailId == orderDetailId && od.Order.BusinessId == businessId.Value);
+
+            if (detail == null) return Json(new { ok = false, error = "Item not found" });
+
+            var booking = await _context.Bookings.FirstOrDefaultAsync(b =>
+                b.BookingId == detail.Order.BookingId && b.BookingStatus == "Active");
+            if (booking == null) return Json(new { ok = false, error = "Session is no longer active" });
+
+            int newQty = detail.Quantity + delta;
+            if (newQty < 1) return Json(new { ok = false, error = "Quantity cannot go below 1. Use void to remove the item." });
+
+            if (delta > 0 && detail.MenuItem.StockAvailable < delta)
+                return Json(new { ok = false, error = $"Only {detail.MenuItem.StockAvailable} stock available for {detail.MenuItem.ItemName}." });
+
+            detail.MenuItem.StockAvailable -= delta; // negative delta restores stock
+            detail.Quantity = newQty;
+            await _context.SaveChangesAsync();
+
+            return Json(new { ok = true, newQty, newSubtotal = newQty * detail.LockedUnitPrice });
+        }
+
         // POST /POS/VoidOrderItem
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> VoidOrderItem([FromForm] int orderDetailId)
         {
+            if (!IsAjaxRequest()) return BadRequest();
+
             var businessId = GetBusinessId();
             if (businessId == null) return Json(new { ok = false, error = "Unauthorized" });
 

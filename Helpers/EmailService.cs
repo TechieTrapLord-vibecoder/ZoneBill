@@ -1,5 +1,6 @@
 using SendGrid;
 using SendGrid.Helpers.Mail;
+using ZoneBill_Lloren.Models;
 
 namespace ZoneBill_Lloren.Helpers
 {
@@ -9,12 +10,26 @@ namespace ZoneBill_Lloren.Helpers
         Task SendLowStockAlertAsync(string toEmail, string toName, string itemName, string businessName);
         Task SendUnpaidInvoiceSummaryAsync(string toEmail, string toName, int count, string businessName);
         Task SendLowStockDigestAsync(string toEmail, string toName, List<string> itemNames, string businessName);
+        Task SendInventoryReorderDigestAsync(InventoryDigestEmailRequest request);
         Task SendStaleShiftAlertAsync(string toEmail, string toName, string cashierName, DateTime openedAt, string businessName);
         Task SendCustomerReceiptAsync(string toEmail, string businessName, string spaceName, string referenceCode, decimal timeCharge, decimal menuTotal, decimal taxAmount, decimal total, List<(string Name, int Qty, decimal LineTotal)> items);
     }
 
+    public class InventoryDigestEmailRequest
+    {
+        public string ToEmail { get; set; } = string.Empty;
+        public string ToName { get; set; } = string.Empty;
+        public InventoryReorderSummaryViewModel Summary { get; set; } = new();
+        public string BusinessName { get; set; } = string.Empty;
+        public int LookbackDays { get; set; }
+        public int LeadTimeDays { get; set; }
+        public int TargetCoverageDays { get; set; }
+        public InventoryAnomalySummaryViewModel? AnomalySummary { get; set; }
+    }
+
     public class EmailService : IEmailService
     {
+        private const string PlaceholderToken = "PLACEHOLDER";
         private readonly string _apiKey;
         private readonly string _fromEmail;
         private readonly string _fromName;
@@ -28,7 +43,7 @@ namespace ZoneBill_Lloren.Helpers
 
         public async Task SendPasswordResetEmailAsync(string toEmail, string toName, string resetLink)
         {
-            if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase))
+            if (!IsConfigured())
                 return; // silently skip if not configured
 
             var client = new SendGridClient(_apiKey);
@@ -51,7 +66,7 @@ namespace ZoneBill_Lloren.Helpers
 
         public async Task SendLowStockAlertAsync(string toEmail, string toName, string itemName, string businessName)
         {
-            if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase))
+            if (!IsConfigured())
                 return;
 
             var client = new SendGridClient(_apiKey);
@@ -78,7 +93,7 @@ namespace ZoneBill_Lloren.Helpers
 
         public async Task SendUnpaidInvoiceSummaryAsync(string toEmail, string toName, int count, string businessName)
         {
-            if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase))
+            if (!IsConfigured())
                 return;
 
             var client = new SendGridClient(_apiKey);
@@ -102,7 +117,7 @@ namespace ZoneBill_Lloren.Helpers
 
         public async Task SendLowStockDigestAsync(string toEmail, string toName, List<string> itemNames, string businessName)
         {
-            if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase))
+            if (!IsConfigured())
                 return;
 
             var client = new SendGridClient(_apiKey);
@@ -126,9 +141,29 @@ namespace ZoneBill_Lloren.Helpers
             await client.SendEmailAsync(msg);
         }
 
+                public async Task SendInventoryReorderDigestAsync(InventoryDigestEmailRequest request)
+                {
+                    if (!IsConfigured())
+                                return;
+
+                    if (request.Summary.Items.Count == 0 && (request.AnomalySummary == null || request.AnomalySummary.TotalAnomalies == 0))
+                                return;
+
+                        var client = new SendGridClient(_apiKey);
+                        var from = new EmailAddress(_fromEmail, _fromName);
+                    var to = new EmailAddress(request.ToEmail, request.ToName);
+                    var includeAnomalies = request.AnomalySummary != null && request.AnomalySummary.TotalAnomalies > 0;
+                    var subject = BuildInventoryDigestSubject(request, includeAnomalies);
+                    var plainText = BuildInventoryDigestPlainText(request, includeAnomalies);
+                    var html = BuildInventoryDigestHtml(request, includeAnomalies);
+
+                        var msg = MailHelper.CreateSingleEmail(from, to, subject, plainText, html);
+                        await client.SendEmailAsync(msg);
+                }
+
         public async Task SendStaleShiftAlertAsync(string toEmail, string toName, string cashierName, DateTime openedAt, string businessName)
         {
-            if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase))
+            if (!IsConfigured())
                 return;
 
             var client = new SendGridClient(_apiKey);
@@ -153,7 +188,7 @@ namespace ZoneBill_Lloren.Helpers
 
         public async Task SendCustomerReceiptAsync(string toEmail, string businessName, string spaceName, string referenceCode, decimal timeCharge, decimal menuTotal, decimal taxAmount, decimal total, List<(string Name, int Qty, decimal LineTotal)> items)
         {
-            if (string.IsNullOrWhiteSpace(_apiKey) || _apiKey.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase))
+            if (!IsConfigured())
                 return;
 
             var client = new SendGridClient(_apiKey);
@@ -186,6 +221,105 @@ namespace ZoneBill_Lloren.Helpers
 
             var msg = MailHelper.CreateSingleEmail(from, to, subject, plainText, html);
             await client.SendEmailAsync(msg);
+        }
+
+        private bool IsConfigured()
+        {
+            return !string.IsNullOrWhiteSpace(_apiKey) && !_apiKey.Contains(PlaceholderToken, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildInventoryDigestSubject(InventoryDigestEmailRequest request, bool includeAnomalies)
+        {
+            if (includeAnomalies)
+            {
+                return $"[ZoneBill] Inventory Digest — {request.BusinessName}";
+            }
+
+            var suffix = request.Summary.TotalRecommendations != 1 ? "s" : string.Empty;
+            return $"[ZoneBill] {request.Summary.TotalRecommendations} Reorder Recommendation{suffix} — {request.BusinessName}";
+        }
+
+        private static string BuildInventoryDigestPlainText(InventoryDigestEmailRequest request, bool includeAnomalies)
+        {
+            var topItems = request.Summary.Items.Take(8).ToList();
+            var plainLines = string.Join("\n", topItems.Select(item => $"- {item.ItemName}: reorder {item.RecommendedReorderQuantity}, stock {item.CurrentStock}, demand {item.AverageDailyDemand:0.##}/day"));
+
+            if (!includeAnomalies)
+            {
+                return $"Daily inventory recommendations for {request.BusinessName}\n\nRecommendations: {request.Summary.TotalRecommendations}\nCritical items: {request.Summary.CriticalRecommendations}\nRecommended units: {request.Summary.RecommendedUnits}\nLookback: {request.LookbackDays} days\nLead time: {request.LeadTimeDays} days\nTarget coverage: {request.TargetCoverageDays} days\n\nTop recommendations:\n{plainLines}\n\nReview Inventory in ZoneBill to restock these items.";
+            }
+
+            var anomalyLines = string.Join("\n", request.AnomalySummary!.Items.Take(6).Select(item => $"- {item.ItemName}: {item.AnomalyType}, {item.SummaryText}"));
+            return $"Daily inventory digest for {request.BusinessName}\n\nRecommendations: {request.Summary.TotalRecommendations}\nCritical items: {request.Summary.CriticalRecommendations}\nRecommended units: {request.Summary.RecommendedUnits}\nAnomalies: {request.AnomalySummary.TotalAnomalies}\nLookback: {request.LookbackDays} days\nLead time: {request.LeadTimeDays} days\nTarget coverage: {request.TargetCoverageDays} days\n\nTop reorder recommendations:\n{(string.IsNullOrWhiteSpace(plainLines) ? "- None today" : plainLines)}\n\nTop anomaly signals:\n{(string.IsNullOrWhiteSpace(anomalyLines) ? "- None detected" : anomalyLines)}\n\nReview Inventory in ZoneBill to act on these signals.";
+        }
+
+        private static string BuildInventoryDigestHtml(InventoryDigestEmailRequest request, bool includeAnomalies)
+        {
+            var topItems = request.Summary.Items.Take(8).ToList();
+            var rows = string.Join("", topItems.Select(item =>
+                $"<tr>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:600;\">{System.Net.WebUtility.HtmlEncode(item.ItemName)}</td>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center;\">{item.Urgency}</td>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;\">{item.CurrentStock}</td>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:right;\">{item.RecommendedReorderQuantity}</td>" +
+                $"</tr>"));
+
+            var heading = includeAnomalies ? "Inventory Daily Digest" : "Inventory Recommendations";
+            var anomalySection = includeAnomalies ? BuildAnomalySectionHtml(request.AnomalySummary!) : string.Empty;
+
+            return $@"
+<div style=""font-family:sans-serif;max-width:640px;margin:auto;"">
+    <h2 style=""color:#0f766e;"">{heading}</h2>
+    <p>Hello <strong>{System.Net.WebUtility.HtmlEncode(request.ToName)}</strong>, here is today's inventory summary for <strong>{System.Net.WebUtility.HtmlEncode(request.BusinessName)}</strong>.</p>
+    <div style=""display:flex;gap:12px;flex-wrap:wrap;margin:16px 0;"">
+        <div style=""background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:12px 14px;min-width:140px;""><div style=""font-size:12px;color:#155e75;"">Recommendations</div><div style=""font-size:24px;font-weight:700;color:#0f172a;"">{request.Summary.TotalRecommendations}</div></div>
+        <div style=""background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:12px 14px;min-width:140px;""><div style=""font-size:12px;color:#9a3412;"">Critical</div><div style=""font-size:24px;font-weight:700;color:#0f172a;"">{request.Summary.CriticalRecommendations}</div></div>
+        <div style=""background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;min-width:140px;""><div style=""font-size:12px;color:#166534;"">Suggested Units</div><div style=""font-size:24px;font-weight:700;color:#0f172a;"">{request.Summary.RecommendedUnits}</div></div>
+    </div>
+    <p style=""color:#475569;"">Model inputs: <strong>{request.LookbackDays}</strong> day lookback, <strong>{request.LeadTimeDays}</strong> day lead time, <strong>{request.TargetCoverageDays}</strong> day target coverage.</p>
+    <table style=""width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;"">
+        <thead>
+            <tr style=""background:#f8fafc;color:#334155;"">
+                <th style=""padding:10px;text-align:left;"">Item</th>
+                <th style=""padding:10px;text-align:center;"">Urgency</th>
+                <th style=""padding:10px;text-align:right;"">Stock</th>
+                <th style=""padding:10px;text-align:right;"">Reorder</th>
+            </tr>
+        </thead>
+        <tbody>{(string.IsNullOrWhiteSpace(rows) ? "<tr><td colspan=\"4\" style=\"padding:10px;color:#64748b;\">No reorder recommendations today.</td></tr>" : rows)}</tbody>
+    </table>
+    {anomalySection}
+    <p style=""margin-top:16px;color:#64748b;font-size:12px;"">Open the Inventory page in ZoneBill to restock directly from these recommendations.</p>
+</div>";
+        }
+
+        private static string BuildAnomalySectionHtml(InventoryAnomalySummaryViewModel anomalySummary)
+        {
+            var anomalyRows = string.Join("", anomalySummary.Items.Take(6).Select(item =>
+                $"<tr>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;font-weight:600;\">{System.Net.WebUtility.HtmlEncode(item.ItemName)}</td>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center;\">{item.AnomalyType}</td>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;text-align:center;\">{item.Severity}</td>" +
+                $"<td style=\"padding:8px 10px;border-bottom:1px solid #e2e8f0;\">{System.Net.WebUtility.HtmlEncode(item.SummaryText)}</td>" +
+                $"</tr>"));
+
+            return $@"
+    <div style=""margin-top:18px;display:flex;gap:12px;flex-wrap:wrap;"">
+        <div style=""background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 14px;min-width:140px;""><div style=""font-size:12px;color:#991b1b;"">Demand Spikes</div><div style=""font-size:24px;font-weight:700;color:#0f172a;"">{anomalySummary.SpikeCount}</div></div>
+        <div style=""background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:12px 14px;min-width:140px;""><div style=""font-size:12px;color:#9a3412;"">Dead Stock</div><div style=""font-size:24px;font-weight:700;color:#0f172a;"">{anomalySummary.DeadStockCount}</div></div>
+        <div style=""background:#ecfeff;border:1px solid #a5f3fc;border-radius:8px;padding:12px 14px;min-width:140px;""><div style=""font-size:12px;color:#155e75;"">Sales Drops</div><div style=""font-size:24px;font-weight:700;color:#0f172a;"">{anomalySummary.DropCount}</div></div>
+    </div>
+    <table style=""width:100%;margin-top:14px;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;"">
+        <thead>
+            <tr style=""background:#f8fafc;color:#334155;"">
+                <th style=""padding:10px;text-align:left;"">Item</th>
+                <th style=""padding:10px;text-align:center;"">Signal</th>
+                <th style=""padding:10px;text-align:center;"">Severity</th>
+                <th style=""padding:10px;text-align:left;"">Summary</th>
+            </tr>
+        </thead>
+        <tbody>{anomalyRows}</tbody>
+    </table>";
         }
     }
 }

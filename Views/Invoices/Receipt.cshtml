@@ -155,7 +155,7 @@
         <div class="line"></div>
 
         <div class="meta">
-            <div><strong>Receipt No:</strong> #@Model.Invoice.InvoiceId</div>
+            <div><strong>Invoice No:</strong> @(string.IsNullOrEmpty(Model.Invoice.InvoiceNumber) ? $"#{Model.Invoice.InvoiceId}" : Model.Invoice.InvoiceNumber)</div>
             <div><strong>Date:</strong> @PhilippineTime.ToDateTime(Model.Invoice.GeneratedDate).ToString("yyyy-MM-dd HH:mm")</div>
             <div><strong>Booking:</strong> @Model.Invoice.Booking.BookingId</div>
             <div><strong>Status:</strong> @Model.Invoice.PaymentStatus</div>

@@ -2,12 +2,14 @@
 
 @{
     ViewData["Title"] = "Menu Items";
-}
-
-@{
-    var totalItems = Model.Count();
-    var lowStock = Model.Count(m => m.IsActive && m.StockAvailable <= m.LowStockThreshold);
-    var inactiveItems = Model.Count(m => !m.IsActive);
+    var currentPage = (int)(ViewBag.CurrentPage ?? 1);
+    var totalPages  = (int)(ViewBag.TotalPages  ?? 1);
+    var totalCount  = (int)(ViewBag.TotalCount  ?? 0);
+    var paging = new ZoneBill_Lloren.Models.PagingInfo { CurrentPage = currentPage, TotalPages = totalPages, TotalCount = totalCount, UrlTemplate = Url.Action("Index", new { page = "__PAGE__" }) ?? "#" };
+    var totalItems = totalCount;
+    var lowStock = (int)(ViewBag.LowStockCount ?? Model.Count(m => m.IsActive && m.StockAvailable <= m.LowStockThreshold));
+    var inactiveItems = (int)(ViewBag.InactiveCount ?? Model.Count(m => !m.IsActive));
+    var categories = (int)(ViewBag.CategoryCount ?? Model.Select(m => m.Category).Distinct().Count());
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -21,19 +23,25 @@
 </div>
 
 <div class="row g-3 mb-4">
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="zb-kpi-card">
             <div class="zb-kpi-label">Total Items</div>
             <div class="zb-kpi-value">@totalItems</div>
         </div>
     </div>
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
+        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
+            <div class="zb-kpi-label">Categories</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@categories</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
         <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
             <div class="zb-kpi-label">Low Stock</div>
             <div class="zb-kpi-value" style="color:var(--zb-accent);">@lowStock</div>
         </div>
     </div>
-    <div class="col-6 col-md-4">
+    <div class="col-6 col-md-3">
         <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
             <div class="zb-kpi-label">Inactive</div>
             <div class="zb-kpi-value" style="color:#ef4444;">@inactiveItems</div>
@@ -46,7 +54,10 @@
         <table class="table zb-table mb-0">
             <thead>
                 <tr>
+                    <th>Image</th>
                     <th>Item Name</th>
+                    <th>Category</th>
+                    <th>Sort</th>
                     <th>Price</th>
                     <th>Cost</th>
                     <th>Stock</th>
@@ -55,12 +66,26 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody data-paginate="5">
+            <tbody>
                 @foreach (var item in Model)
                 {
                     var isLow = item.IsActive && item.StockAvailable <= item.LowStockThreshold;
                     <tr>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                            {
+                                <img src="@item.ImageUrl" alt="@item.ItemName" style="width:42px;height:42px;object-fit:cover;border-radius:10px;border:1px solid rgba(148,163,184,0.2);" />
+                            }
+                            else
+                            {
+                                <div class="d-flex align-items-center justify-content-center" style="width:42px;height:42px;border-radius:10px;background:rgba(6,182,212,0.08);border:1px solid rgba(6,182,212,0.12);color:var(--zb-text-muted);">
+                                    <i class="bi bi-image"></i>
+                                </div>
+                            }
+                        </td>
                         <td class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</td>
+                        <td><span class="zb-badge zb-badge-cyan">@item.Category</span></td>
+                        <td class="zb-mono">@item.SortOrder</td>
                         <td style="color:var(--zb-secondary);font-weight:600;">₱@item.CurrentPrice.ToString("N2")</td>
                         <td>₱@item.CostPrice.ToString("N2")</td>
                         <td>
@@ -88,7 +113,13 @@
                             <div class="d-flex gap-1">
                                 <a asp-action="Details" asp-route-id="@item.ItemId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
                                 <a asp-action="Edit" asp-route-id="@item.ItemId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
-                                <a asp-action="Delete" asp-route-id="@item.ItemId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                                <form asp-action="Archive" method="post" class="d-inline" onsubmit="return confirm('@(item.IsActive ? "Archive this item?" : "Restore this item?")')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item.ItemId" />
+                                    <button type="submit" class="zb-action-btn @(item.IsActive ? "zb-action-archive" : "zb-action-restore")" title="@(item.IsActive ? "Archive" : "Restore")">
+                                        <i class="bi @(item.IsActive ? "bi-archive" : "bi-arrow-counterclockwise")"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -96,4 +127,5 @@
             </tbody>
         </table>
     </div>
+    @await Html.PartialAsync("_Pagination", paging)
 </div>

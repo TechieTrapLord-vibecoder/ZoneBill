@@ -22,17 +22,29 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: Spaces
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             var myBusinessId = User.FindFirst("BusinessId")?.Value;
-            
-            // Only load spaces completely belonging to their own business!
-            var spaces = await _context.Spaces
-                .Include(s => s.Business)
-                .Where(s => s.BusinessId.ToString() == myBusinessId)
-                .ToListAsync();
 
-            return View(spaces);
+            const int pageSize = 10;
+            var query = _context.Spaces
+                .Include(s => s.Business)
+                .Where(s => s.BusinessId.ToString() == myBusinessId);
+            var totalCount = await query.CountAsync();
+            var availableCount = await query.CountAsync(s => s.CurrentStatus == "Available");
+            var occupiedCount = await query.CountAsync(s => s.CurrentStatus == "Occupied");
+            var inactiveCount = await query.CountAsync(s => !s.IsActive);
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+            ViewBag.SpaceTotal = totalCount;
+            ViewBag.SpaceAvailable = availableCount;
+            ViewBag.SpaceOccupied = occupiedCount;
+            ViewBag.SpaceInactive = inactiveCount;
+            return View(await query.OrderBy(s => s.SpaceName)
+                .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync());
         }
 
         // GET: Spaces/Details/5
@@ -213,37 +225,32 @@ namespace ZoneBill_Lloren.Controllers
             return View(space);
         }
 
-        // GET: Spaces/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: Spaces/Delete — Redirects to Archive
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var space = await _context.Spaces
-                .Include(s => s.Business)
-                .FirstOrDefaultAsync(m => m.SpaceId == id);
-            if (space == null)
-            {
-                return NotFound();
-            }
-
-            return View(space);
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: Spaces/Delete/5
+        // POST: Spaces/Delete — Redirects to Archive
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
         {
-            var space = await _context.Spaces.FindAsync(id);
-            if (space != null)
-            {
-                _context.Spaces.Remove(space);
-            }
+            return RedirectToAction(nameof(Index));
+        }
 
+        // POST: Spaces/Archive/5 — Toggle IsActive
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Archive(int id)
+        {
+            var myBusinessId = User.FindFirst("BusinessId")?.Value;
+            if (!int.TryParse(myBusinessId, out var businessId)) return Forbid();
+            var space = await _context.Spaces.FirstOrDefaultAsync(s => s.SpaceId == id && s.BusinessId == businessId);
+            if (space == null) return NotFound();
+            space.IsActive = !space.IsActive;
             await _context.SaveChangesAsync();
+            TempData["Success"] = space.IsActive ? $"Space \u2018{space.SpaceName}\u2019 has been restored." : $"Space \u2018{space.SpaceName}\u2019 has been archived.";
             return RedirectToAction(nameof(Index));
         }
 

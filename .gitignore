@@ -54,6 +54,7 @@ stripe.zip
 # Build artifacts / publish
 # ===========================
 publish/
+.copilot-build/
 *.nupkg
 *.snupkg
 

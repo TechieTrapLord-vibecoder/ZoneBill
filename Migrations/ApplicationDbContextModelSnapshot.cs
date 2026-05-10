@@ -17,7 +17,7 @@ namespace ZoneBill_Lloren.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.25")
+                .HasAnnotation("ProductVersion", "8.0.26")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -140,6 +140,48 @@ namespace ZoneBill_Lloren.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<decimal>("InitialCapital")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("InventoryAlertEmail")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("InventoryAlertEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int>("InventoryForecastHorizonDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(7);
+
+                    b.Property<int>("InventoryForecastLookbackDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(28);
+
+                    b.Property<int>("InventoryLeadTimeDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(3);
+
+                    b.Property<int>("InventoryReorderLookbackDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(30);
+
+                    b.Property<int>("InventorySafetyStockDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(2);
+
+                    b.Property<int>("InventoryTargetCoverageDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(7);
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -166,6 +208,11 @@ namespace ZoneBill_Lloren.Migrations
                     b.Property<decimal>("TaxRatePercentage")
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<string>("ThemePreference")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("BusinessId");
 
                     b.HasIndex("DomainPrefix")
@@ -174,6 +221,55 @@ namespace ZoneBill_Lloren.Migrations
                     b.HasIndex("PlanId");
 
                     b.ToTable("Businesses");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.BusinessLifecycleEvent", b =>
+                {
+                    b.Property<int>("EventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventId"));
+
+                    b.Property<string>("ActorName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PreviousValue")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("BusinessId", "CreatedAt");
+
+                    b.HasIndex("EventType", "CreatedAt");
+
+                    b.ToTable("BusinessLifecycleEvents");
                 });
 
             modelBuilder.Entity("ZoneBill_Lloren.Models.CashDrawerTransaction", b =>
@@ -283,6 +379,66 @@ namespace ZoneBill_Lloren.Migrations
                     b.ToTable("Customers");
                 });
 
+            modelBuilder.Entity("ZoneBill_Lloren.Models.InventoryAlertLog", b =>
+                {
+                    b.Property<int>("InventoryAlertLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryAlertLogId"));
+
+                    b.Property<string>("AlertSignature")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("AlertType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecipientEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("RecipientName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("RecommendationCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RecommendationSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("RecommendedUnits")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SentAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("TriggerSource")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("InventoryAlertLogId");
+
+                    b.HasIndex("BusinessId", "SentAt");
+
+                    b.HasIndex("BusinessId", "AlertType", "AlertSignature", "SentAt");
+
+                    b.ToTable("InventoryAlertLogs");
+                });
+
             modelBuilder.Entity("ZoneBill_Lloren.Models.InventoryTransaction", b =>
                 {
                     b.Property<int>("InventoryTransactionId")
@@ -350,6 +506,11 @@ namespace ZoneBill_Lloren.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("PaymentStatus")
                         .IsRequired()
@@ -488,6 +649,13 @@ namespace ZoneBill_Lloren.Migrations
                     b.Property<int>("BusinessId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("General");
+
                     b.Property<decimal>("CostPrice")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,2)")
@@ -495,6 +663,10 @@ namespace ZoneBill_Lloren.Migrations
 
                     b.Property<decimal>("CurrentPrice")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
@@ -509,12 +681,17 @@ namespace ZoneBill_Lloren.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(5);
 
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<int>("StockAvailable")
                         .HasColumnType("int");
 
                     b.HasKey("ItemId");
 
-                    b.HasIndex("BusinessId");
+                    b.HasIndex("BusinessId", "Category", "SortOrder", "ItemName");
 
                     b.ToTable("MenuItems");
                 });
@@ -535,6 +712,11 @@ namespace ZoneBill_Lloren.Migrations
 
                     b.Property<int>("CashierId")
                         .HasColumnType("int");
+
+                    b.Property<string>("OrderSource")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<DateTime>("OrderTime")
                         .ValueGeneratedOnAdd()
@@ -560,6 +742,9 @@ namespace ZoneBill_Lloren.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderDetailId"));
 
+                    b.Property<bool>("IsServed")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ItemId")
                         .HasColumnType("int");
 
@@ -571,6 +756,9 @@ namespace ZoneBill_Lloren.Migrations
 
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("ServedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("OrderDetailId");
 
@@ -794,6 +982,156 @@ namespace ZoneBill_Lloren.Migrations
                     b.ToTable("PosShifts");
                 });
 
+            modelBuilder.Entity("ZoneBill_Lloren.Models.PurchaseOrder", b =>
+                {
+                    b.Property<int>("PurchaseOrderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderId"));
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ExpectedDeliveryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("OrderedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PurchaseOrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("PurchaseOrderId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("BusinessId", "PurchaseOrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("BusinessId", "Status", "CreatedAt");
+
+                    b.ToTable("PurchaseOrders");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.PurchaseOrderLine", b =>
+                {
+                    b.Property<int>("PurchaseOrderLineId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderLineId"));
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReceivedQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("PurchaseOrderLineId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("PurchaseOrderId", "ItemId");
+
+                    b.ToTable("PurchaseOrderLines");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.PurchaseOrderReceipt", b =>
+                {
+                    b.Property<int>("PurchaseOrderReceiptId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderReceiptId"));
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ItemId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewReceivedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("NewStock")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("PreviousReceivedQuantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PreviousStock")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PurchaseOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantityReceived")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.HasKey("PurchaseOrderReceiptId");
+
+                    b.HasIndex("ItemId");
+
+                    b.HasIndex("PurchaseOrderId", "ReceivedAt");
+
+                    b.HasIndex("BusinessId", "ItemId", "ReceivedAt");
+
+                    b.ToTable("PurchaseOrderReceipts");
+                });
+
             modelBuilder.Entity("ZoneBill_Lloren.Models.Space", b =>
                 {
                     b.Property<int>("SpaceId")
@@ -923,6 +1261,113 @@ namespace ZoneBill_Lloren.Migrations
                     b.ToTable("SubscriptionPlans");
                 });
 
+            modelBuilder.Entity("ZoneBill_Lloren.Models.SuperAdminAuditLog", b =>
+                {
+                    b.Property<int>("AuditLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AuditLogId"));
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ActorName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int?>("ActorUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("BusinessName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(400)
+                        .HasColumnType("nvarchar(400)");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("AuditLogId");
+
+                    b.HasIndex("ActionType", "CreatedAt");
+
+                    b.HasIndex("EntityType", "CreatedAt");
+
+                    b.ToTable("SuperAdminAuditLogs");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.Supplier", b =>
+                {
+                    b.Property<int>("SupplierId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierId"));
+
+                    b.Property<int>("BusinessId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContactPerson")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("EmailAddress")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("LeadTimeDaysOverride")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("SupplierName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SupplierId");
+
+                    b.HasIndex("BusinessId", "SupplierName")
+                        .IsUnique();
+
+                    b.ToTable("Suppliers");
+                });
+
             modelBuilder.Entity("ZoneBill_Lloren.Models.User", b =>
                 {
                     b.Property<int>("UserId")
@@ -1025,6 +1470,17 @@ namespace ZoneBill_Lloren.Migrations
                     b.Navigation("Plan");
                 });
 
+            modelBuilder.Entity("ZoneBill_Lloren.Models.BusinessLifecycleEvent", b =>
+                {
+                    b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
             modelBuilder.Entity("ZoneBill_Lloren.Models.CashDrawerTransaction", b =>
                 {
                     b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
@@ -1056,6 +1512,17 @@ namespace ZoneBill_Lloren.Migrations
                 });
 
             modelBuilder.Entity("ZoneBill_Lloren.Models.Customer", b =>
+                {
+                    b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.InventoryAlertLog", b =>
                 {
                     b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
                         .WithMany()
@@ -1270,6 +1737,78 @@ namespace ZoneBill_Lloren.Migrations
                     b.Navigation("Cashier");
                 });
 
+            modelBuilder.Entity("ZoneBill_Lloren.Models.PurchaseOrder", b =>
+                {
+                    b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZoneBill_Lloren.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("ZoneBill_Lloren.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.PurchaseOrderLine", b =>
+                {
+                    b.HasOne("ZoneBill_Lloren.Models.MenuItem", "MenuItem")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZoneBill_Lloren.Models.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("PurchaseOrderLines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MenuItem");
+
+                    b.Navigation("PurchaseOrder");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.PurchaseOrderReceipt", b =>
+                {
+                    b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZoneBill_Lloren.Models.MenuItem", "MenuItem")
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ZoneBill_Lloren.Models.PurchaseOrder", "PurchaseOrder")
+                        .WithMany("Receipts")
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+
+                    b.Navigation("MenuItem");
+
+                    b.Navigation("PurchaseOrder");
+                });
+
             modelBuilder.Entity("ZoneBill_Lloren.Models.Space", b =>
                 {
                     b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
@@ -1300,6 +1839,17 @@ namespace ZoneBill_Lloren.Migrations
                     b.Navigation("Plan");
                 });
 
+            modelBuilder.Entity("ZoneBill_Lloren.Models.Supplier", b =>
+                {
+                    b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
+                        .WithMany()
+                        .HasForeignKey("BusinessId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Business");
+                });
+
             modelBuilder.Entity("ZoneBill_Lloren.Models.User", b =>
                 {
                     b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
@@ -1308,6 +1858,13 @@ namespace ZoneBill_Lloren.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Business");
+                });
+
+            modelBuilder.Entity("ZoneBill_Lloren.Models.PurchaseOrder", b =>
+                {
+                    b.Navigation("PurchaseOrderLines");
+
+                    b.Navigation("Receipts");
                 });
 #pragma warning restore 612, 618
         }

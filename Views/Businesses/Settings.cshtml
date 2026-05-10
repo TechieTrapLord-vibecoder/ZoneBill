@@ -1,0 +1,344 @@
+@model ZoneBill_Lloren.Models.Business
+
+@{
+    ViewData["Title"] = "Business Settings";
+    var activeTab = (ViewData["ActiveSettingsTab"] as string) ?? "profile";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0" style="color:var(--zb-text);">
+        <i class="bi bi-gear-fill me-2" style="color:var(--zb-secondary);"></i>Business Settings
+    </h4>
+</div>
+
+<form asp-action="Settings" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="BusinessId" value="@Model.BusinessId" />
+
+    <ul class="nav nav-tabs mb-4 px-3 border-0" id="settingsTabs" style="border-bottom: 1px solid rgba(255,255,255,0.08) !important;">
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "profile" ? "active" : string.Empty) bg-transparent fw-semibold" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button" role="tab" style="color:@(activeTab == "profile" ? "var(--zb-text)" : "var(--zb-text-muted)"); border:none; border-bottom: 2px solid @(activeTab == "profile" ? "var(--zb-secondary)" : "transparent"); border-radius: 0;">
+                <i class="bi bi-person-badge me-1"></i>Profile
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "appearance" ? "active" : string.Empty) bg-transparent fw-semibold" id="appearance-tab" data-bs-toggle="tab" data-bs-target="#appearance" type="button" role="tab" style="color:@(activeTab == "appearance" ? "var(--zb-text)" : "var(--zb-text-muted)"); border:none; border-bottom: 2px solid @(activeTab == "appearance" ? "var(--zb-secondary)" : "transparent"); border-radius: 0;">
+                <i class="bi bi-palette me-1"></i>Appearance
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "financial" ? "active" : string.Empty) bg-transparent fw-semibold" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial" type="button" role="tab" style="color:@(activeTab == "financial" ? "var(--zb-text)" : "var(--zb-text-muted)"); border:none; border-bottom: 2px solid @(activeTab == "financial" ? "var(--zb-secondary)" : "transparent"); border-radius: 0;">
+                <i class="bi bi-bank me-1"></i>Financial
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link @(activeTab == "inventory" ? "active" : string.Empty) bg-transparent fw-semibold" id="inventory-tab" data-bs-toggle="tab" data-bs-target="#inventory" type="button" role="tab" style="color:@(activeTab == "inventory" ? "var(--zb-text)" : "var(--zb-text-muted)"); border:none; border-bottom: 2px solid @(activeTab == "inventory" ? "var(--zb-secondary)" : "transparent"); border-radius: 0;">
+                <i class="bi bi-box-seam me-1"></i>Inventory Recommendation
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content" id="settingsTabContent">
+        @* ── Profile Tab ─────────────────────────────────────────────── *@
+        <div class="tab-pane fade @(activeTab == "profile" ? "show active" : string.Empty)" id="profile">
+            <div class="zb-table-card mb-4">
+                <div class="p-4">
+                    <h6 class="fw-semibold mb-3" style="color:var(--zb-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;">
+                        <i class="bi bi-building me-1"></i>Business Identity
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="businessName" class="form-label zb-form-label">Business Name</label>
+                            <input id="businessName" type="text" name="BusinessName" value="@Model.BusinessName" class="form-control zb-form-input" required />
+                            <span class="text-danger small">@(ViewData.ModelState["BusinessName"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="domainPrefix" class="form-label zb-form-label">Domain Prefix</label>
+                            <input id="domainPrefix" type="text" value="@Model.DomainPrefix" class="form-control zb-form-input" disabled />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">Domain prefix cannot be changed after registration.</div>
+                        </div>
+                        <div class="col-12 mt-4">
+                            <label for="logoFile" class="form-label zb-form-label">Business Logo</label>
+                            @if (!string.IsNullOrEmpty(Model.LogoUrl))
+                            {
+                                <div class="mb-3">
+                                    <img src="@Model.LogoUrl" alt="Current Logo" style="height:64px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);" />
+                                </div>
+                            }
+                            <input id="logoFile" type="file" name="LogoFile" class="form-control zb-form-input" accept=".png,.jpg,.jpeg,.webp" />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">Upload a new logo to replace the current one (.png, .jpg, .webp). Powered by Cloudinary.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["LogoFile"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Appearance Tab ──────────────────────────────────────────────── *@
+        <div class="tab-pane fade @(activeTab == "appearance" ? "show active" : string.Empty)" id="appearance">
+            <div class="zb-table-card mb-4">
+                <div class="p-4">
+                    <h6 class="fw-semibold mb-4" style="color:var(--zb-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;">
+                        <i class="bi bi-palette me-1"></i>Theme Customization
+                    </h6>
+                    <div class="row g-4">
+                        @{
+                            var currentTheme = Model.ThemePreference ?? "Nightlife";
+                        }
+                        
+                        <!-- Nightlife Theme -->
+                        <div class="col-md-4">
+                            <label class="w-100" style="cursor: pointer;">
+                                <input type="radio" name="ThemePreference" value="Nightlife" class="d-none theme-radio" @(currentTheme == "Nightlife" ? "checked" : "") />
+                                <div class="theme-card rounded p-3 text-center" style="background:#0f172a; border: 2px solid @(currentTheme == "Nightlife" ? "#06b6d4" : "rgba(255,255,255,0.1)"); transition: all 0.2s;">
+                                    <div class="d-flex justify-content-center gap-2 mb-3">
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#0f172a; border: 1px solid rgba(255,255,255,0.2);"></div>
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#06b6d4;"></div>
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#f97316;"></div>
+                                    </div>
+                                    <h6 class="mb-1 fw-bold" style="color:#f1f5f9;">Nightlife (Default)</h6>
+                                    <small style="color:#94a3b8;">Dark mode</small>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Daylight Theme -->
+                        <div class="col-md-4">
+                            <label class="w-100" style="cursor: pointer;">
+                                <input type="radio" name="ThemePreference" value="Daylight" class="d-none theme-radio" @(currentTheme == "Daylight" ? "checked" : "") />
+                                <div class="theme-card rounded p-3 text-center" style="background:#f8fafc; border: 2px solid @(currentTheme == "Daylight" ? "#0284c7" : "rgba(0,0,0,0.1)"); transition: all 0.2s;">
+                                    <div class="d-flex justify-content-center gap-2 mb-3">
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#f8fafc; border: 1px solid rgba(0,0,0,0.1);"></div>
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#0284c7;"></div>
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#ea580c;"></div>
+                                    </div>
+                                    <h6 class="mb-1 fw-bold" style="color:#0f172a;">Daylight</h6>
+                                    <small style="color:#64748b;">Light clean mode</small>
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- Ocean Theme -->
+                        <div class="col-md-4">
+                            <label class="w-100" style="cursor: pointer;">
+                                <input type="radio" name="ThemePreference" value="Ocean" class="d-none theme-radio" @(currentTheme == "Ocean" ? "checked" : "") />
+                                <div class="theme-card rounded p-3 text-center" style="background:#011627; border: 2px solid @(currentTheme == "Ocean" ? "#2ec4b6" : "rgba(255,255,255,0.1)"); transition: all 0.2s;">
+                                    <div class="d-flex justify-content-center gap-2 mb-3">
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#011627; border: 1px solid rgba(255,255,255,0.2);"></div>
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#2ec4b6;"></div>
+                                        <div class="rounded-circle" style="width:24px; height:24px; background:#ff9f1c;"></div>
+                                    </div>
+                                    <h6 class="mb-1 fw-bold" style="color:#fdfffc;">Ocean</h6>
+                                    <small style="color:#8e9dab;">Deep navy blue mode</small>
+                                </div>
+                            </label>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* ── Financial Tab ───────────────────────────────────────────────── *@
+        <div class="tab-pane fade @(activeTab == "financial" ? "show active" : string.Empty)" id="financial">
+            @* Tax Config *@
+            <div class="zb-table-card mb-4">
+                <div class="p-4">
+                    <h6 class="fw-semibold mb-3" style="color:var(--zb-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;">
+                        <i class="bi bi-receipt-cutoff me-1"></i>Tax Configuration
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="taxRatePercentage" class="form-label zb-form-label">Tax Rate (%)</label>
+                            <div class="input-group">
+                                <input id="taxRatePercentage" type="number" name="TaxRatePercentage" value="@Model.TaxRatePercentage"
+                                       class="form-control zb-form-input" min="0" max="100" step="0.01" />
+                                <span class="input-group-text" style="background:var(--zb-primary-mid);color:var(--zb-text-muted);border-color:rgba(255,255,255,0.08);">%</span>
+                            </div>
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">Applied to all invoices (e.g., 12 for 12% VAT).</div>
+                            <span class="text-danger small">@(ViewData.ModelState["TaxRatePercentage"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <div class="p-3 rounded w-100" style="background:rgba(6,182,212,0.07);border:1px solid rgba(6,182,212,0.18);">
+                                <div class="small" style="color:var(--zb-text-muted);">
+                                    <i class="bi bi-info-circle me-1" style="color:var(--zb-secondary);"></i>
+                                    This tax rate will be used when generating invoices for bookings and orders. It does not apply retroactively to existing invoices.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Capital Coinfg *@
+            <div class="zb-table-card mb-4">
+                <div class="p-4">
+                    <h6 class="fw-semibold mb-3" style="color:var(--zb-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;">
+                        <i class="bi bi-cash-coin me-1"></i>Owner's Initial Capital
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="initialCapital" class="form-label zb-form-label">Initial Capital (₱)</label>
+                            <div class="input-group">
+                                <span class="input-group-text" style="background:var(--zb-primary-mid);color:var(--zb-text-muted);border-color:rgba(255,255,255,0.08);">₱</span>
+                                <input id="initialCapital" type="number" name="InitialCapital" value="@Model.InitialCapital"
+                                       class="form-control zb-form-input" min="0" step="0.01" />
+                            </div>
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">The money you personally invested to start the business.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InitialCapital"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <div class="p-3 rounded w-100" style="background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.2);">
+                                <div class="small mb-1 fw-semibold" style="color:#f97316;"><i class="bi bi-magic me-1"></i>Auto-Accounting</div>
+                                <div class="small" style="color:var(--zb-text-muted);">
+                                    When you save this, ZoneBill will automatically create the accounting entries:<br />
+                                    <span class="fw-semibold" style="color:var(--zb-text);">DR Cash on Hand ₱X &nbsp;|&nbsp; CR Owner's Equity ₱X</span><br />
+                                    This keeps your <strong>Balance Sheet perfectly balanced</strong> from day one.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade @(activeTab == "inventory" ? "show active" : string.Empty)" id="inventory">
+            <div class="zb-table-card mb-4">
+                <div class="p-4">
+                    <h6 class="fw-semibold mb-3" style="color:var(--zb-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;">
+                        <i class="bi bi-envelope-paper me-1"></i>Alert Delivery
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-4">
+                                <input class="form-check-input" type="checkbox" role="switch" aria-checked="@(Model.InventoryAlertEnabled ? "true" : "false")" id="inventoryAlertEnabled" name="InventoryAlertEnabled" value="true" @(Model.InventoryAlertEnabled ? "checked" : "") />
+                                <label class="form-check-label zb-form-label fw-semibold" for="inventoryAlertEnabled">Enable daily reorder alert email</label>
+                            </div>
+                            <input type="hidden" name="InventoryAlertEnabled" value="false" />
+                        </div>
+                        <div class="col-md-8">
+                            <label for="inventoryAlertEmail" class="form-label zb-form-label">Alert Email Override</label>
+                            <input id="inventoryAlertEmail" type="email" name="InventoryAlertEmail" value="@Model.InventoryAlertEmail" class="form-control zb-form-input" maxlength="256" placeholder="Leave blank to use the MainAdmin email" />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">ZoneBill will send the daily reorder summary here. Leave empty to use your MainAdmin account email.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InventoryAlertEmail"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="zb-table-card mb-4">
+                <div class="p-4">
+                    <h6 class="fw-semibold mb-3" style="color:var(--zb-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;">
+                        <i class="bi bi-graph-up-arrow me-1"></i>Reorder Algorithm
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="inventoryReorderLookbackDays" class="form-label zb-form-label">Lookback Days</label>
+                            <input id="inventoryReorderLookbackDays" type="number" name="InventoryReorderLookbackDays" value="@Model.InventoryReorderLookbackDays" class="form-control zb-form-input" min="7" max="90" required />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">Past sales window used to estimate demand.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InventoryReorderLookbackDays"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inventoryLeadTimeDays" class="form-label zb-form-label">Lead Time Days</label>
+                            <input id="inventoryLeadTimeDays" type="number" name="InventoryLeadTimeDays" value="@Model.InventoryLeadTimeDays" class="form-control zb-form-input" min="1" max="30" required />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">How many days suppliers need before stock arrives.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InventoryLeadTimeDays"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inventorySafetyStockDays" class="form-label zb-form-label">Safety Stock Days</label>
+                            <input id="inventorySafetyStockDays" type="number" name="InventorySafetyStockDays" value="@Model.InventorySafetyStockDays" class="form-control zb-form-input" min="0" max="30" required />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">Extra buffer kept to absorb spikes.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InventorySafetyStockDays"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inventoryTargetCoverageDays" class="form-label zb-form-label">Target Coverage Days</label>
+                            <input id="inventoryTargetCoverageDays" type="number" name="InventoryTargetCoverageDays" value="@Model.InventoryTargetCoverageDays" class="form-control zb-form-input" min="1" max="60" required />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">Days of stock to hold after each restock.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InventoryTargetCoverageDays"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 rounded" style="background:rgba(6,182,212,0.07);border:1px solid rgba(6,182,212,0.18);">
+                        <div class="small fw-semibold mb-1" style="color:var(--zb-secondary);">How the reorder math works</div>
+                        <div class="small" style="color:var(--zb-text-muted);">
+                            ZoneBill estimates each item's average daily demand from your recent sales, calculates a reorder point using lead time + safety stock, then recommends enough units to cover the target days after replenishment.
+                        </div>
+                    </div>
+                    <div class="mt-4 d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                        <div class="small" style="color:var(--zb-text-muted);">
+                            Send a test using the current form values to verify the reorder email instantly.
+                        </div>
+                        <button type="submit" class="btn fw-semibold" formaction="@Url.Action("SendTestReorderEmail", "Businesses")" formmethod="post" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
+                            <i class="bi bi-send-check me-1"></i>Send Test Reorder Email Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="zb-table-card mb-4">
+                <div class="p-4">
+                    <h6 class="fw-semibold mb-3" style="color:var(--zb-secondary);letter-spacing:.04em;text-transform:uppercase;font-size:.75rem;">
+                        <i class="bi bi-bar-chart-line me-1"></i>Demand Forecasting
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="inventoryForecastLookbackDays" class="form-label zb-form-label">Forecast Lookback Days</label>
+                            <input id="inventoryForecastLookbackDays" type="number" name="InventoryForecastLookbackDays" value="@Model.InventoryForecastLookbackDays" class="form-control zb-form-input" min="14" max="90" required />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">How much recent sales history the forecast model uses.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InventoryForecastLookbackDays"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="inventoryForecastHorizonDays" class="form-label zb-form-label">Primary Forecast Horizon</label>
+                            <input id="inventoryForecastHorizonDays" type="number" name="InventoryForecastHorizonDays" value="@Model.InventoryForecastHorizonDays" class="form-control zb-form-input" min="7" max="30" required />
+                            <div class="form-text" style="color:var(--zb-text-muted);font-size:.75rem;">Primary planning horizon shown in forecast summaries and reorder guidance.</div>
+                            <span class="text-danger small">@(ViewData.ModelState["InventoryForecastHorizonDays"]?.Errors.FirstOrDefault()?.ErrorMessage)</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-3 rounded" style="background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.2);">
+                        <div class="small fw-semibold mb-1" style="color:var(--zb-accent);">How the forecast math works</div>
+                        <div class="small" style="color:var(--zb-text-muted);">
+                            ZoneBill uses a weighted moving average, so newer sales days count more than older ones. It then projects 7, 14, and 30 day demand, estimates stockout timing, and feeds that signal back into the reorder dashboard.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <button type="submit" class="btn fw-semibold px-4" style="background:var(--zb-secondary);color:#0f172a;border:none;">
+            <i class="bi bi-check-lg me-1"></i>Save Settings
+        </button>
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        // Update tab styling on click
+        const tabLinks = document.querySelectorAll('button[data-bs-toggle="tab"]');
+        tabLinks.forEach(link => {
+            link.addEventListener('shown.bs.tab', event => {
+                tabLinks.forEach(l => {
+                    l.style.borderBottomColor = 'transparent';
+                    l.style.color = 'var(--zb-text-muted)';
+                });
+                event.target.style.borderBottomColor = 'var(--zb-secondary)';
+                event.target.style.color = 'var(--zb-text)';
+            });
+        });
+
+        // Theme radio styling
+        const themeRadios = document.querySelectorAll('.theme-radio');
+        themeRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                document.querySelectorAll('.theme-card').forEach(card => {
+                    card.style.borderColor = card.closest('label').querySelector('.theme-radio').value === 'Daylight' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)';
+                });
+                const selectedSet = e.target.closest('label').querySelector('.theme-card');
+                const themeVal = e.target.value;
+                if(themeVal === 'Nightlife') selectedSet.style.borderColor = '#06b6d4';
+                if(themeVal === 'Daylight') selectedSet.style.borderColor = '#0284c7';
+                if(themeVal === 'Ocean') selectedSet.style.borderColor = '#2ec4b6';
+            });
+        });
+    </script>
+}

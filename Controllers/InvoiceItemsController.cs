@@ -22,16 +22,23 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: InvoiceItems
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
 
-            var invoiceItems = _context.InvoiceItems
+            const int pageSize = 10;
+            var query = _context.InvoiceItems
                 .Include(i => i.Invoice)
-                .Where(i => i.Invoice.BusinessId == businessId.Value);
-
-            return View(await invoiceItems.ToListAsync());
+                .Where(i => i.Invoice.BusinessId == businessId.Value)
+                .OrderByDescending(i => i.InvoiceItemId);
+            var totalCount = await query.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+            return View(await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync());
         }
 
         // GET: InvoiceItems/Details/5
@@ -159,45 +166,19 @@ namespace ZoneBill_Lloren.Controllers
             return View(invoiceItem);
         }
 
-        // GET: InvoiceItems/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: InvoiceItems/Delete — Deletion disabled
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var invoiceItem = await _context.InvoiceItems
-                .Include(i => i.Invoice)
-                .FirstOrDefaultAsync(m => m.InvoiceItemId == id && m.Invoice.BusinessId == businessId.Value);
-            if (invoiceItem == null)
-            {
-                return NotFound();
-            }
-
-            return View(invoiceItem);
+            TempData["Warning"] = "Deletion is disabled. Invoice line items are financial records.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: InvoiceItems/Delete/5
+        // POST: InvoiceItems/Delete — Deletion disabled
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var invoiceItem = await _context.InvoiceItems
-                .Include(ii => ii.Invoice)
-                .FirstOrDefaultAsync(ii => ii.InvoiceItemId == id && ii.Invoice.BusinessId == businessId.Value);
-            if (invoiceItem != null)
-            {
-                _context.InvoiceItems.Remove(invoiceItem);
-            }
-
-            await _context.SaveChangesAsync();
+            TempData["Warning"] = "Deletion is disabled. Invoice line items are financial records.";
             return RedirectToAction(nameof(Index));
         }
 

@@ -1,25 +1,247 @@
 @model ZoneBill_Lloren.Models.PosDashboardViewModel
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 
 @{
     ViewData["Title"] = "Front Desk POS";
+    var csrfToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
 }
+
+<style>
+    .pos-action-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0.5rem 0.85rem;
+        border-width: 1px !important;
+        border-style: solid !important;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        box-shadow: none;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    }
+
+    .pos-action-btn:hover,
+    .pos-action-btn:focus {
+        box-shadow: none;
+    }
+
+    .pos-action-btn:disabled,
+    .pos-action-btn.disabled {
+        opacity: 1;
+        filter: none;
+        cursor: not-allowed;
+    }
+
+    .pos-page-btn {
+        background: var(--zb-soft-accent);
+        color: var(--zb-secondary);
+        border: 1px solid color-mix(in srgb, var(--zb-secondary) 34%, var(--zb-border) 66%);
+    }
+
+    .pos-page-btn:hover {
+        background: var(--zb-hover);
+        color: var(--zb-secondary);
+        border-color: var(--zb-secondary);
+    }
+
+    .pos-space-card {
+        background: var(--zb-surface);
+        border: 1px solid var(--zb-border);
+        box-shadow: var(--zb-shadow);
+    }
+
+    .pos-space-card--available {
+        border-color: rgba(34, 197, 94, 0.28);
+    }
+
+    .pos-space-card--occupied {
+        border-color: rgba(239, 68, 68, 0.28);
+    }
+
+    .pos-space-card__header {
+        border-bottom: 1px solid var(--zb-border);
+    }
+
+    .pos-space-card__header--available {
+        background: rgba(34, 197, 94, 0.12);
+        color: #15803d;
+    }
+
+    .pos-space-card__header--occupied {
+        background: rgba(239, 68, 68, 0.12);
+        color: #b91c1c;
+    }
+
+    .pos-inline-alert {
+        border-radius: 0.5rem;
+        border: 1px solid;
+        font-weight: 600;
+    }
+
+    .pos-inline-alert--error {
+        background: rgba(239, 68, 68, 0.12);
+        border-color: rgba(239, 68, 68, 0.25);
+        color: #b91c1c;
+    }
+
+    .pos-inline-alert--success {
+        background: rgba(34, 197, 94, 0.12);
+        border-color: rgba(34, 197, 94, 0.25);
+        color: #15803d;
+    }
+
+    .pos-checkout-callout {
+        background: rgba(249, 115, 22, 0.16);
+        border: 1px solid rgba(249, 115, 22, 0.3);
+        color: #c2410c;
+    }
+
+    .pos-portal-callout {
+        background: var(--zb-soft-accent);
+        border: 1px solid color-mix(in srgb, var(--zb-secondary) 35%, var(--zb-border) 65%);
+        color: var(--zb-secondary);
+    }
+
+    .pos-order-btn {
+        background: var(--zb-soft-accent);
+        color: var(--zb-secondary);
+        border-color: color-mix(in srgb, var(--zb-secondary) 35%, var(--zb-border) 65%);
+    }
+
+    .pos-order-btn:hover,
+    .pos-order-btn:focus {
+        background: var(--zb-hover);
+        color: var(--zb-secondary);
+        border-color: var(--zb-secondary);
+    }
+
+    .pos-order-btn:disabled {
+        background: color-mix(in srgb, var(--zb-soft-accent) 65%, transparent);
+        color: color-mix(in srgb, var(--zb-secondary) 60%, var(--zb-text-muted) 40%);
+        border-color: color-mix(in srgb, var(--zb-secondary) 22%, var(--zb-border) 78%);
+    }
+
+    .pos-order-history-btn {
+        background: rgba(168, 85, 247, 0.12);
+        color: #7c3aed;
+        border-color: rgba(168, 85, 247, 0.24);
+    }
+
+    .pos-order-history-btn:hover,
+    .pos-order-history-btn:focus {
+        background: rgba(168, 85, 247, 0.18);
+        color: #6d28d9;
+        border-color: rgba(168, 85, 247, 0.34);
+    }
+
+    .pos-order-history-btn:disabled {
+        background: rgba(168, 85, 247, 0.08);
+        color: rgba(109, 40, 217, 0.7);
+        border-color: rgba(168, 85, 247, 0.18);
+    }
+
+    .pos-checkout-btn {
+        background: rgba(239, 68, 68, 0.14);
+        color: #b91c1c;
+        border-color: rgba(239, 68, 68, 0.24);
+    }
+
+    .pos-checkout-btn:hover,
+    .pos-checkout-btn:focus {
+        background: rgba(239, 68, 68, 0.18);
+        color: #991b1b;
+        border-color: rgba(239, 68, 68, 0.32);
+    }
+
+    .pos-checkout-btn:disabled {
+        background: rgba(239, 68, 68, 0.1);
+        color: rgba(185, 28, 28, 0.72);
+        border-color: rgba(239, 68, 68, 0.18);
+    }
+
+    .pos-start-btn {
+        background: rgba(34, 197, 94, 0.14);
+        color: #15803d;
+        border-color: rgba(34, 197, 94, 0.24);
+    }
+
+    .pos-start-btn:hover,
+    .pos-start-btn:focus {
+        background: rgba(34, 197, 94, 0.18);
+        color: #166534;
+        border-color: rgba(34, 197, 94, 0.32);
+    }
+
+    .pos-start-btn:disabled {
+        background: rgba(34, 197, 94, 0.1);
+        color: rgba(21, 128, 61, 0.72);
+        border-color: rgba(34, 197, 94, 0.18);
+    }
+
+    .pos-qr-btn {
+        background: var(--zb-soft-accent);
+        color: var(--zb-secondary);
+        border-color: color-mix(in srgb, var(--zb-secondary) 32%, var(--zb-border) 68%);
+    }
+
+    .pos-qr-btn:hover,
+    .pos-qr-btn:focus {
+        background: var(--zb-hover);
+        color: var(--zb-secondary);
+        border-color: var(--zb-secondary);
+    }
+
+    .pos-qr-btn:disabled {
+        background: color-mix(in srgb, var(--zb-soft-accent) 65%, transparent);
+        color: color-mix(in srgb, var(--zb-secondary) 60%, var(--zb-text-muted) 40%);
+        border-color: color-mix(in srgb, var(--zb-secondary) 22%, var(--zb-border) 78%);
+    }
+
+    .pos-theme-modal .modal-content {
+        background: var(--zb-surface);
+        border-color: var(--zb-border);
+        box-shadow: var(--zb-shadow);
+    }
+
+    .pos-theme-modal .modal-header,
+    .pos-theme-modal .modal-footer {
+        border-color: var(--zb-border);
+        background: color-mix(in srgb, var(--zb-surface-alt) 85%, transparent);
+    }
+
+    .pos-theme-modal .btn-close {
+        filter: var(--zb-btn-close-filter, invert(1));
+    }
+
+    html.theme-daylight .pos-theme-modal .btn-close {
+        filter: none;
+    }
+
+    .pos-modal-tile {
+        background: var(--zb-surface-alt) !important;
+        border-color: var(--zb-border) !important;
+    }
+
+    .pos-modal-tile:hover {
+        background: var(--zb-hover) !important;
+        border-color: color-mix(in srgb, var(--zb-secondary) 35%, var(--zb-border) 65%) !important;
+    }
+
+    .pos-modal-cart-items {
+        background: var(--zb-surface-alt) !important;
+        border-color: var(--zb-border) !important;
+    }
+</style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-display me-2" style="color:var(--zb-secondary);"></i>Front Desk POS</h4>
     <div class="d-flex gap-2 align-items-center">
-        <a asp-action="Tables" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-grid-3x3-gap me-1"></i>Floor Layout</a>
+        <a asp-action="Tables" class="btn btn-sm fw-semibold pos-page-btn"><i class="bi bi-grid-3x3-gap me-1"></i>Floor Layout</a>
         <span class="zb-badge zb-badge-cyan"><i class="bi bi-broadcast me-1"></i>Live Sessions</span>
     </div>
 </div>
-
-@if (TempData["Error"] != null)
-{
-    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;">@TempData["Error"]</div>
-}
-@if (TempData["Success"] != null)
-{
-    <div class="rounded-3 px-3 py-2 mb-3" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#86efac;">@TempData["Success"]</div>
-}
 
 <div class="row g-3">
     @foreach (var space in Model.Spaces)
@@ -29,10 +251,10 @@
              data-req-split="@(space.RequestedSplitCount ?? 0)"
              data-menu-total="@space.MenuTotal.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
              data-order-count="@space.OrderItemCount">
-            <div class="rounded-3 h-100 overflow-hidden" style="background:var(--zb-primary-mid);border:1px solid @(occupied ? "rgba(239,68,68,0.35)" : "rgba(34,197,94,0.35)");">
-                <div class="d-flex justify-content-between align-items-center px-3 py-2" style="background:@(occupied ? "rgba(239,68,68,0.15)" : "rgba(34,197,94,0.15)");border-bottom:1px solid @(occupied ? "rgba(239,68,68,0.25)" : "rgba(34,197,94,0.25)");">
-                    <strong style="color:@(occupied ? "#fca5a5" : "#86efac");">@space.SpaceName</strong>
-                    <span class="small fw-semibold" style="color:@(occupied ? "#fca5a5" : "#86efac");">@space.Status</span>
+            <div class="rounded-3 h-100 overflow-hidden pos-space-card @(occupied ? "pos-space-card--occupied" : "pos-space-card--available")">
+                <div class="d-flex justify-content-between align-items-center px-3 py-2 pos-space-card__header @(occupied ? "pos-space-card__header--occupied" : "pos-space-card__header--available")">
+                    <strong>@space.SpaceName</strong>
+                    <span class="small fw-semibold">@space.Status</span>
                 </div>
                 <div class="p-3">
                     <p class="mb-1 small" style="color:var(--zb-text-muted);">Floor: <strong style="color:var(--zb-text);">@space.FloorArea</strong> | Capacity: <strong style="color:var(--zb-text);">@space.Capacity pax</strong></p>
@@ -40,38 +262,39 @@
 
                     @if (occupied)
                     {
-                        <div class="pos-checkout-alert rounded-2 px-2 py-1 mb-2 text-center zb-pulse-alert" style="background:rgba(249,115,22,0.2);border:1px solid rgba(249,115,22,0.4);@(space.CheckoutRequested ? "" : "display:none;")">
+                        <div class="pos-checkout-alert pos-checkout-callout rounded-2 px-2 py-1 mb-2 text-center zb-pulse-alert" style="@(space.CheckoutRequested ? "" : "display:none;")">
                             <i class="bi bi-bell-fill me-1" style="color:var(--zb-accent);"></i>
-                            <span class="small fw-semibold" style="color:#fb923c;">Checkout Requested!</span>
+                            <span class="small fw-semibold">Checkout Requested!</span>
+                        </div>
+                        <div class="pos-portal-alert pos-portal-callout rounded-2 px-2 py-1 mb-2 text-center" style="display:none;">
+                            <i class="bi bi-phone me-1" style="color:var(--zb-secondary);"></i>
+                            <span class="small fw-semibold pos-portal-count">Portal order pending</span>
                         </div>
                         <p class="mb-2 small" style="color:var(--zb-text);">
                             Booking #@space.ActiveBookingId
                             <span class="zb-badge zb-badge-orange ms-2 pos-order-badge" style="@(space.OrderItemCount > 0 ? "" : "display:none;")">@space.OrderItemCount item@(space.OrderItemCount != 1 ? "s" : "") ordered</span>
                         </p>
-                        <p class="mb-3 small" style="color:var(--zb-text-muted);">Elapsed: <strong class="pos-timer" style="color:var(--zb-secondary);" data-start-time="@space.ActiveStartTime?.ToString("o")">00:00:00</strong></p>
+                        <p class="mb-3 small" style="color:var(--zb-text-muted);">Elapsed: <strong class="pos-timer" style="color:var(--zb-secondary);" data-start-time="@(space.ActiveStartTime.HasValue ? new DateTimeOffset(space.ActiveStartTime.Value, TimeSpan.FromHours(8)).ToUnixTimeMilliseconds().ToString() : "")">00:00:00</strong></p>
 
                         <!-- ── Add Order ── -->
-                        <button type="button" class="btn btn-sm fw-semibold w-100 mb-2"
-                                style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"
+                        <button type="button" class="btn btn-sm fw-semibold w-100 mb-2 pos-action-btn pos-order-btn"
                                 onclick="openOrderModal(@space.ActiveBookingId, '@Html.Raw(space.SpaceName.Replace("'", "\\'"))')">
                             <i class="bi bi-bag-plus me-1"></i>Add Order
                         </button>
 
                         <!-- ── View Orders ── -->
-                        <button type="button" class="btn btn-sm fw-semibold w-100 mb-2"
-                                style="background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.3);"
+                        <button type="button" class="btn btn-sm fw-semibold w-100 mb-2 pos-action-btn pos-order-history-btn"
                                 onclick="openOrdersModal(@space.ActiveBookingId, '@Html.Raw(space.SpaceName.Replace("'", "\\'"))')">
                             <i class="bi bi-list-ul me-1"></i>View Orders
                         </button>
 
                         <div class="d-grid">
-                            <button type="button" class="btn btn-sm fw-semibold pos-checkout-btn"
-                                    style="background:rgba(239,68,68,0.2);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);"
+                                <button type="button" class="btn btn-sm fw-semibold pos-action-btn pos-checkout-btn"
                                     onclick="openCheckoutModal(this, {
                                         bookingId: @space.ActiveBookingId,
                                         spaceName: '@Html.Raw(space.SpaceName.Replace("'", "\\'"))',
                                         refCode: '@Html.Raw((space.ReferenceCode ?? "").Replace("'", "\\'"))',
-                                        startTime: '@space.ActiveStartTime?.ToString("o")',
+                                        startTime: @(space.ActiveStartTime.HasValue ? new DateTimeOffset(space.ActiveStartTime.Value, TimeSpan.FromHours(8)).ToUnixTimeMilliseconds().ToString() : "0"),
                                         hourlyRate: @space.LockedHourlyRate.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
                                         taxPct: @space.TaxRatePercentage.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
                                     })">
@@ -79,7 +302,7 @@
                             </button>
                         </div>
                         <div class="mt-2">
-                            <button type="button" class="btn btn-sm w-100 fw-semibold" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);"
+                                <button type="button" class="btn btn-sm w-100 fw-semibold pos-action-btn pos-qr-btn"
                                     onclick="showPosQR(@space.SpaceId, '@Html.Raw(space.SpaceName.Replace("'","\\'"))')">
                                 <i class="bi bi-qr-code me-1"></i>Show QR
                             </button>
@@ -101,11 +324,11 @@
                                 </select>
                             </div>
                             <div class="d-grid">
-                                <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.2);color:#86efac;border:1px solid rgba(34,197,94,0.3);">Start Session</button>
+                                <button type="submit" class="btn btn-sm fw-semibold pos-action-btn pos-start-btn">Start Session</button>
                             </div>
                         </form>
                         <div class="mt-2">
-                            <button type="button" class="btn btn-sm w-100 fw-semibold" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);"
+                                <button type="button" class="btn btn-sm w-100 fw-semibold pos-action-btn pos-qr-btn"
                                     onclick="showPosQR(@space.SpaceId, '@Html.Raw(space.SpaceName.Replace("'","\\'"))')">
                                 <i class="bi bi-qr-code me-1"></i>Show QR
                             </button>
@@ -118,10 +341,10 @@
 </div>
 
 <!-- ── POS QR Modal ──────────────────────────────────────────────── -->
-<div class="modal fade" id="posQrModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade pos-theme-modal" id="posQrModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width:360px;">
-        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.25);border-radius:16px;overflow:hidden;">
-            <div class="modal-header px-4 py-3" style="border-color:rgba(6,182,212,0.15);background:rgba(6,182,212,0.06);">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+            <div class="modal-header px-4 py-3">
                 <h5 class="modal-title fw-bold mb-0" id="posQrTitle" style="color:var(--zb-text);">QR Code</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -130,8 +353,8 @@
                 <p class="small mb-1" style="color:var(--zb-text-muted);">Scan to open the customer portal</p>
                 <p class="small fw-semibold mb-0" id="posQrUrl" style="color:var(--zb-secondary);word-break:break-all;"></p>
             </div>
-            <div class="modal-footer px-4 py-3" style="border-color:rgba(6,182,212,0.15);">
-                <a id="posQrDownload" href="" download="qr.png" class="btn btn-sm fw-semibold w-100" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+            <div class="modal-footer px-4 py-3">
+                <a id="posQrDownload" href="" download="qr.png" class="btn btn-sm fw-semibold w-100 pos-page-btn">
                     <i class="bi bi-download me-1"></i>Download
                 </a>
             </div>
@@ -140,10 +363,10 @@
 </div>
 
 <!-- ── Add Order Modal ─────────────────────────────────────────────── -->
-<div class="modal fade" id="posOrderModal" tabindex="-1" aria-hidden="true" data-booking-id="">
+<div class="modal fade pos-theme-modal" id="posOrderModal" tabindex="-1" aria-hidden="true" data-booking-id="">
     <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width:720px;">
-        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.25);border-radius:16px;overflow:hidden;">
-            <div class="modal-header px-4 py-3" style="border-color:rgba(6,182,212,0.15);background:rgba(6,182,212,0.06);">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+            <div class="modal-header px-4 py-3">
                 <div>
                     <h5 class="modal-title fw-bold mb-0" id="orderModalTitle" style="color:var(--zb-text);">Add Order</h5>
                     <small id="orderModalSub" style="color:var(--zb-text-muted);"></small>
@@ -156,17 +379,31 @@
                     <div class="col-12 col-md-7">
                         <div class="d-flex align-items-center justify-content-between mb-2">
                             <span class="small fw-semibold" style="color:var(--zb-text-muted);text-transform:uppercase;letter-spacing:.05em;font-size:.7rem;">Menu Items</span>
-                            <input type="text" id="orderModalSearch" class="form-control form-control-sm" placeholder="Search..." style="width:140px;background:var(--zb-primary);color:var(--zb-text);border-color:rgba(148,163,184,0.2);font-size:.8rem;" />
+                            <input type="text" id="orderModalSearch" class="form-control form-control-sm zb-form-input" placeholder="Search..." style="width:140px;font-size:.8rem;" />
                         </div>
                         <div id="orderModalTilesGrid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;max-height:380px;overflow-y:auto;padding-right:2px;">
+                            @{ string? currentCategory = null; }
                             @foreach (var item in Model.MenuItems)
                             {
+                                if (currentCategory != item.Category)
+                                {
+                                    currentCategory = item.Category;
+                                    <div style="grid-column:1 / -1;padding:4px 2px 0;color:var(--zb-text-muted);font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">@currentCategory</div>
+                                }
                                 <button type="button" class="pos-modal-tile text-start rounded-2 p-2 border"
-                                        style="background:rgba(15,23,42,0.7);border-color:rgba(148,163,184,0.12)!important;transition:all .15s;"
+                                        style="transition:all .15s;"
                                         data-item-id="@item.ItemId"
                                         data-name="@item.ItemName"
+                                        data-category="@item.Category"
                                         data-price="@item.CurrentPrice.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)"
                                         data-stock="@item.StockAvailable">
+                                    @if (!string.IsNullOrWhiteSpace(item.ImageUrl))
+                                    {
+                                        <div class="mb-2">
+                                            <img src="@item.ImageUrl" alt="@item.ItemName" style="width:100%;height:58px;object-fit:cover;border-radius:8px;border:1px solid rgba(148,163,184,0.12);" />
+                                        </div>
+                                    }
+                                    <div style="color:var(--zb-text-muted);font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;">@item.Category</div>
                                     <div class="fw-semibold lh-sm text-truncate" style="color:var(--zb-text);font-size:.78rem;">@item.ItemName</div>
                                     <div style="color:var(--zb-secondary);font-size:.73rem;">&#8369;@item.CurrentPrice.ToString("0.00")</div>
                                     <div style="color:@(item.StockAvailable > 0 ? "var(--zb-text-muted)" : "#f87171");font-size:.68rem;">@(item.StockAvailable > 0 ? item.StockAvailable + " in stock" : "Out of stock")</div>
@@ -182,10 +419,10 @@
                             <p class="small mt-2 mb-0" style="opacity:.55;">Tap items to add them</p>
                         </div>
                         <div class="pos-modal-cart-wrap" style="display:none;">
-                            <div class="pos-modal-cart-items rounded-2 mb-2" style="background:rgba(0,0,0,0.25);border:1px solid rgba(148,163,184,0.1);max-height:300px;overflow-y:auto;"></div>
+                            <div class="pos-modal-cart-items rounded-2 mb-2" style="max-height:300px;overflow-y:auto;"></div>
                             <div class="d-flex justify-content-between align-items-center px-1 mb-1">
                                 <span class="small" style="color:var(--zb-text-muted);">Total: <strong class="pos-modal-total" style="color:var(--zb-accent);">&#8369;0.00</strong></span>
-                                <button type="button" class="btn btn-sm px-2 pos-modal-clear-btn" style="background:rgba(239,68,68,0.1);color:#fca5a5;border:1px solid rgba(239,68,68,0.2);font-size:.75rem;">
+                                <button type="button" class="btn btn-sm px-2 pos-modal-clear-btn" style="background:rgba(239,68,68,0.1);color:#b91c1c;border:1px solid rgba(239,68,68,0.2);font-size:.75rem;">
                                     <i class="bi bi-trash3 me-1"></i>Clear
                                 </button>
                             </div>
@@ -193,9 +430,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer px-4 py-3" style="border-color:rgba(6,182,212,0.15);">
+            <div class="modal-footer px-4 py-3">
                 <button type="button" class="btn fw-bold w-100 py-2 pos-modal-place-btn"
-                        style="background:linear-gradient(135deg,rgba(6,182,212,0.25),rgba(6,182,212,0.12));color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.4);border-radius:10px;font-size:1rem;" disabled>
+                        style="background:linear-gradient(135deg,var(--zb-soft-accent),var(--zb-hover));color:var(--zb-secondary);border:1px solid color-mix(in srgb, var(--zb-secondary) 38%, var(--zb-border) 62%);border-radius:10px;font-size:1rem;" disabled>
                     <i class="bi bi-bag-check me-1"></i>Place Order &mdash; <span class="pos-modal-count">0</span> item(s)
                 </button>
             </div>
@@ -204,10 +441,10 @@
 </div>
 
 <!-- ── Order History / Void Modal ───────────────────────────────────── -->
-<div class="modal fade" id="posOrdersModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:520px;">
-        <div class="modal-content" style="background:var(--zb-primary-mid);border:1px solid rgba(168,85,247,0.3);border-radius:16px;overflow:hidden;">
-            <div class="modal-header px-4 py-3" style="border-color:rgba(168,85,247,0.2);background:rgba(168,85,247,0.08);">
+<div class="modal fade pos-theme-modal" id="posOrdersModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:700px;">
+        <div class="modal-content" style="border-radius:16px;overflow:hidden;">
+            <div class="modal-header px-4 py-3">
                 <div>
                     <h5 class="modal-title fw-bold mb-0" id="ordersModalTitle" style="color:var(--zb-text);">Order History</h5>
                     <small class="text-muted" id="ordersModalSub">Current session items</small>
@@ -227,16 +464,16 @@
                             <th>Item</th>
                             <th class="text-center">Qty</th>
                             <th class="text-end">Subtotal</th>
-                            <th style="width:40px;"></th>
+                            <th style="width:1%;white-space:nowrap;"></th>
                         </tr>
                     </thead>
                     <tbody id="ordersModalBody"></tbody>
                 </table>
             </div>
-            <div class="modal-footer px-4" style="border-color:rgba(168,85,247,0.15);">
+            <div class="modal-footer px-4">
                 <div class="d-flex w-100 justify-content-between align-items-center">
-                    <span style="color:var(--zb-text-muted);font-size:.85rem;">Total: <strong id="ordersModalTotal" style="color:#c084fc;">₱0.00</strong></span>
-                    <button type="button" class="btn btn-sm" style="background:rgba(168,85,247,0.12);color:#c084fc;border:1px solid rgba(168,85,247,0.3);" data-bs-dismiss="modal">Close</button>
+                    <span style="color:var(--zb-text-muted);font-size:.85rem;">Total: <strong id="ordersModalTotal" style="color:#7c3aed;">₱0.00</strong></span>
+                    <button type="button" class="btn btn-sm pos-action-btn pos-order-history-btn" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -389,6 +626,13 @@
     <script>
         var _coData = {};
         var _coTimer = null;
+        var _csrfToken = '@csrfToken';
+
+        function getCsrfToken() {
+            var tokenEl = document.querySelector('#coForm input[name="__RequestVerificationToken"]');
+            if (tokenEl && tokenEl.value) return tokenEl.value;
+            return _csrfToken;
+        }
 
         // ── Order History / Void Modal ─────────────────────────────────
         var _ordersBookingId = null;
@@ -421,12 +665,29 @@
                     var total = 0;
                     items.forEach(function (it) {
                         total += it.subtotal;
+                        var isPortal = it.orderSource === 'Portal';
+                        var sourceBadge = isPortal
+                            ? '<span class="ms-1" style="font-size:.68rem;padding:1px 5px;border-radius:4px;background:rgba(6,182,212,0.18);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">📱 Portal</span>'
+                            : '<span class="ms-1" style="font-size:.68rem;padding:1px 5px;border-radius:4px;background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.3);">🖥 POS</span>';
+                        var servedBtn = '';
+                        if (isPortal && !it.isServed) {
+                            servedBtn = '<button type="button" class="btn btn-sm fw-semibold me-1" style="white-space:nowrap;font-size:.72rem;padding:2px 8px;background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);" onclick="markServed(' + it.orderDetailId + ', this)"><i class="bi bi-check2 me-1"></i>Served</button>';
+                        } else if (isPortal && it.isServed) {
+                            servedBtn = '<span style="white-space:nowrap;font-size:.72rem;color:#22c55e;" class="me-1"><i class="bi bi-check2-all me-1"></i>Served</span>';
+                        }
                         var tr = document.createElement('tr');
+                        tr.setAttribute('data-odd-id', it.orderDetailId);
                         tr.innerHTML =
-                            '<td class="fw-semibold" style="color:var(--zb-text);">' + it.itemName + '</td>' +
-                            '<td class="text-center">' + it.quantity + '</td>' +
-                            '<td class="text-end zb-mono" style="color:#c084fc;">₱' + it.subtotal.toFixed(2) + '</td>' +
-                            '<td><button type="button" class="zb-action-btn zb-action-danger" title="Void" onclick="voidItem(' + it.orderDetailId + ', this)"><i class="bi bi-x-lg"></i></button></td>';
+                            '<td class="fw-semibold" style="color:var(--zb-text);">' + it.itemName + sourceBadge + '</td>' +
+                            '<td class="text-center" style="white-space:nowrap;">' +
+                                '<div style="display:inline-flex;align-items:center;gap:4px;">' +
+                                '<button type="button" onclick="changeQty(' + it.orderDetailId + ',-1,this)" style="width:22px;height:22px;line-height:1;padding:0;font-size:.8rem;background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);border-radius:4px;">−</button>' +
+                                '<span id="qty-' + it.orderDetailId + '" style="min-width:22px;display:inline-block;text-align:center;">' + it.quantity + '</span>' +
+                                '<button type="button" onclick="changeQty(' + it.orderDetailId + ',1,this)" style="width:22px;height:22px;line-height:1;padding:0;font-size:.8rem;background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);border-radius:4px;">+</button>' +
+                                '</div>' +
+                            '</td>' +
+                            '<td class="text-end zb-mono" id="sub-' + it.orderDetailId + '" style="color:#c084fc;">₱' + it.subtotal.toFixed(2) + '</td>' +
+                            '<td style="white-space:nowrap;text-align:right;">' + servedBtn + '<button type="button" class="zb-action-btn zb-action-danger" title="Void" onclick="voidItem(' + it.orderDetailId + ', this)"><i class="bi bi-x-lg"></i></button></td>';
                         tbody.appendChild(tr);
                     });
                     document.getElementById('ordersModalTotal').textContent = '₱' + total.toFixed(2);
@@ -437,13 +698,96 @@
                 });
         }
 
+        function changeQty(orderDetailId, delta, btn) {
+            var row = btn.closest('tr');
+            var allBtns = row.querySelectorAll('button');
+            allBtns.forEach(function(b){ b.disabled = true; });
+            var csrf = getCsrfToken();
+            var fd = new FormData();
+            fd.append('orderDetailId', orderDetailId);
+            fd.append('delta', delta);
+            fd.append('__RequestVerificationToken', csrf);
+            fetch('/POS/UpdateOrderQty', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'RequestVerificationToken': csrf,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            })
+                .then(function(r){ return r.json(); })
+                .then(function(data){
+                    if (data.ok) {
+                        document.getElementById('qty-' + orderDetailId).textContent = data.newQty;
+                        document.getElementById('sub-' + orderDetailId).textContent = '₱' + data.newSubtotal.toFixed(2);
+                        // Recalculate total
+                        var total = 0;
+                        document.querySelectorAll('#ordersModalBody td[id^="sub-"]').forEach(function(td){
+                            total += parseFloat(td.textContent.replace('₱','')) || 0;
+                        });
+                        document.getElementById('ordersModalTotal').textContent = '₱' + total.toFixed(2);
+                    } else {
+                        alert(data.error || 'Could not update quantity.');
+                    }
+                    allBtns.forEach(function(b){ b.disabled = false; });
+                })
+                .catch(function(){
+                    allBtns.forEach(function(b){ b.disabled = false; });
+                });
+        }
+
+        function markServed(orderDetailId, btn) {
+            btn.disabled = true;
+            var csrf = getCsrfToken();
+            var fd = new FormData();
+            fd.append('orderDetailId', orderDetailId);
+            fd.append('__RequestVerificationToken', csrf);
+            fetch('/POS/MarkServed', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'RequestVerificationToken': csrf,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            })
+                .then(function (r) {
+                    if (!r.ok) { throw new Error('HTTP ' + r.status); }
+                    return r.json();
+                })
+                .then(function (data) {
+                    if (data.ok) {
+                        // Replace button with served indicator
+                        btn.outerHTML = '<span style="white-space:nowrap;font-size:.72rem;color:#22c55e;" class="me-1"><i class="bi bi-check2-all me-1"></i>Served</span>';
+                    } else {
+                        alert(data.error || 'Failed to mark as served.');
+                        btn.disabled = false;
+                    }
+                })
+                .catch(function (err) {
+                    console.error('markServed failed:', err);
+                    alert('Failed to mark as served (' + (err && err.message ? err.message : 'network error') + '). Please try again.');
+                    btn.disabled = false;
+                });
+        }
+
         function voidItem(orderDetailId, btn) {
             if (!confirm('Void this item? Stock will be restored.')) return;
             btn.disabled = true;
+            var csrf = getCsrfToken();
             var fd = new FormData();
             fd.append('orderDetailId', orderDetailId);
-            fd.append('__RequestVerificationToken', document.querySelector('input[name="__RequestVerificationToken"]').value);
-            fetch('/POS/VoidOrderItem', { method: 'POST', body: fd })
+            fd.append('__RequestVerificationToken', csrf);
+            fetch('/POS/VoidOrderItem', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'RequestVerificationToken': csrf,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: fd
+            })
                 .then(function (r) { return r.json(); })
                 .then(function (data) {
                     if (data.ok) {
@@ -521,7 +865,7 @@
 
         function recalcBill() {
             var d = _coData;
-            var startMs = new Date(d.startTime).getTime();
+            var startMs = new Date(+d.startTime).getTime(); // epoch ms — safe regardless of server timezone
             var elapsed = Math.max(0.01, (Date.now() - startMs) / 3600000);
             var timeCharge = Math.round(elapsed * d.hourlyRate * 100) / 100;
             var menuTotal = d.menuTotal;
@@ -646,7 +990,7 @@
             if (_coTimer) { clearInterval(_coTimer); _coTimer = null; }
         });
 
-        // ── POS live polling (every 5s) ───────────────────────────────────
+        // ── POS live polling (every 2s) ───────────────────────────────────
         function posLivePoll() {
             fetch('@Url.Action("LiveStatus", "POS")')
                 .then(function (r) { return r.ok ? r.json() : null; })
@@ -667,10 +1011,26 @@
                         var alert = card.querySelector('.pos-checkout-alert');
                         if (alert) alert.style.display = s.checkoutRequested ? '' : 'none';
 
+                        // portal pending orders alert
+                        var portalAlert = card.querySelector('.pos-portal-alert');
+                        var portalCount = card.querySelector('.pos-portal-count');
+                        if (portalAlert) {
+                            portalAlert.style.display = s.pendingPortalOrders > 0 ? '' : 'none';
+                        }
+                        if (portalCount) {
+                            portalCount.textContent = s.pendingPortalOrders + ' portal order' + (s.pendingPortalOrders !== 1 ? 's' : '') + ' pending';
+                        }
+
                         // keep live data attributes fresh so Checkout modal reads correct values
                         card.setAttribute('data-req-split', s.requestedSplitCount || 0);
                         card.setAttribute('data-menu-total', (s.menuTotal || 0).toFixed(2));
                         card.setAttribute('data-order-count', s.orderItemCount || 0);
+
+                        // keep timer data-start-time fresh (epoch ms, timezone-safe)
+                        if (s.startTimeMs) {
+                            var timer = card.querySelector('.pos-timer');
+                            if (timer) timer.setAttribute('data-start-time', s.startTimeMs);
+                        }
 
                         // if checkout was just requested and has a split, pulse the checkout button
                         var coBtn = card.querySelector('.pos-checkout-btn');
@@ -683,7 +1043,7 @@
                 })
                 .catch(function () {});
         }
-        setInterval(posLivePoll, 5000);
+        setInterval(posLivePoll, 2000);
 
         function showPosQR(spaceId, spaceName) {
             var url = window.location.origin + '/Customer/Space/' + spaceId;

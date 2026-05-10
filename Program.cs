@@ -21,6 +21,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ActiveSubscriptionFilter>();
 builder.Services.AddScoped<ZoneBill_Lloren.Helpers.IEmailService, ZoneBill_Lloren.Helpers.EmailService>();
+builder.Services.AddScoped<IInventoryIntelligenceService, InventoryIntelligenceService>();
+builder.Services.AddScoped<IDemandForecastService, DemandForecastService>();
+builder.Services.AddScoped<IInventoryAnomalyService, InventoryAnomalyService>();
+builder.Services.AddScoped<IInventoryAlertService, InventoryAlertService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHostedService<ZoneBill_Lloren.Helpers.AutomationWorker>();
 
 // Configure Cookie Authentication for Roles (SuperAdmin, MainAdmin, Staff)
@@ -46,6 +51,20 @@ if (!string.IsNullOrWhiteSpace(stripeSecretKey) && !stripeSecretKey.Contains("PL
     StripeConfiguration.ApiKey = stripeSecretKey;
 }
 
+// Configure Cloudinary
+builder.Services.Configure<CloudinarySettings>(builder.Configuration.GetSection("CloudinarySettings"));
+var cloudinarySettings = builder.Configuration.GetSection("CloudinarySettings").Get<CloudinarySettings>();
+if (cloudinarySettings != null && !string.IsNullOrWhiteSpace(cloudinarySettings.CloudName) && cloudinarySettings.CloudName != "YOUR_CLOUD_NAME")
+{
+    var account = new CloudinaryDotNet.Account(
+        cloudinarySettings.CloudName,
+        cloudinarySettings.ApiKey,
+        cloudinarySettings.ApiSecret
+    );
+    var cloudinary = new CloudinaryDotNet.Cloudinary(account);
+    builder.Services.AddSingleton(cloudinary);
+}
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -62,6 +81,53 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthentication(); // 1. Authenticate Who They Are First
+
+app.Use(async (context, next) =>
+{
+    context.Items["ThemePreference"] = "Nightlife";
+    context.Items["BrandName"] = "ZoneBill";
+    context.Items["BrandLogoUrl"] = "/images/my-logo.png";
+
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var businessIdClaim = context.User.FindFirst("BusinessId")?.Value;
+        if (int.TryParse(businessIdClaim, out var businessId))
+        {
+            var dbContext = context.RequestServices.GetRequiredService<ApplicationDbContext>();
+            var businessBranding = await dbContext.Businesses
+                .AsNoTracking()
+                .Where(b => b.BusinessId == businessId)
+                .Select(b => new
+                {
+                    b.ThemePreference,
+                    b.BusinessName,
+                    b.LogoUrl
+                })
+                .FirstOrDefaultAsync();
+
+            if (businessBranding != null)
+            {
+                if (!string.IsNullOrWhiteSpace(businessBranding.ThemePreference))
+                {
+                    context.Items["ThemePreference"] = businessBranding.ThemePreference;
+                }
+
+                if (!string.IsNullOrWhiteSpace(businessBranding.BusinessName))
+                {
+                    context.Items["BrandName"] = businessBranding.BusinessName;
+                }
+
+                if (!string.IsNullOrWhiteSpace(businessBranding.LogoUrl))
+                {
+                    context.Items["BrandLogoUrl"] = businessBranding.LogoUrl;
+                }
+            }
+        }
+    }
+
+    await next();
+});
+
 app.UseAuthorization();  // 2. Authorize What They Can See
 
 app.MapControllers();
@@ -102,21 +168,52 @@ using (var scope = app.Services.CreateScope())
             existingPlan.StripePriceId = plan.StripePriceId;
         }
     }
+
+    // 2. FORCE RESTORE the absolute SuperAdmin Account
+    var adminEmail = "j.lloren.546693@umindanao.edu.ph";
+    var existingAdmin = context.Users.FirstOrDefault(u => u.EmailAddress == adminEmail);
+    var hashedPassword = BCrypt.Net.BCrypt.HashPassword("Lloren@12345");
+    if (existingAdmin == null)
+    {
+        context.Users.Add(new User { FirstName = "John Nikolai", LastName = "Lloren", EmailAddress = adminEmail, PasswordHash = hashedPassword, UserRole = "SuperAdmin", IsActive = true, BusinessId = null });
+    }
+    else
+    {
+        existingAdmin.PasswordHash = hashedPassword;
+        existingAdmin.UserRole = "SuperAdmin"; // Force update to SuperAdmin
+        existingAdmin.BusinessId = null; // Detach from any business
+    }
     context.SaveChanges();
 
-    // 2. Ensure the SuperAdmin always exists (logs in via Google SSO only)
-    if (!context.Users.Any(u => u.EmailAddress == "j.lloren.546693@umindanao.edu.ph"))
+    // Find the business owned by the user they already created
+    var realOwner = context.Users.FirstOrDefault(u => u.EmailAddress == "hmmthatsjohn@gmail.com");
+    if (realOwner != null && realOwner.BusinessId.HasValue)
     {
-        context.Users.Add(new User
+        var realBusinessId = realOwner.BusinessId.Value;
+
+        // Seed Spaces (Billiard Tables) to their existing business
+        if (!context.Spaces.Any(s => s.BusinessId == realBusinessId))
         {
-            FirstName = "John Nikolai",
-            LastName = "Lloren",
-            EmailAddress = "j.lloren.546693@umindanao.edu.ph",
-            PasswordHash = "Google_SSO_Login",
-            UserRole = "SuperAdmin",
-            IsActive = true,
-            BusinessId = null
-        });
+            context.Spaces.AddRange(
+                new Space { BusinessId = realBusinessId, SpaceName = "Table 1", FloorArea = "Main Floor", Capacity = 4, CurrentHourlyRate = 120m, CurrentStatus = "Open" },
+                new Space { BusinessId = realBusinessId, SpaceName = "Table 2", FloorArea = "Main Floor", Capacity = 4, CurrentHourlyRate = 120m, CurrentStatus = "Open" },
+                new Space { BusinessId = realBusinessId, SpaceName = "Table 3", FloorArea = "Main Floor", Capacity = 4, CurrentHourlyRate = 120m, CurrentStatus = "Open" },
+                new Space { BusinessId = realBusinessId, SpaceName = "VIP Room 1", FloorArea = "2nd Floor", Capacity = 10, CurrentHourlyRate = 250m, CurrentStatus = "Open" }
+            );
+        }
+
+        // Seed Menu Items to their existing business
+        if (!context.MenuItems.Any(m => m.BusinessId == realBusinessId))
+        {
+            context.MenuItems.AddRange(
+                new MenuItem { BusinessId = realBusinessId, ItemName = "San Miguel Light", CurrentPrice = 75m, CostPrice = 40m, StockAvailable = 100 },
+                new MenuItem { BusinessId = realBusinessId, ItemName = "Red Horse Beer", CurrentPrice = 85m, CostPrice = 45m, StockAvailable = 100 },
+                new MenuItem { BusinessId = realBusinessId, ItemName = "French Fries", CurrentPrice = 120m, CostPrice = 50m, StockAvailable = 50 },
+                new MenuItem { BusinessId = realBusinessId, ItemName = "Coke in Can", CurrentPrice = 60m, CostPrice = 25m, StockAvailable = 200 },
+                new MenuItem { BusinessId = realBusinessId, ItemName = "Nachos Platter", CurrentPrice = 250m, CostPrice = 100m, StockAvailable = 30 }
+            );
+        }
+
         context.SaveChanges();
     }
 }

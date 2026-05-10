@@ -11,15 +11,6 @@
     </h4>
 </div>
 
-@if (TempData["Error"] != null)
-{
-    <div class="alert" style="background:rgba(239,68,68,0.15);color:#fca5a5;border:1px solid rgba(239,68,68,0.3);">@TempData["Error"]</div>
-}
-@if (TempData["Success"] != null)
-{
-    <div class="alert" style="background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.3);">@TempData["Success"]</div>
-}
-
 @if (Model.IsSubscriptionExpired)
 {
     <div class="alert" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
@@ -34,6 +25,7 @@
                 <div class="zb-kpi-label">Current Plan</div>
                 <div class="zb-kpi-value" style="color:var(--zb-secondary);font-size:1.25rem;">@Model.CurrentPlan.PlanName</div>
                 <div style="color:var(--zb-text-muted);font-size:.85rem;">@Model.CurrentPlan.MonthlyPrice.ToString("C") / month</div>
+                <div style="color:var(--zb-text-muted);font-size:.85rem;">Max tables: @Model.CurrentPlan.MaxTablesAllowed</div>
             </div>
         </div>
     </div>
@@ -43,6 +35,10 @@
                 <div class="zb-kpi-label">Subscription Status</div>
                 <div class="zb-kpi-value" style="color:var(--zb-accent);font-size:1.25rem;">@Model.Business.SubscriptionStatus</div>
                 <div style="color:var(--zb-text-muted);font-size:.85rem;">Period end: @(PhilippineTime.ToDateTime(Model.Business.CurrentPeriodEnd)?.ToString("yyyy-MM-dd") ?? "N/A")</div>
+                @if (Model.IsCancellationScheduled)
+                {
+                    <div class="mt-2 small" style="color:#f59e0b;">Cancellation scheduled at period end</div>
+                }
             </div>
         </div>
     </div>
@@ -53,6 +49,42 @@
                 <div class="zb-kpi-value" style="color:var(--zb-text);font-size:1.25rem;">@Model.Business.DomainPrefix</div>
                 <div style="color:var(--zb-text-muted);font-size:.85rem;">Business: @Model.Business.BusinessName</div>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="p-3" style="border-bottom:1px solid rgba(6,182,212,0.15);">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-sliders me-2"></i>Subscription Management</h6>
+    </div>
+    <div class="p-4 d-flex flex-column flex-lg-row justify-content-between gap-3 align-items-lg-center">
+        <div>
+            <div class="fw-semibold" style="color:var(--zb-text);">Manage renewals without leaving the app</div>
+            <div class="small mt-1" style="color:var(--zb-text-muted);">@Model.SubscriptionManagementStatus</div>
+            @if (Model.CancellationEffectiveDate.HasValue)
+            {
+                <div class="small mt-2" style="color:var(--zb-text-muted);">Effective through: @PhilippineTime.ToDateTime(Model.CancellationEffectiveDate.Value).ToString("yyyy-MM-dd")</div>
+            }
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            @if (Model.CanManageStripeSubscription && !Model.IsCancellationScheduled)
+            {
+                <form asp-action="CancelSubscription" method="post" onsubmit="return confirm('Schedule cancellation at the end of the current billing period?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">
+                        <i class="bi bi-x-circle me-1"></i>Cancel At Period End
+                    </button>
+                </form>
+            }
+            @if (Model.CanManageStripeSubscription && Model.IsCancellationScheduled)
+            {
+                <form asp-action="ResumeSubscription" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i>Resume Renewal
+                    </button>
+                </form>
+            }
         </div>
     </div>
 </div>
@@ -83,6 +115,39 @@
                 </div>
             }
         </div>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="p-3" style="border-bottom:1px solid rgba(6,182,212,0.15);">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-table me-2"></i>Plan Feature Comparison</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Feature</th>
+                    @foreach (var plan in Model.AvailablePlans)
+                    {
+                        <th class="text-center">@plan.PlanName</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.PlanComparisonRows)
+                {
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@row.FeatureLabel</td>
+                        @for (var i = 0; i < Model.AvailablePlans.Count; i++)
+                        {
+                            var plan = Model.AvailablePlans[i];
+                            var isCurrent = plan.PlanId == Model.CurrentPlan.PlanId;
+                            <td class="text-center" style="background:@(isCurrent ? "rgba(6,182,212,0.08)" : "transparent");color:@(isCurrent ? "var(--zb-text)" : "var(--zb-text-muted)");">@row.Values[i]</td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
     </div>
 </div>
 

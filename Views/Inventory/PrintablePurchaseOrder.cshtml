@@ -1,0 +1,135 @@
+@model ZoneBill_Lloren.Models.PrintablePurchaseOrderViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Purchase Order @Model.PurchaseOrderNumber</title>
+    <style>
+        body { font-family: "Segoe UI", Arial, sans-serif; margin: 32px; color: #0f172a; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+        .title { font-size: 28px; font-weight: 700; margin: 0 0 8px; }
+        .muted { color: #475569; font-size: 13px; }
+        .badge { display: inline-block; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; }
+        .label { font-size: 12px; color: #64748b; text-transform: uppercase; margin-bottom: 6px; }
+        .value { font-size: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { border-bottom: 1px solid #e2e8f0; padding: 10px 8px; text-align: left; font-size: 14px; }
+        th { font-size: 12px; text-transform: uppercase; color: #475569; }
+        .text-right { text-align: right; }
+        .actions { margin-top: 20px; }
+        @@media print {
+            .actions { display: none; }
+            body { margin: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1 class="title">Purchase Order</h1>
+            <div class="muted">@Model.BusinessName</div>
+            <div class="muted">PO Number: @Model.PurchaseOrderNumber</div>
+        </div>
+        <div>
+            <div class="badge">@Model.Status</div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="label">Supplier</div>
+            <div class="value">@Model.SupplierName</div>
+            <div class="muted">@(string.IsNullOrWhiteSpace(Model.ContactPerson) ? "" : Model.ContactPerson)</div>
+            <div class="muted">@(string.IsNullOrWhiteSpace(Model.EmailAddress) ? "" : Model.EmailAddress)</div>
+            <div class="muted">@(string.IsNullOrWhiteSpace(Model.PhoneNumber) ? "" : Model.PhoneNumber)</div>
+        </div>
+        <div class="card">
+            <div class="label">Dates</div>
+            <div class="value">Created: @PhilippineTime.ToDateTime(Model.CreatedAt).ToString("MMM d, yyyy h:mm tt")</div>
+            <div class="muted">Expected Delivery: @(Model.ExpectedDeliveryDate.HasValue ? PhilippineTime.ToDateTime(Model.ExpectedDeliveryDate.Value).ToString("MMM d, yyyy") : "Not scheduled")</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="label">Order Lines</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Ordered</th>
+                    <th>Received</th>
+                    <th>Unit Cost</th>
+                    <th class="text-right">Line Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in Model.Lines)
+                {
+                    <tr>
+                        <td>@line.ItemName</td>
+                        <td>@line.Quantity</td>
+                        <td>@line.ReceivedQuantity</td>
+                        <td>@line.UnitCost.ToString("C")</td>
+                        <td class="text-right">@line.LineTotal.ToString("C")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4" class="text-right"><strong>Total</strong></td>
+                    <td class="text-right"><strong>@Model.TotalCost.ToString("C")</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+        <div class="label">Notes</div>
+        <div class="value">@(string.IsNullOrWhiteSpace(Model.Notes) ? "No notes recorded." : Model.Notes)</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+        <div class="label">Receiving History</div>
+        @if (Model.ReceiptHistory.Any())
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Received</th>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Received Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var receipt in Model.ReceiptHistory)
+                    {
+                        <tr>
+                            <td>@PhilippineTime.ToDateTime(receipt.ReceivedAt).ToString("MMM d, yyyy h:mm tt")</td>
+                            <td>@receipt.ItemName</td>
+                            <td>@receipt.QuantityReceived</td>
+                            <td>@receipt.PreviousReceivedQuantity -> @receipt.NewReceivedQuantity</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="value">No receiving history recorded yet.</div>
+        }
+    </div>
+
+    <div class="actions">
+        <button type="button" onclick="window.print()">Print / Save PDF</button>
+    </div>
+</body>
+</html>

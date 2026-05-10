@@ -1,0 +1,177 @@
+@model ZoneBill_Lloren.Models.BalanceSheetViewModel
+
+@{
+    ViewData["Title"] = "Balance Sheet";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-bank me-2" style="color:var(--zb-secondary);"></i>Balance Sheet</h4>
+        <p class="text-muted small mb-0">Financial position as of @Model.AsOfDate.ToString("MMMM dd, yyyy") — all-time</p>
+    </div>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+        <i class="bi bi-arrow-left me-1"></i>Back to Reports
+    </a>
+</div>
+
+@if (!Model.AssetLines.Any() && !Model.LiabilityLines.Any() && !Model.EquityLines.Any() && Model.RetainedEarnings == 0)
+{
+    <div class="zb-table-card p-4 text-center">
+        <i class="bi bi-journal-x fs-2 mb-2 d-block" style="color:var(--zb-text-muted);"></i>
+        <p class="text-muted mb-0">No journal entries recorded yet. The balance sheet will populate once accounting entries are posted.</p>
+    </div>
+}
+else
+{
+    <div class="row g-4">
+
+        @* LEFT: Assets *@
+        <div class="col-lg-6">
+            <div class="zb-table-card mb-4">
+                <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-wallet2 me-2"></i>Assets</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="color:var(--zb-text);">
+                        <tbody>
+                            @if (Model.AssetLines.Any())
+                            {
+                                @foreach (var line in Model.AssetLines)
+                                {
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                        <td class="ps-4 py-3">@line.AccountName</td>
+                                        <td class="pe-4 py-3 text-end font-monospace" style="color:var(--zb-secondary);">₱@line.Amount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="2" class="ps-4 py-3 text-muted">No asset accounts recorded.</td></tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="border-top:2px solid rgba(6,182,212,0.35); background:rgba(6,182,212,0.05);">
+                                <td class="ps-4 py-3 fw-bold" style="color:var(--zb-secondary);">Total Assets</td>
+                                <td class="pe-4 py-3 text-end fw-bold font-monospace" style="color:var(--zb-secondary);">₱@Model.TotalAssets.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        @* RIGHT: Liabilities + Equity *@
+        <div class="col-lg-6">
+
+            @* Liabilities *@
+            <div class="zb-table-card mb-4">
+                <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <h6 class="fw-bold mb-0" style="color:#ef4444;"><i class="bi bi-credit-card me-2"></i>Liabilities</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="color:var(--zb-text);">
+                        <tbody>
+                            @if (Model.LiabilityLines.Any())
+                            {
+                                @foreach (var line in Model.LiabilityLines)
+                                {
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                        <td class="ps-4 py-3">@line.AccountName</td>
+                                        <td class="pe-4 py-3 text-end font-monospace" style="color:#ef4444;">₱@line.Amount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="2" class="ps-4 py-3 text-muted">No liability accounts recorded.</td></tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="border-top:2px solid rgba(239,68,68,0.35); background:rgba(239,68,68,0.05);">
+                                <td class="ps-4 py-3 fw-bold" style="color:#ef4444;">Total Liabilities</td>
+                                <td class="pe-4 py-3 text-end fw-bold font-monospace" style="color:#ef4444;">₱@Model.TotalLiabilities.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            @* Equity *@
+            <div class="zb-table-card mb-4">
+                <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                    <h6 class="fw-bold mb-0" style="color:#22c55e;"><i class="bi bi-graph-up me-2"></i>Equity</h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" style="color:var(--zb-text);">
+                        <tbody>
+                            @if (Model.EquityLines.Any())
+                            {
+                                @foreach (var line in Model.EquityLines)
+                                {
+                                    <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                        <td class="ps-4 py-3">@line.AccountName</td>
+                                        <td class="pe-4 py-3 text-end font-monospace" style="color:#22c55e;">₱@line.Amount.ToString("N2")</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr><td colspan="2" class="ps-4 py-3 text-muted">No equity accounts recorded.</td></tr>
+                            }
+                            @* Retained Earnings (Net Income) *@
+                            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                                <td class="ps-4 py-3" style="color:var(--zb-text-muted);font-style:italic;">Retained Earnings (Net Income)</td>
+                                <td class="pe-4 py-3 text-end font-monospace" style="color:@(Model.RetainedEarnings >= 0 ? "#22c55e" : "#ef4444");">
+                                    @(Model.RetainedEarnings < 0 ? "-" : "")₱@Math.Abs(Model.RetainedEarnings).ToString("N2")
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr style="border-top:2px solid rgba(34,197,94,0.35); background:rgba(34,197,94,0.05);">
+                                <td class="ps-4 py-3 fw-bold" style="color:#22c55e;">Total Equity</td>
+                                <td class="pe-4 py-3 text-end fw-bold font-monospace" style="color:#22c55e;">₱@Model.TotalEquity.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    @* Accounting Equation Check *@
+    <div class="zb-table-card">
+        <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+            <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-calculator me-2"></i>Accounting Equation Check</h6>
+        </div>
+        <div class="p-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color:rgba(255,255,255,0.06)!important;">
+                        <span style="color:var(--zb-text-muted);">Total Assets</span>
+                        <span class="fw-semibold font-monospace" style="color:var(--zb-secondary);">₱@Model.TotalAssets.ToString("N2")</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color:rgba(255,255,255,0.06)!important;">
+                        <span style="color:var(--zb-text-muted);">Liabilities + Equity</span>
+                        <span class="fw-semibold font-monospace" style="color:var(--zb-secondary);">₱@((Model.TotalLiabilities + Model.TotalEquity).ToString("N2"))</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color:rgba(255,255,255,0.06)!important;">
+                        <span style="color:var(--zb-text-muted);">Status</span>
+                        @if (Model.IsBalanced)
+                        {
+                            <span class="fw-bold" style="color:#22c55e;"><i class="bi bi-check-circle-fill me-1"></i>Balanced</span>
+                        }
+                        else
+                        {
+                            <span class="fw-bold" style="color:#ef4444;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Off by ₱@Math.Abs(Model.BalanceDifference).ToString("N2")</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

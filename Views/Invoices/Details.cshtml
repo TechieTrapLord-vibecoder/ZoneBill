@@ -31,15 +31,6 @@
     </div>
 </div>
 
-@if (TempData["Error"] != null)
-{
-    <div class="alert alert-danger border-0 mb-3" style="background:rgba(239,68,68,0.12);color:#fca5a5;">@TempData["Error"]</div>
-}
-@if (TempData["Success"] != null)
-{
-    <div class="alert border-0 mb-3" style="background:rgba(34,197,94,0.12);color:#86efac;">@TempData["Success"]</div>
-}
-
 <div class="row g-4">
     <div class="col-lg-8">
         <div class="zb-table-card">

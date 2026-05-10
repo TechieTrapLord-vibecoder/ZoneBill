@@ -22,69 +22,185 @@
     </a>
 </div>
 
-@if (TempData["Error"] != null)
-{
-    <div class="alert border-0 mb-3" style="background:rgba(239,68,68,0.12);color:#fca5a5;">@TempData["Error"]</div>
-}
-@if (TempData["Success"] != null)
-{
-    <div class="alert border-0 mb-3" style="background:rgba(34,197,94,0.12);color:#86efac;">@TempData["Success"]</div>
-}
-
 <div class="row g-3 mb-4">
-    <div class="col-md-4">
+    <div class="col-md-6 col-xl-3">
         <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
             <div class="zb-kpi-label">Low Stock Alerts</div>
             <div class="zb-kpi-value" style="color:#ef4444;">@Model.LowStockItems.Count</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-6 col-xl-3">
         <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
             <div class="zb-kpi-label">Active Menu Items</div>
             <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.MenuItems.Count(m => m.IsActive)</div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-6 col-xl-3">
         <div class="zb-kpi-card">
-            <div class="zb-kpi-label">Total Stock Units</div>
-            <div class="zb-kpi-value">@Model.MenuItems.Where(m => m.IsActive).Sum(m => m.StockAvailable)</div>
+            <div class="zb-kpi-label">Inventory Recommendations</div>
+            <div class="zb-kpi-value">@Model.ReorderSummary.TotalRecommendations</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Recommended Units</div>
+            <div class="zb-kpi-value">@Model.ReorderSummary.RecommendedUnits</div>
         </div>
     </div>
 </div>
 
-<!-- Items Needing Restock -->
 <div class="zb-table-card mb-4">
     <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
-        <h6 class="fw-bold mb-0" style="color:#ef4444;"><i class="bi bi-exclamation-triangle me-2"></i>Items Needing Restock</h6>
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h6 class="fw-bold mb-1" style="color:var(--zb-secondary);"><i class="bi bi-graph-up-arrow me-2"></i>Inventory Recommendations</h6>
+                <div class="small" style="color:var(--zb-text-muted);">Recommended restocks based on recent sales velocity and your supplier lead-time settings.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="zb-badge zb-badge-red">Critical: @Model.ReorderSummary.CriticalRecommendations</span>
+                <a asp-controller="Businesses" asp-action="Settings" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                    <i class="bi bi-sliders me-1"></i>Tune Settings
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="px-4 py-3 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;background:rgba(249,115,22,0.05);">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-6">
+                <h6 class="fw-bold mb-2" style="color:var(--zb-accent);"><i class="bi bi-truck me-2"></i>Create Draft Supplier PO</h6>
+                <div class="small mb-3" style="color:var(--zb-text-muted);">Turn the current recommendation set into one draft purchase order for a supplier. Draft quantities now prefer your saved forecast horizon, with inventory recommendations as the floor.</div>
+                <form asp-action="CreateDraftPurchaseOrder" method="post" class="row g-2">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-5">
+                        <label for="draftSupplierId" class="form-label small zb-form-label">Supplier</label>
+                        <select id="draftSupplierId" class="form-select form-select-sm zb-form-input" name="SupplierId" required>
+                            <option value="">Select supplier</option>
+                            @foreach (var supplier in Model.Suppliers)
+                            {
+                                <option value="@supplier.SupplierId">@supplier.SupplierName@(supplier.LeadTimeDaysOverride.HasValue ? $" ({supplier.LeadTimeDaysOverride}d lead time)" : string.Empty)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="draftPoNotes" class="form-label small zb-form-label">Notes</label>
+                        <input id="draftPoNotes" class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="Optional note for the draft PO" />
+                    </div>
+                    <div class="col-md-2 d-grid">
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);" @(Model.Suppliers.Any() && (Model.ReorderSummary.Items.Any() || Model.DemandForecast.Items.Any(item => item.ForecastSuggestedReorderQuantity > 0)) ? null : "disabled")>
+                            <i class="bi bi-file-earmark-text me-1"></i>Create Draft
+                        </button>
+                    </div>
+                </form>
+                @if (!Model.Suppliers.Any())
+                {
+                    <div class="small mt-2" style="color:var(--zb-text-muted);">Add a supplier below before creating a draft purchase order.</div>
+                }
+            </div>
+            <div class="col-lg-6">
+                <h6 class="fw-bold mb-2" style="color:var(--zb-secondary);"><i class="bi bi-person-plus me-2"></i>Quick Add Supplier</h6>
+                <form asp-action="CreateSupplier" method="post" class="row g-2">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-4">
+                        <label for="supplierName" class="form-label small zb-form-label">Supplier Name</label>
+                        <input id="supplierName" class="form-control form-control-sm zb-form-input" type="text" name="SupplierName" maxlength="120" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="contactPerson" class="form-label small zb-form-label">Contact</label>
+                        <input id="contactPerson" class="form-control form-control-sm zb-form-input" type="text" name="ContactPerson" maxlength="120" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="supplierEmail" class="form-label small zb-form-label">Email</label>
+                        <input id="supplierEmail" class="form-control form-control-sm zb-form-input" type="email" name="EmailAddress" maxlength="256" />
+                    </div>
+                    <div class="col-md-2">
+                        <label for="leadTimeDaysOverride" class="form-label small zb-form-label">Lead Time</label>
+                        <input id="leadTimeDaysOverride" class="form-control form-control-sm zb-form-input" type="number" name="LeadTimeDaysOverride" min="1" max="30" />
+                    </div>
+                    <div class="col-12 d-grid d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                            <i class="bi bi-plus-lg me-1"></i>Add Supplier
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="px-4 py-3 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;background:rgba(6,182,212,0.04);">
+        @if (Model.AlertHistory.LatestAlert != null)
+        {
+            var latestAlert = Model.AlertHistory.LatestAlert;
+            <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+                <div>
+                    <div class="small fw-semibold" style="color:var(--zb-secondary);">Latest Inventory Alert</div>
+                    <div class="small" style="color:var(--zb-text-muted);">
+                        Sent to @latestAlert.RecipientEmail on @PhilippineTime.ToDateTime(latestAlert.SentAt).ToString("MMM d, yyyy h:mm tt") (PH)
+                    </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <span class="zb-badge zb-badge-cyan">@latestAlert.TriggerSource</span>
+                    <span class="zb-badge zb-badge-green">Items: @latestAlert.RecommendationCount</span>
+                    <span class="zb-badge zb-badge-orange">Units: @latestAlert.RecommendedUnits</span>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="small" style="color:var(--zb-text-muted);">No reorder alerts have been sent yet for this business.</div>
+        }
     </div>
     <div class="table-responsive">
         <table class="table zb-table mb-0">
             <thead>
                 <tr>
                     <th>Item</th>
-                    <th>Current Stock</th>
-                    <th>Low Threshold</th>
+                    <th>Urgency</th>
+                    <th>Daily Demand</th>
+                    <th>Days Left</th>
+                    <th>Reorder Point</th>
+                    <th>Target Stock</th>
+                    <th>Suggested Qty</th>
                     <th style="width:360px;">Quick Restock</th>
                 </tr>
             </thead>
             <tbody data-paginate="5">
-                @if (Model.LowStockItems.Any())
+                @if (Model.ReorderSummary.Items.Any())
                 {
-                    @foreach (var item in Model.LowStockItems)
+                    @foreach (var item in Model.ReorderSummary.Items)
                     {
+                        var urgencyBadge = item.Urgency == "Critical" ? "zb-badge-red" : "zb-badge-orange";
+                        var daysLeftText = item.DaysUntilStockout.HasValue ? $"{item.DaysUntilStockout:0.#} d" : "Slow mover";
+                        var forecastDaysLeftText = item.ForecastedDaysUntilStockout.HasValue ? $"{item.ForecastedDaysUntilStockout:0.#} d" : "Stable";
+                        var trendBadge = item.ForecastTrendDirection == "Rising" ? "zb-badge-red" : item.ForecastTrendDirection == "Falling" ? "zb-badge-green" : "zb-badge-cyan";
                         <tr>
-                            <td class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</td>
-                            <td><span class="zb-badge zb-badge-red">@item.StockAvailable</span></td>
-                            <td>@item.LowStockThreshold</td>
+                            <td>
+                                <div class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</div>
+                                <div class="small" style="color:var(--zb-text-muted);">Current stock: @item.CurrentStock | Sold: @item.QuantitySoldInLookback</div>
+                            </td>
+                            <td><span class="zb-badge @urgencyBadge">@item.Urgency</span></td>
+                            <td>
+                                <div>@item.AverageDailyDemand.ToString("0.##")/day</div>
+                                <div class="small" style="color:var(--zb-text-muted);">Forecast: @item.ForecastedDailyDemand.ToString("0.##")/day</div>
+                            </td>
+                            <td>
+                                <div>@daysLeftText</div>
+                                <div class="small" style="color:var(--zb-text-muted);">Forecast: @forecastDaysLeftText</div>
+                            </td>
+                            <td>@item.ReorderPoint</td>
+                            <td>@item.TargetStock</td>
+                            <td>
+                                <div><span class="zb-badge zb-badge-cyan">@item.RecommendedReorderQuantity</span></div>
+                                <div class="small mt-1" style="color:var(--zb-text-muted);">7d forecast gap: @item.ForecastSuggestedReorderQuantity</div>
+                                <div class="mt-1"><span class="zb-badge @trendBadge">@item.ForecastTrendDirection</span></div>
+                            </td>
                             <td>
                                 <form asp-action="Restock" method="post" class="row g-2">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="ItemId" value="@item.ItemId" />
                                     <div class="col-4">
-                                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" name="Quantity" value="10" required />
+                                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" name="Quantity" value="@item.RecommendedReorderQuantity" required />
                                     </div>
                                     <div class="col-5">
-                                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" placeholder="Optional note" maxlength="255" />
+                                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" value="Inventory recommendation" maxlength="255" />
                                     </div>
                                     <div class="col-3 d-grid">
                                         <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);font-size:.78rem;">Restock</button>
@@ -97,7 +213,434 @@
                 else
                 {
                     <tr>
-                        <td colspan="4" class="text-center py-3" style="color:var(--zb-text-muted);">No low-stock alerts. Inventory levels are healthy.</td>
+                        <td colspan="8" class="text-center py-3" style="color:var(--zb-text-muted);">No reorder recommendations right now. Inventory coverage is within target.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (Model.AlertHistory.RecentAlerts.Count > 0)
+    {
+        <div class="px-4 pt-4 pb-2 border-top" style="border-color:rgba(6,182,212,0.15)!important;">
+            <h6 class="fw-bold mb-3" style="color:var(--zb-secondary);"><i class="bi bi-clock-history me-2"></i>Recent Alert History</h6>
+            <div class="table-responsive">
+                <table class="table zb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>When (PH)</th>
+                            <th>Source</th>
+                            <th>Recipient</th>
+                            <th>Items</th>
+                            <th>Units</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var alert in Model.AlertHistory.RecentAlerts)
+                        {
+                            <tr>
+                                <td><span class="zb-mono">@PhilippineTime.ToDateTime(alert.SentAt).ToString("MMM d, h:mm tt")</span></td>
+                                <td><span class="zb-badge zb-badge-cyan">@alert.TriggerSource</span></td>
+                                <td>@alert.RecipientEmail</td>
+                                <td>@alert.RecommendationCount</td>
+                                <td>@alert.RecommendedUnits</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h6 class="fw-bold mb-1" style="color:#ef4444;"><i class="bi bi-activity me-2"></i>Inventory Anomaly Detection</h6>
+                <div class="small" style="color:var(--zb-text-muted);">Flags demand spikes, dead stock, and sudden sales drops from recent item movement.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="zb-badge zb-badge-red">Spikes: @Model.AnomalySummary.SpikeCount</span>
+                <span class="zb-badge zb-badge-orange">Dead Stock: @Model.AnomalySummary.DeadStockCount</span>
+                <span class="zb-badge zb-badge-cyan">Drops: @Model.AnomalySummary.DropCount</span>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Signal</th>
+                    <th>Severity</th>
+                    <th>Recent Units</th>
+                    <th>Baseline Units</th>
+                    <th>Notes</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.AnomalySummary.Items.Any())
+                {
+                    @foreach (var item in Model.AnomalySummary.Items.Take(8))
+                    {
+                        var typeBadge = item.AnomalyType == "DemandSpike" ? "zb-badge-red" : item.AnomalyType == "DeadStock" ? "zb-badge-orange" : "zb-badge-cyan";
+                        var severityBadge = item.Severity == "High" ? "zb-badge-red" : "zb-badge-orange";
+                        <tr>
+                            <td>
+                                <div class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</div>
+                                <div class="small" style="color:var(--zb-text-muted);">Current stock: @item.CurrentStock</div>
+                            </td>
+                            <td><span class="zb-badge @typeBadge">@item.AnomalyType</span></td>
+                            <td><span class="zb-badge @severityBadge">@item.Severity</span></td>
+                            <td>@item.RecentPeriodUnits</td>
+                            <td>@item.BaselinePeriodUnits</td>
+                            <td>
+                                <div>@item.SummaryText</div>
+                                @if (item.DaysWithoutSales.HasValue)
+                                {
+                                    <div class="small" style="color:var(--zb-text-muted);">Days without sales: @item.DaysWithoutSales.Value</div>
+                                }
+                                else if (item.TrendChangePercent.HasValue)
+                                {
+                                    <div class="small" style="color:var(--zb-text-muted);">Change vs baseline: @item.TrendChangePercent.Value.ToString("0.#")%</div>
+                                }
+                            </td>
+                            <td>
+                                @if (item.AnomalyType == "DemandSpike")
+                                {
+                                    if (Model.Suppliers.Any())
+                                    {
+                                        <form asp-action="CreateAnomalyPurchaseOrder" method="post" class="d-grid gap-2">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="ItemId" value="@item.ItemId" />
+                                            <select class="form-select form-select-sm zb-form-input" name="SupplierId" required>
+                                                <option value="">Supplier</option>
+                                                @foreach (var supplier in Model.Suppliers)
+                                                {
+                                                    <option value="@supplier.SupplierId">@supplier.SupplierName</option>
+                                                }
+                                            </select>
+                                            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.14);color:#ef4444;border:1px solid rgba(239,68,68,0.28);">Create Draft PO</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <div class="small" style="color:var(--zb-text-muted);">Add a supplier first.</div>
+                                    }
+                                }
+                                else if (item.AnomalyType == "DeadStock")
+                                {
+                                    <form asp-action="FlagDeadStockPromotion" method="post" class="d-grid">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ItemId" value="@item.ItemId" />
+                                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.14);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">Flag For Promo</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <form asp-action="FlagSalesDropReview" method="post" class="d-grid">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ItemId" value="@item.ItemId" />
+                                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.14);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">Flag For Review</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-3" style="color:var(--zb-text-muted);">No inventory anomalies detected right now.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h6 class="fw-bold mb-1" style="color:var(--zb-accent);"><i class="bi bi-bar-chart-line me-2"></i>Demand Forecasting</h6>
+                <div class="small" style="color:var(--zb-text-muted);">Weighted moving average forecast across 7, 14, and 30 days using the most recent @Model.DemandForecast.LookbackDays days of sales.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="zb-badge zb-badge-cyan">Primary Horizon: @Model.DemandForecast.PrimaryHorizonDays days</span>
+                <span class="zb-badge zb-badge-orange">Items: @Model.DemandForecast.ItemsForecasted</span>
+            </div>
+        </div>
+    </div>
+    <div class="px-4 py-3 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;background:rgba(249,115,22,0.05);">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="zb-kpi-card h-100" style="border-color:rgba(6,182,212,0.3);">
+                    <div class="zb-kpi-label">Projected 7-Day Demand</div>
+                    <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.DemandForecast.TotalProjectedUnits7Days</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="zb-kpi-card h-100" style="border-color:rgba(249,115,22,0.3);">
+                    <div class="zb-kpi-label">Projected 14-Day Demand</div>
+                    <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.DemandForecast.TotalProjectedUnits14Days</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="zb-kpi-card h-100" style="border-color:rgba(34,197,94,0.3);">
+                    <div class="zb-kpi-label">Projected 30-Day Demand</div>
+                    <div class="zb-kpi-value" style="color:#22c55e;">@Model.DemandForecast.TotalProjectedUnits30Days</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Trend</th>
+                    <th>Confidence</th>
+                    <th>Daily Forecast</th>
+                    <th>7 / 14 / 30 Days</th>
+                    <th>Stockout</th>
+                    <th>Suggested Qty</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.DemandForecast.Items.Any())
+                {
+                    @foreach (var item in Model.DemandForecast.Items.Take(8))
+                    {
+                        var trendBadge = item.TrendDirection == "Rising" ? "zb-badge-red" : item.TrendDirection == "Falling" ? "zb-badge-green" : "zb-badge-cyan";
+                        var confidenceBadge = item.ConfidenceLabel == "High" ? "zb-badge-green" : item.ConfidenceLabel == "Medium" ? "zb-badge-orange" : "zb-badge-red";
+                        var forecastStockoutText = item.ForecastedDaysUntilStockout.HasValue ? $"{item.ForecastedDaysUntilStockout:0.#} d" : "No near stockout";
+                        <tr>
+                            <td>
+                                <div class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</div>
+                                <div class="small" style="color:var(--zb-text-muted);">Current stock: @item.CurrentStock</div>
+                            </td>
+                            <td><span class="zb-badge @trendBadge">@item.TrendDirection</span></td>
+                            <td><span class="zb-badge @confidenceBadge">@item.ConfidenceLabel</span></td>
+                            <td>@item.WeightedDailyForecast.ToString("0.##")/day</td>
+                            <td>@item.Forecast7Days / @item.Forecast14Days / @item.Forecast30Days</td>
+                            <td>@forecastStockoutText</td>
+                            <td><span class="zb-badge zb-badge-orange">@item.ForecastSuggestedReorderQuantity</span></td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="7" class="text-center py-3" style="color:var(--zb-text-muted);">No forecast data is available yet. More sales history is needed before ZoneBill can project demand.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="px-4 pt-4 pb-2 border-top" style="border-color:rgba(6,182,212,0.15)!important;">
+        <div class="d-flex justify-content-between align-items-center gap-3 flex-wrap">
+            <div>
+                <h6 class="fw-bold mb-1" style="color:#22c55e;"><i class="bi bi-bullseye me-2"></i>Forecast Accuracy Backtest</h6>
+                <div class="small" style="color:var(--zb-text-muted);">Compares the prior 7-day forecast against actual last-7-day demand using the same weighted moving average model.</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="zb-badge zb-badge-green">Avg Accuracy: @Model.DemandForecast.Accuracy.AverageAccuracyPercent.ToString("0.#")%</span>
+                <span class="zb-badge zb-badge-cyan">Measured: @Model.DemandForecast.Accuracy.ItemsMeasured</span>
+                <span class="zb-badge zb-badge-orange">Accurate 80%+: @Model.DemandForecast.Accuracy.AccurateItems</span>
+            </div>
+        </div>
+    </div>
+    <div class="px-4 py-3 border-top" style="border-color:rgba(6,182,212,0.15)!important;background:rgba(34,197,94,0.05);">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="zb-kpi-card h-100" style="border-color:rgba(34,197,94,0.3);">
+                    <div class="zb-kpi-label">Accurate Items</div>
+                    <div class="zb-kpi-value" style="color:#22c55e;">@Model.DemandForecast.Accuracy.AccurateItems</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="zb-kpi-card h-100" style="border-color:rgba(249,115,22,0.3);">
+                    <div class="zb-kpi-label">Over Forecasted</div>
+                    <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.DemandForecast.Accuracy.OverForecastedItems</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="zb-kpi-card h-100" style="border-color:rgba(6,182,212,0.3);">
+                    <div class="zb-kpi-label">Under Forecasted</div>
+                    <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.DemandForecast.Accuracy.UnderForecastedItems</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="table-responsive border-top" style="border-color:rgba(6,182,212,0.15)!important;">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Item</th>
+                    <th>Forecasted 7D</th>
+                    <th>Actual 7D</th>
+                    <th>Error</th>
+                    <th>Accuracy</th>
+                    <th>Bias</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.DemandForecast.Accuracy.Items.Any())
+                {
+                    @foreach (var item in Model.DemandForecast.Accuracy.Items.Take(8))
+                    {
+                        var accuracyBadge = item.AccuracyPercent >= 80m ? "zb-badge-green" : item.AccuracyPercent >= 60m ? "zb-badge-orange" : "zb-badge-red";
+                        var biasBadge = item.BiasDirection == "Over" ? "zb-badge-orange" : item.BiasDirection == "Under" ? "zb-badge-cyan" : "zb-badge-green";
+                        <tr>
+                            <td class="fw-semibold" style="color:var(--zb-text);">@item.ItemName</td>
+                            <td>@item.ForecastedUnits7Days</td>
+                            <td>@item.ActualUnits7Days</td>
+                            <td>@item.AbsoluteErrorUnits</td>
+                            <td><span class="zb-badge @accuracyBadge">@item.AccuracyPercent.ToString("0.#")%</span></td>
+                            <td><span class="zb-badge @biasBadge">@item.BiasDirection</span></td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-3" style="color:var(--zb-text-muted);">More sales history is needed before ZoneBill can score forecast accuracy.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-receipt me-2"></i>Recent Purchase Orders</h6>
+            <a asp-action="PurchaseOrders" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                <i class="bi bi-funnel me-1"></i>View All / Filter
+            </a>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>PO Number</th>
+                    <th>Supplier</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Units</th>
+                    <th>Received</th>
+                    <th>Estimated Cost</th>
+                    <th>Expected Delivery</th>
+                    <th>Created (PH)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody data-paginate="5">
+                @if (Model.RecentPurchaseOrders.Any())
+                {
+                    @foreach (var po in Model.RecentPurchaseOrders)
+                    {
+                        var statusBadgeClass = po.Status switch
+                        {
+                            "Draft" => "zb-badge-orange",
+                            "Ordered" => "zb-badge-cyan",
+                            "PartiallyReceived" => "zb-badge-red",
+                            "Received" => "zb-badge-green",
+                            "Closed" => "zb-badge-yellow",
+                            "Cancelled" => "zb-badge-purple",
+                            _ => "zb-badge"
+                        };
+                        <tr>
+                            <td>
+                                <a asp-action="PurchaseOrderDetails" asp-route-id="@po.PurchaseOrderId" class="zb-mono text-decoration-none" style="color:var(--zb-secondary);">
+                                    @po.PurchaseOrderNumber
+                                </a>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">
+                                    <a asp-action="SupplierDetails" asp-route-id="@po.SupplierId" class="text-decoration-none" style="color:var(--zb-text);">
+                                        @po.SupplierName
+                                    </a>
+                                </div>
+                                <div class="small" style="color:var(--zb-text-muted);">@(string.IsNullOrWhiteSpace(po.Notes) ? "Generated from inventory recommendations" : po.Notes)</div>
+                            </td>
+                            <td><span class="zb-badge @statusBadgeClass">@po.Status</span></td>
+                            <td>@po.TotalItems</td>
+                            <td>@po.TotalUnits</td>
+                            <td>@po.ReceivedUnits</td>
+                            <td>@po.TotalCost.ToString("C")</td>
+                            <td>@(po.ExpectedDeliveryDate.HasValue ? PhilippineTime.ToDateTime(po.ExpectedDeliveryDate.Value).ToString("MMM d") : "—")</td>
+                            <td><span class="zb-mono">@PhilippineTime.ToDateTime(po.CreatedAt).ToString("MMM d, h:mm tt")</span></td>
+                            <td class="text-end">
+                                <a asp-action="PurchaseOrderDetails" asp-route-id="@po.PurchaseOrderId" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                                    Open
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" class="text-center py-3" style="color:var(--zb-text-muted);">No draft purchase orders yet.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-building-gear me-2"></i>Suppliers</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Contact</th>
+                    <th>Email</th>
+                    <th>Lead Time</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody data-paginate="6">
+                @if (Model.RecentSuppliers.Any())
+                {
+                    @foreach (var supplier in Model.RecentSuppliers)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-action="SupplierDetails" asp-route-id="@supplier.SupplierId" class="text-decoration-none fw-semibold" style="color:var(--zb-text);">
+                                    @supplier.SupplierName
+                                </a>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(supplier.ContactPerson) ? "—" : supplier.ContactPerson)</td>
+                            <td>@(string.IsNullOrWhiteSpace(supplier.EmailAddress) ? "—" : supplier.EmailAddress)</td>
+                            <td>@(supplier.LeadTimeDaysOverride.HasValue ? $"{supplier.LeadTimeDaysOverride} day(s)" : "Business default")</td>
+                            <td>
+                                <span class="zb-badge @(supplier.IsActive ? "zb-badge-green" : "zb-badge-red")">
+                                    @(supplier.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a asp-action="SupplierDetails" asp-route-id="@supplier.SupplierId" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                                    Manage
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-3" style="color:var(--zb-text-muted);">No suppliers yet.</td>
                     </tr>
                 }
             </tbody>
@@ -118,8 +661,8 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="TransactionType" value="Spoilage" />
                     <div class="col-12">
-                        <label class="form-label small zb-form-label">Item</label>
-                        <select class="form-select form-select-sm zb-form-input" name="ItemId" required>
+                        <label for="spoilageItemId" class="form-label small zb-form-label">Item</label>
+                        <select id="spoilageItemId" class="form-select form-select-sm zb-form-input" name="ItemId" required>
                             <option value="">Select item</option>
                             @foreach (var item in Model.MenuItems.Where(m => m.IsActive).OrderBy(m => m.ItemName))
                             {
@@ -128,12 +671,12 @@
                         </select>
                     </div>
                     <div class="col-4">
-                        <label class="form-label small zb-form-label">Quantity</label>
-                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" name="Quantity" value="1" required />
+                        <label for="spoilageQuantity" class="form-label small zb-form-label">Quantity</label>
+                        <input id="spoilageQuantity" class="form-control form-control-sm zb-form-input" type="number" min="1" name="Quantity" value="1" required />
                     </div>
                     <div class="col-8">
-                        <label class="form-label small zb-form-label">Notes</label>
-                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="e.g. expired item" />
+                        <label for="spoilageNotes" class="form-label small zb-form-label">Notes</label>
+                        <input id="spoilageNotes" class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="e.g. expired item" />
                     </div>
                     <div class="col-12 d-grid">
                         <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);">
@@ -148,8 +691,8 @@
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="TransactionType" value="Correction" />
                     <div class="col-12">
-                        <label class="form-label small zb-form-label">Item</label>
-                        <select class="form-select form-select-sm zb-form-input" name="ItemId" required>
+                        <label for="correctionItemId" class="form-label small zb-form-label">Item</label>
+                        <select id="correctionItemId" class="form-select form-select-sm zb-form-input" name="ItemId" required>
                             <option value="">Select item</option>
                             @foreach (var item in Model.MenuItems.Where(m => m.IsActive).OrderBy(m => m.ItemName))
                             {
@@ -158,12 +701,12 @@
                         </select>
                     </div>
                     <div class="col-4">
-                        <label class="form-label small zb-form-label">Quantity Change</label>
-                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" max="100000" name="Quantity" value="1" required />
+                        <label for="correctionQuantity" class="form-label small zb-form-label">Quantity Change</label>
+                        <input id="correctionQuantity" class="form-control form-control-sm zb-form-input" type="number" min="1" max="100000" name="Quantity" value="1" required />
                     </div>
                     <div class="col-8">
-                        <label class="form-label small zb-form-label">Notes</label>
-                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="e.g. physical count mismatch" />
+                        <label for="correctionNotes" class="form-label small zb-form-label">Notes</label>
+                        <input id="correctionNotes" class="form-control form-control-sm zb-form-input" type="text" name="Notes" maxlength="255" placeholder="e.g. physical count mismatch" />
                     </div>
                     <div class="col-12 d-grid">
                         <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
@@ -191,9 +734,10 @@
                     <th>Stock</th>
                     <th>Threshold</th>
                     <th>Status</th>
+                    <th style="width:300px;">Quick Restock</th>
                 </tr>
             </thead>
-            <tbody data-paginate="5">
+            <tbody data-paginate="10">
                 @foreach (var item in Model.MenuItems)
                 {
                     var lowStock = item.IsActive && item.StockAvailable <= item.LowStockThreshold;
@@ -220,6 +764,28 @@
                             else
                             {
                                 <span class="zb-badge zb-badge-red">Inactive</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <form asp-action="Restock" method="post" class="row g-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="ItemId" value="@item.ItemId" />
+                                    <div class="col-4">
+                                        <input class="form-control form-control-sm zb-form-input" type="number" min="1" name="Quantity" value="10" required />
+                                    </div>
+                                    <div class="col-5">
+                                        <input class="form-control form-control-sm zb-form-input" type="text" name="Notes" placeholder="Optional note" maxlength="255" />
+                                    </div>
+                                    <div class="col-3 d-grid">
+                                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);font-size:.78rem;">Add</button>
+                                    </div>
+                                </form>
+                            }
+                            else
+                            {
+                                <span style="color:var(--zb-text-muted);font-size:.8rem;">Inactive</span>
                             }
                         </td>
                     </tr>
@@ -254,12 +820,19 @@
                     {
                         var changeBadge = tx.QuantityChange >= 0 ? "zb-badge-green" : "zb-badge-red";
                         var signedValue = tx.QuantityChange >= 0 ? $"+{tx.QuantityChange}" : tx.QuantityChange.ToString();
+                        if (tx.QuantityChange == 0)
+                        {
+                            signedValue = "0";
+                            changeBadge = "zb-badge-cyan";
+                        }
                         var typeBadge = tx.TransactionType switch
                         {
                             "Restock" => "zb-badge-green",
                             "Sale" => "zb-badge-red",
                             "Spoilage" => "zb-badge-orange",
                             "Correction" => "zb-badge-cyan",
+                            "PromoFlag" => "zb-badge-orange",
+                            "ReviewFlag" => "zb-badge-cyan",
                             _ => "zb-badge-cyan"
                         };
                         <tr>

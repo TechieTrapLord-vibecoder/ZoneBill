@@ -1,0 +1,239 @@
+@model ZoneBill_Lloren.Models.AuditLogPageViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "SuperAdmin Audit Log";
+    var nowPh = PhilippineTime.Now;
+
+    // Build base query string (without page) for pagination links
+    var qs = new System.Text.StringBuilder();
+    if (!string.IsNullOrWhiteSpace(Model.FilterActionType)) qs.Append($"&actionType={Uri.EscapeDataString(Model.FilterActionType)}");
+    if (!string.IsNullOrWhiteSpace(Model.FilterEntityType)) qs.Append($"&entityType={Uri.EscapeDataString(Model.FilterEntityType)}");
+    if (!string.IsNullOrWhiteSpace(Model.FilterActor))      qs.Append($"&actor={Uri.EscapeDataString(Model.FilterActor)}");
+    if (!string.IsNullOrWhiteSpace(Model.FilterBusiness))   qs.Append($"&business={Uri.EscapeDataString(Model.FilterBusiness)}");
+    if (Model.FilterFrom.HasValue) qs.Append($"&fromDate={Model.FilterFrom.Value:yyyy-MM-dd}");
+    if (Model.FilterTo.HasValue)   qs.Append($"&toDate={Model.FilterTo.Value:yyyy-MM-dd}");
+    var baseQs = qs.ToString();
+
+    string PageLink(int p) => $"?page={p}{baseQs}";
+    string ExportLink()    => $"?exportCsv=1{baseQs}";
+
+    string ActionBadgeClass(string a) => a switch
+    {
+        "MarkPaid"      => "zb-badge-green",
+        "Retry"         => "zb-badge-cyan",
+        "Suspended"     => "zb-badge-red",
+        "Reactivated"   => "zb-badge-green",
+        "DeletePlan"    => "zb-badge-red",
+        "EditPlan"      => "zb-badge-yellow",
+        "CreatePlan"    => "zb-badge-green",
+        "RoleChanged"   => "zb-badge-orange",
+        _               => "zb-badge-cyan"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-journal-text me-2" style="color:var(--zb-secondary);"></i>SuperAdmin Audit Log</h4>
+        <p class="text-muted small mb-0">Full history of all critical admin actions across the platform.</p>
+    </div>
+    <a href="@ExportLink()" class="btn fw-semibold"
+       style="background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">
+        <i class="bi bi-download me-2"></i>Export CSV
+    </a>
+</div>
+
+@* Filter Panel *@
+<div class="zb-table-card mb-4 p-4">
+    <form method="get" action="" class="row g-3 align-items-end">
+        <div class="col-md-2">
+            <label class="form-label small" style="color:var(--zb-text-muted);">Action Type</label>
+            <select name="actionType" class="form-select form-select-sm zb-input">
+                <option value="">All Actions</option>
+                @foreach (var at in Model.AvailableActionTypes)
+                {
+                    <option value="@at" selected="@(at == Model.FilterActionType ? "selected" : null)">@at</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small" style="color:var(--zb-text-muted);">Entity Type</label>
+            <select name="entityType" class="form-select form-select-sm zb-input">
+                <option value="">All Entities</option>
+                @foreach (var et in Model.AvailableEntityTypes)
+                {
+                    <option value="@et" selected="@(et == Model.FilterEntityType ? "selected" : null)">@et</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small" style="color:var(--zb-text-muted);">Actor</label>
+            <input type="text" name="actor" value="@Model.FilterActor" placeholder="e.g. admin@zone…"
+                   class="form-control form-control-sm zb-input" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label small" style="color:var(--zb-text-muted);">Business</label>
+            <input type="text" name="business" value="@Model.FilterBusiness" placeholder="Business name…"
+                   class="form-control form-control-sm zb-input" />
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small" style="color:var(--zb-text-muted);">From</label>
+            <input type="date" name="fromDate" value="@(Model.FilterFrom.HasValue ? Model.FilterFrom.Value.ToString("yyyy-MM-dd") : "")"
+                   class="form-control form-control-sm zb-input" />
+        </div>
+        <div class="col-md-1">
+            <label class="form-label small" style="color:var(--zb-text-muted);">To</label>
+            <input type="date" name="toDate" value="@(Model.FilterTo.HasValue ? Model.FilterTo.Value.ToString("yyyy-MM-dd") : "")"
+                   class="form-control form-control-sm zb-input" />
+        </div>
+        <div class="col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-sm fw-semibold flex-grow-1"
+                    style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.35);">
+                <i class="bi bi-search me-1"></i>Filter
+            </button>
+            <a href="@Url.Action("SuperAdminAuditLog")" class="btn btn-sm"
+               style="background:rgba(148,163,184,0.12);color:var(--zb-text-muted);border:1px solid rgba(148,163,184,0.25);">
+                <i class="bi bi-x-lg"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+@* Results *@
+<div class="zb-table-card">
+    <div class="px-4 pt-3 pb-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2"
+         style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);">
+            <i class="bi bi-list-ul me-2"></i>Results
+        </h6>
+        <span class="small" style="color:var(--zb-text-muted);">
+            Showing
+            @if (Model.TotalCount == 0) { <span>0</span> }
+            else {
+                <span>@(((Model.Page - 1) * Model.PageSize) + 1)–@(Math.Min(Model.Page * Model.PageSize, Model.TotalCount))</span>
+            }
+            of <strong style="color:var(--zb-text);">@Model.TotalCount</strong> records
+        </span>
+    </div>
+
+    @if (!Model.Logs.Any())
+    {
+        <div class="p-5 text-center" style="color:var(--zb-text-muted);">
+            <i class="bi bi-journal-x fs-2 d-block mb-2"></i>No audit records match your filters.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table zb-table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:145px;">When (PH)</th>
+                        <th style="width:130px;">Action</th>
+                        <th style="width:140px;">Entity</th>
+                        <th>Business</th>
+                        <th>Details / Reason</th>
+                        <th style="width:130px;">By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var log in Model.Logs)
+                {
+                    <tr>
+                        <td class="zb-mono" style="font-size:.8rem;white-space:nowrap;">
+                            @PhilippineTime.ToDateTime(log.CreatedAt).ToString("MMM d, yyyy")<br />
+                            <span style="color:var(--zb-text-muted);">@PhilippineTime.ToDateTime(log.CreatedAt).ToString("h:mm:ss tt")</span>
+                        </td>
+                        <td>
+                            <span class="zb-badge @ActionBadgeClass(log.ActionType)">@log.ActionType</span>
+                        </td>
+                        <td>
+                            <span style="color:var(--zb-text);font-size:.85rem;">@log.EntityType</span>
+                            @if (log.EntityId.HasValue)
+                            {
+                                <span class="zb-mono ms-1" style="font-size:.75rem;color:var(--zb-text-muted);">#@log.EntityId</span>
+                            }
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(log.BusinessName))
+                            {
+                                if (log.BusinessId.HasValue)
+                                {
+                                    <a asp-controller="Businesses" asp-action="Details" asp-route-id="@log.BusinessId"
+                                       class="fw-semibold text-decoration-none" style="color:var(--zb-secondary);">
+                                        @log.BusinessName
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="fw-semibold" style="color:var(--zb-text);">@log.BusinessName</span>
+                                }
+                            }
+                            else
+                            {
+                                <span style="color:var(--zb-text-muted);">—</span>
+                            }
+                        </td>
+                        <td style="font-size:.82rem;">
+                            <span style="color:var(--zb-text);">@log.Details</span>
+                            @if (!string.IsNullOrWhiteSpace(log.Reason))
+                            {
+                                <div style="color:var(--zb-text-muted);margin-top:2px;">
+                                    <i class="bi bi-chat-text me-1"></i>@log.Reason
+                                </div>
+                            }
+                        </td>
+                        <td style="font-size:.83rem;color:var(--zb-text);">
+                            <i class="bi bi-person-circle me-1" style="color:var(--zb-text-muted);"></i>@log.ActorName
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @* Pagination *@
+        @if (Model.TotalPages > 1)
+        {
+            <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2 border-top"
+                 style="border-color:rgba(6,182,212,0.12)!important;">
+                <span class="small" style="color:var(--zb-text-muted);">Page @Model.Page of @Model.TotalPages</span>
+                <div class="d-flex gap-1 flex-wrap">
+                    @if (Model.Page > 1)
+                    {
+                        <a href="@PageLink(1)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                        <a href="@PageLink(Model.Page - 1)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    }
+                    @{
+                        int rangeStart = Math.Max(1, Model.Page - 2);
+                        int rangeEnd   = Math.Min(Model.TotalPages, Model.Page + 2);
+                    }
+                    @for (int p = rangeStart; p <= rangeEnd; p++)
+                    {
+                        if (p == Model.Page)
+                        {
+                            <span class="btn btn-sm" style="background:rgba(6,182,212,0.25);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.4);font-weight:700;">@p</span>
+                        }
+                        else
+                        {
+                            <a href="@PageLink(p)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-text-muted);border:1px solid rgba(6,182,212,0.2);">@p</a>
+                        }
+                    }
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a href="@PageLink(Model.Page + 1)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                        <a href="@PageLink(Model.TotalPages)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>

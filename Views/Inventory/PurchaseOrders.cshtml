@@ -1,0 +1,140 @@
+@model ZoneBill_Lloren.Models.PurchaseOrderListPageViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Purchase Orders";
+    var startDateValue = Model.StartDate?.ToString("yyyy-MM-dd");
+    var endDateValue = Model.EndDate?.ToString("yyyy-MM-dd");
+}
+
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+        <a asp-action="Index" class="text-decoration-none small" style="color:var(--zb-text-muted);">
+            <i class="bi bi-arrow-left me-1"></i>Back to Inventory
+        </a>
+        <h4 class="fw-bold mt-2 mb-1" style="color:var(--zb-text);">Purchase Orders</h4>
+        <div class="small" style="color:var(--zb-text-muted);">Filter purchase orders by workflow status.</div>
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-funnel me-2"></i>Status Filters</h6>
+    </div>
+    <div class="p-4 d-flex gap-2 flex-wrap">
+        @foreach (var status in Model.AvailableStatuses)
+        {
+            var isSelected = string.Equals(status, Model.SelectedStatus, StringComparison.OrdinalIgnoreCase);
+            <a asp-action="PurchaseOrders"
+               asp-route-status="@(string.Equals(status, "All", StringComparison.OrdinalIgnoreCase) ? null : status)"
+               asp-route-supplierId="@Model.SelectedSupplierId"
+               asp-route-startDate="@startDateValue"
+               asp-route-endDate="@endDateValue"
+               class="btn btn-sm fw-semibold"
+               style="@(isSelected
+                    ? "background:rgba(6,182,212,0.18);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.38);"
+                    : "background:rgba(15,23,42,0.38);color:var(--zb-text-muted);border:1px solid rgba(148,163,184,0.2);")">
+                @status
+            </a>
+        }
+    </div>
+</div>
+
+<div class="zb-table-card mb-4">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-sliders me-2"></i>Advanced Filters</h6>
+    </div>
+    <form asp-action="PurchaseOrders" method="get" class="p-4 row g-3 align-items-end">
+        <div class="col-md-3">
+            <label for="statusFilter" class="form-label small" style="color:var(--zb-text-muted);">Status</label>
+            <select id="statusFilter" name="status" class="form-select zb-form-input">
+                @foreach (var status in Model.AvailableStatuses)
+                {
+                    <option value="@(string.Equals(status, "All", StringComparison.OrdinalIgnoreCase) ? string.Empty : status)" selected="@(string.Equals(status, Model.SelectedStatus, StringComparison.OrdinalIgnoreCase) ? "selected" : null)">@status</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label for="supplierId" class="form-label small" style="color:var(--zb-text-muted);">Supplier</label>
+            <select id="supplierId" name="supplierId" class="form-select zb-form-input">
+                <option value="">All suppliers</option>
+                @foreach (var supplier in Model.SupplierFilters)
+                {
+                    <option value="@supplier.SupplierId" selected="@(Model.SelectedSupplierId == supplier.SupplierId ? "selected" : null)">@supplier.SupplierName@(supplier.IsActive ? string.Empty : " (Inactive)")</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label for="startDate" class="form-label small" style="color:var(--zb-text-muted);">From</label>
+            <input id="startDate" type="date" name="startDate" value="@startDateValue" class="form-control zb-form-input" />
+        </div>
+        <div class="col-md-2">
+            <label for="endDate" class="form-label small" style="color:var(--zb-text-muted);">To</label>
+            <input id="endDate" type="date" name="endDate" value="@endDateValue" class="form-control zb-form-input" />
+        </div>
+        <div class="col-md-2 d-grid gap-2">
+            <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">Apply</button>
+            <a asp-action="PurchaseOrders" class="btn btn-sm fw-semibold" style="background:rgba(15,23,42,0.38);color:var(--zb-text-muted);border:1px solid rgba(148,163,184,0.2);">Reset</a>
+        </div>
+    </form>
+</div>
+
+<div class="zb-table-card">
+    <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-receipt me-2"></i>@Model.SelectedStatus Purchase Orders</h6>
+    </div>
+    <div class="table-responsive">
+        <table class="table zb-table mb-0">
+            <thead>
+                <tr>
+                    <th>PO Number</th>
+                    <th>Supplier</th>
+                    <th>Status</th>
+                    <th>Items</th>
+                    <th>Units</th>
+                    <th>Received</th>
+                    <th>Estimated Cost</th>
+                    <th>Expected Delivery</th>
+                    <th>Created (PH)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.PurchaseOrders.Any())
+                {
+                    @foreach (var po in Model.PurchaseOrders)
+                    {
+                        var statusBadgeClass = po.Status switch
+                        {
+                            "Draft" => "zb-badge-orange",
+                            "Ordered" => "zb-badge-cyan",
+                            "PartiallyReceived" => "zb-badge-red",
+                            "Received" => "zb-badge-green",
+                            "Closed" => "zb-badge-yellow",
+                            "Cancelled" => "zb-badge-purple",
+                            _ => "zb-badge"
+                        };
+                        <tr>
+                            <td><a asp-action="PurchaseOrderDetails" asp-route-id="@po.PurchaseOrderId" class="zb-mono text-decoration-none" style="color:var(--zb-secondary);">@po.PurchaseOrderNumber</a></td>
+                            <td><a asp-action="SupplierDetails" asp-route-id="@po.SupplierId" class="text-decoration-none fw-semibold" style="color:var(--zb-text);">@po.SupplierName</a></td>
+                            <td><span class="zb-badge @statusBadgeClass">@po.Status</span></td>
+                            <td>@po.TotalItems</td>
+                            <td>@po.TotalUnits</td>
+                            <td>@po.ReceivedUnits</td>
+                            <td>@po.TotalCost.ToString("C")</td>
+                            <td>@(po.ExpectedDeliveryDate.HasValue ? PhilippineTime.ToDateTime(po.ExpectedDeliveryDate.Value).ToString("MMM d") : "—")</td>
+                            <td><span class="zb-mono">@PhilippineTime.ToDateTime(po.CreatedAt).ToString("MMM d, h:mm tt")</span></td>
+                            <td class="text-end"><a asp-action="PurchaseOrderDetails" asp-route-id="@po.PurchaseOrderId" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">Open</a></td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" class="text-center py-3" style="color:var(--zb-text-muted);">No purchase orders match this filter.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

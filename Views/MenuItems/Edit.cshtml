@@ -26,6 +26,75 @@
                     <span asp-validation-for="ItemName" class="text-danger small"></span>
                 </div>
                 <div class="col-md-6">
+                    <label asp-for="Category" class="form-label zb-form-label"></label>
+                    @{
+                        var knownCats = new[] { "Food", "Beverages", "Snacks", "Desserts", "Add-ons", "Packages", "Services", "Merchandise" };
+                        var isKnown = knownCats.Contains(Model.Category);
+                        var customClass = isKnown ? "form-control zb-form-input mt-2 d-none" : "form-control zb-form-input mt-2";
+                        var customValue = isKnown ? "" : Model.Category;
+                    }
+                    <select id="CategorySelect" name="Category" class="form-select zb-form-input" onchange="toggleCustomCategory(this)">
+                        <option value="">-- Select Category --</option>
+                        @foreach (var cat in knownCats)
+                        {
+                            if (Model.Category == cat)
+                            {
+                                <option value="@cat" selected="selected">@cat</option>
+                            }
+                            else
+                            {
+                                <option value="@cat">@cat</option>
+                            }
+                        }
+                        @if (!isKnown)
+                        {
+                            <option value="__custom__" selected="selected">Other (type your own)</option>
+                        }
+                        else
+                        {
+                            <option value="__custom__">Other (type your own)</option>
+                        }
+                    </select>
+                    <input type="text" id="CategoryCustom" name="_customCat"
+                           class="@customClass"
+                           placeholder="Type category name..."
+                           value="@customValue" />
+                    <span asp-validation-for="Category" class="text-danger small"></span>
+                </div>
+                <script>
+                    function toggleCustomCategory(sel) {
+                        var custom = document.getElementById('CategoryCustom');
+                        if (sel.value === '__custom__') {
+                            custom.classList.remove('d-none');
+                            sel.name = '_ignoreCat';
+                            custom.name = 'Category';
+                            custom.focus();
+                        } else {
+                            custom.classList.add('d-none');
+                            sel.name = 'Category';
+                            custom.name = '_customCat';
+                        }
+                    }
+                    (function () {
+                        var sel = document.getElementById('CategorySelect');
+                        var custom = document.getElementById('CategoryCustom');
+                        if (sel && sel.value === '__custom__') {
+                            sel.name = '_ignoreCat';
+                            custom.name = 'Category';
+                        }
+                    })();
+                </script>
+                <div class="col-md-6">
+                    <label asp-for="ImageUrl" class="form-label zb-form-label"></label>
+                    <input asp-for="ImageUrl" class="form-control zb-form-input" placeholder="https://..." />
+                    <span asp-validation-for="ImageUrl" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="SortOrder" class="form-label zb-form-label"></label>
+                    <input asp-for="SortOrder" class="form-control zb-form-input" />
+                    <span asp-validation-for="SortOrder" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
                     <label asp-for="CurrentPrice" class="form-label zb-form-label"></label>
                     <input asp-for="CurrentPrice" class="form-control zb-form-input" />
                     <span asp-validation-for="CurrentPrice" class="text-danger small"></span>

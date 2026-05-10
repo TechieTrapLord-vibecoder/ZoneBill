@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ZoneBill_Lloren.Data;
+using ZoneBill_Lloren.Helpers;
 using ZoneBill_Lloren.Models;
 
 namespace ZoneBill_Lloren.Controllers
@@ -22,17 +23,86 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: Invoices
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, string? status, DateTime? fromDate, DateTime? toDate, int page = 1)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
 
+            const int pageSize = 10;
+
             var invoices = _context.Invoices
                 .Include(i => i.Booking)
                 .Include(i => i.Business)
-                .Where(i => i.BusinessId == businessId.Value);
+                .Where(i => i.BusinessId == businessId.Value)
+                .AsQueryable();
 
-            return View(await invoices.ToListAsync());
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var trimmedSearch = search.Trim();
+                if (int.TryParse(trimmedSearch, out var numericSearch))
+                {
+                    invoices = invoices.Where(i => i.InvoiceId == numericSearch || i.BookingId == numericSearch);
+                }
+                else
+                {
+                    invoices = invoices.Where(i =>
+                        (i.Booking != null && i.Booking.ReferenceCode != null && i.Booking.ReferenceCode.Contains(trimmedSearch)) ||
+                        (i.PaymentStatus != null && i.PaymentStatus.Contains(trimmedSearch)));
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                if (status == "overdue")
+                {
+                    var overdueCutoff = PhilippineTime.Now.Date.AddDays(-3);
+                    invoices = invoices.Where(i => i.PaymentStatus != "Paid" && i.GeneratedDate < overdueCutoff);
+                }
+                else if (status == "Unpaid")
+                {
+                    invoices = invoices.Where(i => i.PaymentStatus != "Paid");
+                }
+                else
+                {
+                    invoices = invoices.Where(i => i.PaymentStatus == status);
+                }
+            }
+
+            if (fromDate.HasValue)
+            {
+                invoices = invoices.Where(i => i.GeneratedDate >= fromDate.Value.Date);
+            }
+
+            if (toDate.HasValue)
+            {
+                var endDateExclusive = toDate.Value.Date.AddDays(1);
+                invoices = invoices.Where(i => i.GeneratedDate < endDateExclusive);
+            }
+
+            ViewBag.TotalRevenue = await invoices.SumAsync(i => (decimal?)i.TotalAmount) ?? 0m;
+            ViewBag.PaidCount = await invoices.CountAsync(i => i.PaymentStatus == "Paid");
+            ViewBag.UnpaidCount = await invoices.CountAsync(i => i.PaymentStatus != "Paid");
+            var overdueCutoffForSummary = PhilippineTime.Now.Date.AddDays(-3);
+            ViewBag.OverdueCount = await invoices.CountAsync(i => i.PaymentStatus != "Paid" && i.GeneratedDate < overdueCutoffForSummary);
+
+            var totalCount = await invoices.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Min(Math.Max(page, 1), totalPages);
+
+            ViewBag.Search = search;
+            ViewBag.Status = status;
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+
+            return View(await invoices
+                .OrderByDescending(i => i.GeneratedDate)
+                .ThenByDescending(i => i.InvoiceId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync());
         }
 
         // GET: Invoices/Details/5
@@ -117,12 +187,8 @@ namespace ZoneBill_Lloren.Controllers
         // GET: Invoices/Create
         public IActionResult Create()
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            ViewData["BookingId"] = new SelectList(_context.Bookings.Where(b => b.BusinessId == businessId.Value), "BookingId", "BookingStatus");
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName");
-            return View();
+            TempData["Error"] = "Manual invoice creation is disabled. Invoices are auto-generated from POS checkout.";
+            return RedirectToAction(nameof(Index));
         }
 
         // POST: Invoices/Create
@@ -130,22 +196,10 @@ namespace ZoneBill_Lloren.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("InvoiceId,BusinessId,BookingId,SubTotal,DiscountAmount,TaxAmount,TotalAmount,TaxRateApplied,PaymentStatus,GeneratedDate")] Invoice invoice)
+        public IActionResult Create([Bind("InvoiceId,BusinessId,BookingId,SubTotal,DiscountAmount,TaxAmount,TotalAmount,TaxRateApplied,PaymentStatus,GeneratedDate")] Invoice invoice)
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            invoice.BusinessId = businessId.Value;
-
-            if (ModelState.IsValid)
-            {
-                _context.Add(invoice);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["BookingId"] = new SelectList(_context.Bookings.Where(b => b.BusinessId == businessId.Value), "BookingId", "BookingStatus", invoice.BookingId);
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName", invoice.BusinessId);
-            return View(invoice);
+            TempData["Error"] = "Manual invoice creation is disabled. Use POS checkout to generate invoices.";
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Invoices/Edit/5
@@ -210,44 +264,19 @@ namespace ZoneBill_Lloren.Controllers
             return View(invoice);
         }
 
-        // GET: Invoices/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: Invoices/Delete — Deletion disabled
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var invoice = await _context.Invoices
-                .Include(i => i.Booking)
-                .Include(i => i.Business)
-                .FirstOrDefaultAsync(m => m.InvoiceId == id && m.BusinessId == businessId.Value);
-            if (invoice == null)
-            {
-                return NotFound();
-            }
-
-            return View(invoice);
+            TempData["Warning"] = "Deletion is disabled. Invoice records are kept for financial audit purposes.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: Invoices/Delete/5
+        // POST: Invoices/Delete — Deletion disabled
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == id && i.BusinessId == businessId.Value);
-            if (invoice != null)
-            {
-                _context.Invoices.Remove(invoice);
-            }
-
-            await _context.SaveChangesAsync();
+            TempData["Warning"] = "Deletion is disabled. Invoice records are kept for financial audit purposes.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -265,10 +294,56 @@ namespace ZoneBill_Lloren.Controllers
                     .Where(i => invoiceIds.Contains(i.InvoiceId) && i.BusinessId == businessId.Value && i.PaymentStatus != "Paid")
                     .ToListAsync();
 
+                var cashAccount = await GetOrCreateAccountAsync(businessId.Value, "Cash", "Asset");
+                var accountsReceivable = await GetOrCreateAccountAsync(businessId.Value, "Accounts Receivable", "Asset");
+
                 foreach (var inv in invoices)
+                {
+                    var payment = new Payment
+                    {
+                        BusinessId = businessId.Value,
+                        InvoiceId = inv.InvoiceId,
+                        AmountPaid = inv.TotalAmount,
+                        PaymentMethod = "Manual",
+                        PaymentDate = PhilippineTime.Now,
+                        ReferenceNumber = "Bulk mark paid"
+                    };
+
+                    var journalEntry = new JournalEntry
+                    {
+                        BusinessId = businessId.Value,
+                        ReferenceId = inv.InvoiceId,
+                        ReferenceType = "Payment",
+                        EntryDate = payment.PaymentDate,
+                        Description = $"Manual bulk payment for Invoice #{inv.InvoiceId}"
+                    };
+
+                    _context.JournalEntries.Add(journalEntry);
+                    await _context.SaveChangesAsync();
+
+                    _context.JournalEntryLines.AddRange(
+                        new JournalEntryLine
+                        {
+                            JournalEntryId = journalEntry.JournalEntryId,
+                            AccountId = cashAccount.AccountId,
+                            Debit = payment.AmountPaid,
+                            Credit = 0m
+                        },
+                        new JournalEntryLine
+                        {
+                            JournalEntryId = journalEntry.JournalEntryId,
+                            AccountId = accountsReceivable.AccountId,
+                            Debit = 0m,
+                            Credit = payment.AmountPaid
+                        });
+
                     inv.PaymentStatus = "Paid";
+                    _context.Payments.Add(payment);
+                }
 
                 await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Marked {invoices.Count} invoice(s) as paid and created matching payment records.";
             }
 
             return RedirectToAction(nameof(Index));
@@ -285,6 +360,29 @@ namespace ZoneBill_Lloren.Controllers
         {
             var value = User.FindFirst("BusinessId")?.Value;
             return int.TryParse(value, out var businessId) ? businessId : null;
+        }
+
+        private async Task<ChartOfAccount> GetOrCreateAccountAsync(int businessId, string accountName, string accountType)
+        {
+            var account = await _context.ChartOfAccounts
+                .FirstOrDefaultAsync(a => a.BusinessId == businessId && a.AccountName == accountName);
+
+            if (account != null)
+            {
+                return account;
+            }
+
+            account = new ChartOfAccount
+            {
+                BusinessId = businessId,
+                AccountName = accountName,
+                AccountType = accountType,
+                IsActive = true
+            };
+
+            _context.ChartOfAccounts.Add(account);
+            await _context.SaveChangesAsync();
+            return account;
         }
     }
 }

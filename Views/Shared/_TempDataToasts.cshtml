@@ -1,0 +1,37 @@
+@using System.Text.Json
+@{
+    var toastQueue = new List<object>();
+
+    if (TempData["Success"] is string successMessage && !string.IsNullOrWhiteSpace(successMessage))
+    {
+        toastQueue.Add(new { type = "success", title = "Success", message = successMessage });
+    }
+
+    if (TempData["Warning"] is string warningMessage && !string.IsNullOrWhiteSpace(warningMessage))
+    {
+        toastQueue.Add(new { type = "warning", title = "Warning", message = warningMessage });
+    }
+
+    if (TempData["Error"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+    {
+        toastQueue.Add(new { type = "error", title = "Action Needed", message = errorMessage });
+    }
+}
+
+@if (toastQueue.Count > 0)
+{
+    <script>
+        (function () {
+            if (!window.ZoneBillToast) return;
+
+            var queue = @Html.Raw(JsonSerializer.Serialize(toastQueue));
+            queue.forEach(function (item, index) {
+                window.ZoneBillToast.show(item.message, {
+                    type: item.type,
+                    title: item.title,
+                    delay: 4200 + (index * 350)
+                });
+            });
+        })();
+    </script>
+}

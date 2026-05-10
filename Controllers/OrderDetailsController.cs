@@ -22,10 +22,18 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: OrderDetails
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
-            var applicationDbContext = _context.OrderDetails.Include(o => o.MenuItem).Include(o => o.Order);
-            return View(await applicationDbContext.ToListAsync());
+            const int pageSize = 10;
+            var query = _context.OrderDetails.Include(o => o.MenuItem).Include(o => o.Order)
+                .OrderByDescending(o => o.OrderDetailId);
+            var totalCount = await query.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+            return View(await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync());
         }
 
         // GET: OrderDetails/Details/5
@@ -129,38 +137,19 @@ namespace ZoneBill_Lloren.Controllers
             return View(orderDetail);
         }
 
-        // GET: OrderDetails/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: OrderDetails/Delete — Deletion disabled
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var orderDetail = await _context.OrderDetails
-                .Include(o => o.MenuItem)
-                .Include(o => o.Order)
-                .FirstOrDefaultAsync(m => m.OrderDetailId == id);
-            if (orderDetail == null)
-            {
-                return NotFound();
-            }
-
-            return View(orderDetail);
+            TempData["Warning"] = "Deletion is disabled. Order line items are kept for audit purposes.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: OrderDetails/Delete/5
+        // POST: OrderDetails/Delete — Deletion disabled
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
         {
-            var orderDetail = await _context.OrderDetails.FindAsync(id);
-            if (orderDetail != null)
-            {
-                _context.OrderDetails.Remove(orderDetail);
-            }
-
-            await _context.SaveChangesAsync();
+            TempData["Warning"] = "Deletion is disabled. Order line items are kept for audit purposes.";
             return RedirectToAction(nameof(Index));
         }
 

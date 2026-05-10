@@ -1,0 +1,150 @@
+@model ZoneBill_Lloren.Models.SupplierDetailsViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = $"Supplier {Model.SupplierName}";
+}
+
+<div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+    <div>
+        <a asp-action="Index" class="text-decoration-none small" style="color:var(--zb-text-muted);">
+            <i class="bi bi-arrow-left me-1"></i>Back to Inventory
+        </a>
+        <h4 class="fw-bold mt-2 mb-1" style="color:var(--zb-text);">Supplier: @Model.SupplierName</h4>
+        <div class="small" style="color:var(--zb-text-muted);">Created @PhilippineTime.ToDateTime(Model.CreatedAt).ToString("MMM d, yyyy h:mm tt") (PH)</div>
+    </div>
+    <span class="zb-badge @(Model.IsActive ? "zb-badge-green" : "zb-badge-red")">@(Model.IsActive ? "Active" : "Inactive")</span>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Purchase Orders</div>
+            <div class="zb-kpi-value">@Model.PurchaseOrderCount</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Open Drafts</div>
+            <div class="zb-kpi-value">@Model.ActiveDraftCount</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Lead Time</div>
+            <div class="zb-kpi-value">@(Model.LeadTimeDaysOverride?.ToString() ?? "Default")</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="zb-kpi-card">
+            <div class="zb-kpi-label">Updated</div>
+            <div class="fw-semibold" style="color:var(--zb-text);font-size:1rem;">@(Model.UpdatedAt.HasValue ? PhilippineTime.ToDateTime(Model.UpdatedAt.Value).ToString("MMM d, h:mm tt") : "Never")</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-7">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-1" style="color:var(--zb-secondary);"><i class="bi bi-pencil-square me-2"></i>Edit Supplier</h6>
+            </div>
+            <form asp-action="UpdateSupplier" method="post" class="p-4">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="SupplierId" value="@Model.SupplierId" />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="supplierName" class="form-label small" style="color:var(--zb-text-muted);">Supplier Name</label>
+                        <input id="supplierName" name="SupplierName" class="form-control zb-form-input" maxlength="120" value="@Model.SupplierName" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="contactPerson" class="form-label small" style="color:var(--zb-text-muted);">Contact Person</label>
+                        <input id="contactPerson" name="ContactPerson" class="form-control zb-form-input" maxlength="120" value="@Model.ContactPerson" />
+                    </div>
+                    <div class="col-md-6">
+                        <label for="emailAddress" class="form-label small" style="color:var(--zb-text-muted);">Email</label>
+                        <input id="emailAddress" type="email" name="EmailAddress" class="form-control zb-form-input" maxlength="256" value="@Model.EmailAddress" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="phoneNumber" class="form-label small" style="color:var(--zb-text-muted);">Phone</label>
+                        <input id="phoneNumber" name="PhoneNumber" class="form-control zb-form-input" maxlength="30" value="@Model.PhoneNumber" />
+                    </div>
+                    <div class="col-md-3">
+                        <label for="leadTimeDaysOverride" class="form-label small" style="color:var(--zb-text-muted);">Lead Time (Days)</label>
+                        <input id="leadTimeDaysOverride" type="number" name="LeadTimeDaysOverride" class="form-control zb-form-input" min="1" max="30" value="@Model.LeadTimeDaysOverride" />
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-4">
+                    <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                        <i class="bi bi-save me-1"></i>Save Supplier
+                    </button>
+                </div>
+            </form>
+            @if (Model.IsActive)
+            {
+                <div class="px-4 pb-4">
+                    <form asp-action="DeactivateSupplier" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="SupplierId" value="@Model.SupplierId" />
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(239,68,68,0.14);color:#ef4444;border:1px solid rgba(239,68,68,0.32);">
+                            <i class="bi bi-slash-circle me-1"></i>Deactivate Supplier
+                        </button>
+                    </form>
+                </div>
+            }
+            else if (Model.CanReactivate)
+            {
+                <div class="px-4 pb-4">
+                    <form asp-action="ReactivateSupplier" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="SupplierId" value="@Model.SupplierId" />
+                        <button type="submit" class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.14);color:#22c55e;border:1px solid rgba(34,197,94,0.32);">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Reactivate Supplier
+                        </button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-4 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-1" style="color:var(--zb-secondary);"><i class="bi bi-receipt me-2"></i>Recent Purchase Orders</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table zb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>PO Number</th>
+                            <th>Status</th>
+                            <th>Units</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.RecentPurchaseOrders.Any())
+                        {
+                            @foreach (var po in Model.RecentPurchaseOrders)
+                            {
+                                <tr>
+                                    <td class="zb-mono">@po.PurchaseOrderNumber</td>
+                                    <td>@po.Status</td>
+                                    <td>@po.TotalUnits</td>
+                                    <td class="text-end">
+                                        <a asp-action="PurchaseOrderDetails" asp-route-id="@po.PurchaseOrderId" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">Open</a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center py-3" style="color:var(--zb-text-muted);">No purchase orders for this supplier yet.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

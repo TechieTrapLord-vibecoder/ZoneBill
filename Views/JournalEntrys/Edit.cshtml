@@ -1,4 +1,4 @@
-@model ZoneBill_Lloren.Models.JournalEntry
+@model ZoneBill_Lloren.Models.JournalEntryEditorViewModel
 
 @{
     ViewData["Title"] = "Edit Journal Entry";
@@ -11,38 +11,72 @@
 
 <div class="zb-table-card">
     <div class="p-4">
-        <form asp-action="Edit">
+        @if (!Model.AccountOptions.Any())
+        {
+            <div class="alert border-0 mb-4" style="background:rgba(249,115,22,0.12);color:#fdba74;">
+                Create chart of accounts first before editing lines on this entry.
+                <a asp-controller="ChartOfAccounts" asp-action="Create" class="ms-2 fw-semibold" style="color:#fde68a;">Add Account</a>
+            </div>
+        }
+
+        <form asp-action="Edit" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
             <input type="hidden" asp-for="JournalEntryId" />
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="BusinessId" class="form-label zb-form-label"></label>
-                    <select asp-for="BusinessId" class="form-select zb-form-input" asp-items="ViewBag.BusinessId"></select>
-                    <span asp-validation-for="BusinessId" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
                     <label asp-for="ReferenceId" class="form-label zb-form-label"></label>
                     <input asp-for="ReferenceId" class="form-control zb-form-input" />
-                    <span asp-validation-for="ReferenceId" class="text-danger small"></span>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label asp-for="ReferenceType" class="form-label zb-form-label"></label>
                     <input asp-for="ReferenceType" class="form-control zb-form-input" />
-                    <span asp-validation-for="ReferenceType" class="text-danger small"></span>
                 </div>
-                <div class="col-md-6">
+                <div class="col-md-4">
                     <label asp-for="EntryDate" class="form-label zb-form-label"></label>
-                    <input asp-for="EntryDate" class="form-control zb-form-input" />
-                    <span asp-validation-for="EntryDate" class="text-danger small"></span>
+                    <input asp-for="EntryDate" type="datetime-local" class="form-control zb-form-input" value="@Model.EntryDate.ToString("yyyy-MM-ddTHH:mm")" />
                 </div>
-                <div class="col-md-6">
+                <div class="col-12">
                     <label asp-for="Description" class="form-label zb-form-label"></label>
                     <input asp-for="Description" class="form-control zb-form-input" />
-                    <span asp-validation-for="Description" class="text-danger small"></span>
                 </div>
             </div>
+
+            <div class="d-flex align-items-center justify-content-between mb-2">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);">Journal Lines</h6>
+                <span class="small" style="color:var(--zb-text-muted);">Edit the lines directly here. Leave unused rows blank.</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table zb-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>Account</th>
+                            <th style="width:160px;">Debit</th>
+                            <th style="width:160px;">Credit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Lines.Count; i++)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="hidden" name="Lines[@i].JournalLineId" value="@Model.Lines[i].JournalLineId" />
+                                    <select name="Lines[@i].AccountId" class="form-select zb-form-input">
+                                        <option value="">Select account</option>
+                                        @foreach (var option in Model.AccountOptions)
+                                        {
+                                            <option value="@option.Value" selected="@(Model.Lines[i].AccountId?.ToString() == option.Value ? "selected" : null)">@option.Text</option>
+                                        }
+                                    </select>
+                                </td>
+                                <td><input type="number" step="0.01" min="0" name="Lines[@i].Debit" value="@(Model.Lines[i].Debit == 0 ? "" : Model.Lines[i].Debit)" class="form-control zb-form-input" /></td>
+                                <td><input type="number" step="0.01" min="0" name="Lines[@i].Credit" value="@(Model.Lines[i].Credit == 0 ? "" : Model.Lines[i].Credit)" class="form-control zb-form-input" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
             <div class="mt-4">
-                <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;"><i class="bi bi-check-lg me-1"></i>Save</button>
+                <button type="submit" class="btn fw-semibold" style="background:var(--zb-secondary);color:#0f172a;border:none;"><i class="bi bi-check-lg me-1"></i>Save Entry</button>
             </div>
         </form>
     </div>

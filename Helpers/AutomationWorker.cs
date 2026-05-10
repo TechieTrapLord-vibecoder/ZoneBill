@@ -184,37 +184,61 @@ namespace ZoneBill_Lloren.Helpers
             }
         }
 
-        // ── Task 5: Daily Low-Stock Digest (8 AM) ────────────────────────────
+        // ── Task 5: Daily Inventory Digest (8 AM) ────────────────────────────
 
         private async Task SendLowStockDigestAsync(CancellationToken ct)
         {
             using var scope = _scopeFactory.CreateScope();
             var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+            var inventoryAlertService = scope.ServiceProvider.GetRequiredService<IInventoryAlertService>();
 
-            var lowStockByBusiness = await db.MenuItems
-                .Where(m => m.IsActive && m.StockAvailable <= m.LowStockThreshold)
-                .GroupBy(m => m.BusinessId)
-                .Select(g => new { BusinessId = g.Key, Items = g.Select(m => m.ItemName).ToList() })
+            var businesses = await db.Businesses
+                .Where(b => b.IsActive && b.InventoryAlertEnabled)
                 .ToListAsync(ct);
 
-            foreach (var group in lowStockByBusiness)
+            foreach (var business in businesses)
             {
                 var admin = await db.Users.FirstOrDefaultAsync(
-                    u => u.BusinessId == group.BusinessId && u.UserRole == "MainAdmin" && u.IsActive, ct);
-                if (admin == null) continue;
+                    u => u.BusinessId == business.BusinessId && u.UserRole == "MainAdmin" && u.IsActive, ct);
 
-                var business = await db.Businesses.FindAsync(new object[] { group.BusinessId }, ct);
-                var businessName = business?.BusinessName ?? "Unknown";
+                var recipientEmail = !string.IsNullOrWhiteSpace(business.InventoryAlertEmail)
+                    ? business.InventoryAlertEmail.Trim()
+                    : admin?.EmailAddress;
 
-                await emailService.SendLowStockDigestAsync(
-                    admin.EmailAddress,
-                    $"{admin.FirstName} {admin.LastName}",
-                    group.Items,
-                    businessName);
+                if (string.IsNullOrWhiteSpace(recipientEmail))
+                {
+                    continue;
+                }
 
-                _logger.LogInformation("AutomationWorker: Sent low-stock digest ({Count} items) to {Email} for {Business}.",
-                    group.Items.Count, admin.EmailAddress, businessName);
+                var recipientName = admin != null
+                    ? $"{admin.FirstName} {admin.LastName}"
+                    : business.BusinessName;
+
+                var result = await inventoryAlertService.SendReorderAlertAsync(new InventoryAlertDispatchRequest
+                {
+                    BusinessId = business.BusinessId,
+                    BusinessName = business.BusinessName,
+                    RecipientEmail = recipientEmail,
+                    RecipientName = recipientName,
+                    LookbackDays = business.InventoryReorderLookbackDays,
+                    LeadTimeDays = business.InventoryLeadTimeDays,
+                    SafetyStockDays = business.InventorySafetyStockDays,
+                    TargetCoverageDays = business.InventoryTargetCoverageDays,
+                    TriggerSource = InventoryAlertSources.Automation,
+                    ForceSend = false,
+                    IncludeAnomalies = true
+                }, ct);
+
+                if (result.WasSent)
+                {
+                    _logger.LogInformation("AutomationWorker: Sent reorder digest ({Count} items, {Units} units) to {Email} for {Business}.",
+                        result.Summary.TotalRecommendations, result.Summary.RecommendedUnits, recipientEmail, business.BusinessName);
+                }
+                else if (result.WasDeduped)
+                {
+                    _logger.LogInformation("AutomationWorker: Skipped duplicate reorder digest for {Business}; last sent at {LastSent}.",
+                        business.BusinessName, result.LastSentAt);
+                }
             }
         }
     }

@@ -2,13 +2,14 @@
 
 @{
     ViewData["Title"] = "Spaces";
-}
-
-@{
-    var total = Model.Count();
-    var available = Model.Count(s => s.CurrentStatus == "Available");
-    var occupied = Model.Count(s => s.CurrentStatus == "Occupied");
-    var inactive = Model.Count(s => !s.IsActive);
+    var currentPage = (int)(ViewBag.CurrentPage ?? 1);
+    var totalPages  = (int)(ViewBag.TotalPages  ?? 1);
+    var totalCount  = (int)(ViewBag.TotalCount  ?? 0);
+    var paging = new ZoneBill_Lloren.Models.PagingInfo { CurrentPage = currentPage, TotalPages = totalPages, TotalCount = totalCount, UrlTemplate = Url.Action("Index", new { page = "__PAGE__" }) ?? "#" };
+    var total = (int)(ViewBag.SpaceTotal ?? totalCount);
+    var available = (int)(ViewBag.SpaceAvailable ?? 0);
+    var occupied = (int)(ViewBag.SpaceOccupied ?? 0);
+    var inactive = (int)(ViewBag.SpaceInactive ?? 0);
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -62,7 +63,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody data-paginate="5">
+            <tbody>
                 @foreach (var item in Model)
                 {
                     var statusClass = item.CurrentStatus == "Available" ? "zb-badge-green" :
@@ -88,7 +89,13 @@
                                 <a asp-action="Details" asp-route-id="@item.SpaceId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
                                 <a asp-action="Edit" asp-route-id="@item.SpaceId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
                                 <button type="button" class="zb-action-btn" title="QR Code" onclick="showQR(@item.SpaceId, '@Html.Raw(item.SpaceName.Replace("'", "\\'"))')"><i class="bi bi-qr-code"></i></button>
-                                <a asp-action="Delete" asp-route-id="@item.SpaceId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                                <form asp-action="Archive" method="post" class="d-inline" onsubmit="return confirm('@(item.IsActive ? "Archive this space?" : "Restore this space?")')">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item.SpaceId" />
+                                    <button type="submit" class="zb-action-btn @(item.IsActive ? "zb-action-archive" : "zb-action-restore")" title="@(item.IsActive ? "Archive" : "Restore")">
+                                        <i class="bi @(item.IsActive ? "bi-archive" : "bi-arrow-counterclockwise")"></i>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>
@@ -96,6 +103,7 @@
             </tbody>
         </table>
     </div>
+    @await Html.PartialAsync("_Pagination", paging)
 </div>
 
 <!-- QR Code Modal -->

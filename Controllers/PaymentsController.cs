@@ -23,17 +23,73 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: Payments
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search, string? paymentMethod, DateTime? fromDate, DateTime? toDate, int page = 1)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
 
+            const int pageSize = 10;
+
             var payments = _context.Payments
                 .Include(p => p.Business)
                 .Include(p => p.Invoice)
-                .Where(p => p.BusinessId == businessId.Value);
+                .Where(p => p.BusinessId == businessId.Value)
+                .AsQueryable();
 
-            return View(await payments.ToListAsync());
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var trimmedSearch = search.Trim();
+                if (int.TryParse(trimmedSearch, out var invoiceId))
+                {
+                    payments = payments.Where(p => p.InvoiceId == invoiceId);
+                }
+                else
+                {
+                    payments = payments.Where(p =>
+                        (p.ReferenceNumber != null && p.ReferenceNumber.Contains(trimmedSearch)) ||
+                        (p.PaymentMethod != null && p.PaymentMethod.Contains(trimmedSearch)));
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(paymentMethod))
+            {
+                payments = payments.Where(p => p.PaymentMethod == paymentMethod);
+            }
+
+            if (fromDate.HasValue)
+            {
+                payments = payments.Where(p => p.PaymentDate >= fromDate.Value.Date);
+            }
+
+            if (toDate.HasValue)
+            {
+                var endDateExclusive = toDate.Value.Date.AddDays(1);
+                payments = payments.Where(p => p.PaymentDate < endDateExclusive);
+            }
+
+            ViewBag.TotalCollected = await payments.SumAsync(p => (decimal?)p.AmountPaid) ?? 0m;
+            ViewBag.CashCount = await payments.CountAsync(p => p.PaymentMethod == "Cash");
+            ViewBag.GCashCount = await payments.CountAsync(p => p.PaymentMethod == "GCash");
+            ViewBag.CardCount = await payments.CountAsync(p => p.PaymentMethod == "Card");
+
+            var totalCount = await payments.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Min(Math.Max(page, 1), totalPages);
+
+            ViewBag.Search = search;
+            ViewBag.PaymentMethod = paymentMethod;
+            ViewBag.FromDate = fromDate?.ToString("yyyy-MM-dd");
+            ViewBag.ToDate = toDate?.ToString("yyyy-MM-dd");
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+
+            return View(await payments
+                .OrderByDescending(p => p.PaymentDate)
+                .ThenByDescending(p => p.PaymentId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync());
         }
 
         // GET: Payments/Details/5
@@ -62,12 +118,19 @@ namespace ZoneBill_Lloren.Controllers
         // GET: Payments/Create
         public IActionResult Create()
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
+            TempData["Error"] = "Manual payment creation is disabled. Payments are recorded from checkout or invoice collection.";
+            return RedirectToAction(nameof(Index));
+        }
 
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName");
-            ViewData["InvoiceId"] = new SelectList(_context.Invoices.Where(i => i.BusinessId == businessId.Value), "InvoiceId", "PaymentStatus");
-            return View();
+        // POST: Payments/Create
+        // To protect from overposting attacks, enable the specific properties you want to bind to.
+        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Create([Bind("PaymentId,BusinessId,InvoiceId,AmountPaid,PaymentMethod,PaymentDate,ReferenceNumber")] Payment payment)
+        {
+            TempData["Error"] = "Manual payment creation is disabled. Use POS checkout or receive payment from invoice.";
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
@@ -149,37 +212,6 @@ namespace ZoneBill_Lloren.Controllers
             return RedirectToAction("Details", "Invoices", new { id = invoiceId });
         }
 
-        // POST: Payments/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("PaymentId,BusinessId,InvoiceId,AmountPaid,PaymentMethod,PaymentDate,ReferenceNumber")] Payment payment)
-        {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            payment.BusinessId = businessId.Value;
-            payment.PaymentDate = payment.PaymentDate == default ? PhilippineTime.Now : payment.PaymentDate;
-
-            if (ModelState.IsValid)
-            {
-                _context.Add(payment);
-
-                var invoice = await _context.Invoices.FirstOrDefaultAsync(i => i.InvoiceId == payment.InvoiceId && i.BusinessId == businessId.Value);
-                if (invoice != null && payment.AmountPaid >= invoice.TotalAmount)
-                {
-                    invoice.PaymentStatus = "Paid";
-                }
-
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
-            }
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName", payment.BusinessId);
-            ViewData["InvoiceId"] = new SelectList(_context.Invoices.Where(i => i.BusinessId == businessId.Value), "InvoiceId", "PaymentStatus", payment.InvoiceId);
-            return View(payment);
-        }
-
         // GET: Payments/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
@@ -242,44 +274,19 @@ namespace ZoneBill_Lloren.Controllers
             return View(payment);
         }
 
-        // GET: Payments/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: Payments/Delete — Deletion disabled
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var payment = await _context.Payments
-                .Include(p => p.Business)
-                .Include(p => p.Invoice)
-                .FirstOrDefaultAsync(m => m.PaymentId == id && m.BusinessId == businessId.Value);
-            if (payment == null)
-            {
-                return NotFound();
-            }
-
-            return View(payment);
+            TempData["Warning"] = "Deletion is disabled. Payment records are kept for financial audit purposes.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: Payments/Delete/5
+        // POST: Payments/Delete — Deletion disabled
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var payment = await _context.Payments.FirstOrDefaultAsync(p => p.PaymentId == id && p.BusinessId == businessId.Value);
-            if (payment != null)
-            {
-                _context.Payments.Remove(payment);
-            }
-
-            await _context.SaveChangesAsync();
+            TempData["Warning"] = "Deletion is disabled. Payment records are kept for financial audit purposes.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -288,6 +295,75 @@ namespace ZoneBill_Lloren.Controllers
             var businessId = GetBusinessId();
             if (businessId == null) return false;
             return _context.Payments.Any(e => e.PaymentId == id && e.BusinessId == businessId.Value);
+        }
+
+        // POST: Payments/Void/5  — MainAdmin and Manager only
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "MainAdmin,Manager")]
+        public async Task<IActionResult> Void(int id, string? reason)
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            var payment = await _context.Payments
+                .Include(p => p.Invoice)
+                .FirstOrDefaultAsync(p => p.PaymentId == id && p.BusinessId == businessId.Value);
+
+            if (payment == null) return NotFound();
+
+            if (payment.Invoice == null)
+            {
+                TempData["Error"] = "Cannot void: linked invoice not found.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Reverse the original journal entry
+            var cashAccountName = (payment.PaymentMethod ?? "Cash").Equals("GCash", StringComparison.OrdinalIgnoreCase)
+                ? "GCash Wallet"
+                : (payment.PaymentMethod ?? "Cash").Equals("Card", StringComparison.OrdinalIgnoreCase)
+                    ? "Card Clearing"
+                    : "Cash";
+
+            var cashAccount = await GetOrCreateAccountAsync(businessId.Value, cashAccountName, "Asset");
+            var accountsReceivable = await GetOrCreateAccountAsync(businessId.Value, "Accounts Receivable", "Asset");
+
+            var reversal = new JournalEntry
+            {
+                BusinessId = businessId.Value,
+                ReferenceId = payment.PaymentId,
+                ReferenceType = "PaymentVoid",
+                EntryDate = PhilippineTime.Now,
+                Description = $"VOID: Payment #{payment.PaymentId} reversed" +
+                              (string.IsNullOrWhiteSpace(reason) ? "" : $" — {reason.Trim()}")
+            };
+
+            _context.JournalEntries.Add(reversal);
+            await _context.SaveChangesAsync();
+
+            _context.JournalEntryLines.AddRange(
+                new JournalEntryLine
+                {
+                    JournalEntryId = reversal.JournalEntryId,
+                    AccountId = accountsReceivable.AccountId,
+                    Debit = payment.AmountPaid,
+                    Credit = 0m
+                },
+                new JournalEntryLine
+                {
+                    JournalEntryId = reversal.JournalEntryId,
+                    AccountId = cashAccount.AccountId,
+                    Debit = 0m,
+                    Credit = payment.AmountPaid
+                });
+
+            // Reset invoice status back to Unpaid
+            payment.Invoice.PaymentStatus = "Unpaid";
+            _context.Payments.Remove(payment);
+            await _context.SaveChangesAsync();
+
+            TempData["Success"] = $"Payment #{id} voided. Invoice reset to Unpaid.";
+            return RedirectToAction(nameof(Index));
         }
 
         private int? GetBusinessId()

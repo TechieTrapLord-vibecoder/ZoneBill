@@ -14,11 +14,21 @@
 
 <div class="zb-table-card">
     <div class="p-4">
+        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+        {
+            <div class="mb-4">
+                <img src="@Model.ImageUrl" alt="@Model.ItemName" style="width:120px;height:120px;object-fit:cover;border-radius:16px;border:1px solid rgba(148,163,184,0.2);" />
+            </div>
+        }
         <dl class="row mb-0">
             <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Business)</dt>
             <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.Business.BusinessName)</dd>
             <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.ItemName)</dt>
             <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.ItemName)</dd>
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Category)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.Category)</dd>
+            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.SortOrder)</dt>
+            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.SortOrder)</dd>
             <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.CurrentPrice)</dt>
             <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.CurrentPrice)</dd>
             <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.CostPrice)</dt>

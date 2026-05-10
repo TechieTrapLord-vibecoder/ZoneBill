@@ -10,11 +10,16 @@ namespace ZoneBill_Lloren.Helpers
 
         public static DateTime ToDateTime(DateTime value)
         {
+            if (value.Kind == DateTimeKind.Unspecified)
+            {
+                return value;
+            }
+
             var utcValue = value.Kind switch
             {
                 DateTimeKind.Utc => value,
                 DateTimeKind.Local => value.ToUniversalTime(),
-                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+                _ => value
             };
 
             return TimeZoneInfo.ConvertTimeFromUtc(utcValue, TimeZone);

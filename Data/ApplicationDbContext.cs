@@ -23,6 +23,11 @@ namespace ZoneBill_Lloren.Data
         public DbSet<PosAuditLog> PosAuditLogs { get; set; }
         public DbSet<MenuItem> MenuItems { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+        public DbSet<InventoryAlertLog> InventoryAlertLogs { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
+        public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
+        public DbSet<PurchaseOrderReceipt> PurchaseOrderReceipts { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderDetail> OrderDetails { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
@@ -33,6 +38,8 @@ namespace ZoneBill_Lloren.Data
         public DbSet<JournalEntry> JournalEntries { get; set; }
         public DbSet<JournalEntryLine> JournalEntryLines { get; set; }
         public DbSet<PendingRegistration> PendingRegistrations { get; set; }
+        public DbSet<BusinessLifecycleEvent> BusinessLifecycleEvents { get; set; }
+        public DbSet<SuperAdminAuditLog> SuperAdminAuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -47,6 +54,13 @@ namespace ZoneBill_Lloren.Data
             // Defaults and Unique Constraints
             modelBuilder.Entity<Business>().HasIndex(b => b.DomainPrefix).IsUnique();
             modelBuilder.Entity<Business>().Property(b => b.CreatedAt).HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<Business>().Property(b => b.InventoryAlertEnabled).HasDefaultValue(true);
+            modelBuilder.Entity<Business>().Property(b => b.InventoryReorderLookbackDays).HasDefaultValue(30);
+            modelBuilder.Entity<Business>().Property(b => b.InventoryLeadTimeDays).HasDefaultValue(3);
+            modelBuilder.Entity<Business>().Property(b => b.InventorySafetyStockDays).HasDefaultValue(2);
+            modelBuilder.Entity<Business>().Property(b => b.InventoryTargetCoverageDays).HasDefaultValue(7);
+            modelBuilder.Entity<Business>().Property(b => b.InventoryForecastLookbackDays).HasDefaultValue(28);
+            modelBuilder.Entity<Business>().Property(b => b.InventoryForecastHorizonDays).HasDefaultValue(7);
             
             modelBuilder.Entity<User>().HasIndex(u => u.EmailAddress).IsUnique();
             
@@ -69,17 +83,47 @@ namespace ZoneBill_Lloren.Data
 
             modelBuilder.Entity<MenuItem>().Property(m => m.LowStockThreshold).HasDefaultValue(5);
             modelBuilder.Entity<MenuItem>().Property(m => m.CostPrice).HasDefaultValue(0m);
+            modelBuilder.Entity<MenuItem>().Property(m => m.Category).HasDefaultValue("General");
+            modelBuilder.Entity<MenuItem>().Property(m => m.SortOrder).HasDefaultValue(0);
+            modelBuilder.Entity<MenuItem>().HasIndex(m => new { m.BusinessId, m.Category, m.SortOrder, m.ItemName });
             
             modelBuilder.Entity<Order>().Property(o => o.OrderTime).HasDefaultValueSql("GETDATE()");
 
             modelBuilder.Entity<InventoryTransaction>().Property(i => i.CreatedAt).HasDefaultValueSql("GETDATE()");
             modelBuilder.Entity<InventoryTransaction>().HasIndex(i => new { i.BusinessId, i.ItemId, i.CreatedAt });
+
+            modelBuilder.Entity<InventoryAlertLog>().Property(a => a.SentAt).HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<InventoryAlertLog>().HasIndex(a => new { a.BusinessId, a.SentAt });
+            modelBuilder.Entity<InventoryAlertLog>().HasIndex(a => new { a.BusinessId, a.AlertType, a.AlertSignature, a.SentAt });
+
+            modelBuilder.Entity<Supplier>().Property(s => s.CreatedAt).HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<Supplier>().HasIndex(s => new { s.BusinessId, s.SupplierName }).IsUnique();
+
+            modelBuilder.Entity<PurchaseOrder>().Property(p => p.CreatedAt).HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<PurchaseOrder>().Property(p => p.Status).HasDefaultValue("Draft");
+            modelBuilder.Entity<PurchaseOrder>().HasIndex(p => new { p.BusinessId, p.PurchaseOrderNumber }).IsUnique();
+            modelBuilder.Entity<PurchaseOrder>().HasIndex(p => new { p.BusinessId, p.Status, p.CreatedAt });
+
+            modelBuilder.Entity<PurchaseOrderLine>().Property(p => p.ReceivedQuantity).HasDefaultValue(0);
+            modelBuilder.Entity<PurchaseOrderLine>().HasIndex(p => new { p.PurchaseOrderId, p.ItemId });
+
+            modelBuilder.Entity<PurchaseOrderReceipt>().Property(r => r.ReceivedAt).HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<PurchaseOrderReceipt>().HasIndex(r => new { r.PurchaseOrderId, r.ReceivedAt });
+            modelBuilder.Entity<PurchaseOrderReceipt>().HasIndex(r => new { r.BusinessId, r.ItemId, r.ReceivedAt });
             
             modelBuilder.Entity<Invoice>().Property(i => i.GeneratedDate).HasDefaultValueSql("GETDATE()");
             
             modelBuilder.Entity<Payment>().Property(p => p.PaymentDate).HasDefaultValueSql("GETDATE()");
             
             modelBuilder.Entity<JournalEntry>().Property(j => j.EntryDate).HasDefaultValueSql("GETDATE()");
+
+            modelBuilder.Entity<BusinessLifecycleEvent>().Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<BusinessLifecycleEvent>().HasIndex(e => new { e.BusinessId, e.CreatedAt });
+            modelBuilder.Entity<BusinessLifecycleEvent>().HasIndex(e => new { e.EventType, e.CreatedAt });
+
+            modelBuilder.Entity<SuperAdminAuditLog>().Property(a => a.CreatedAt).HasDefaultValueSql("GETDATE()");
+            modelBuilder.Entity<SuperAdminAuditLog>().HasIndex(a => new { a.ActionType, a.CreatedAt });
+            modelBuilder.Entity<SuperAdminAuditLog>().HasIndex(a => new { a.EntityType, a.CreatedAt });
         }
     }
 }

@@ -22,17 +22,25 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: JournalEntryLines
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
 
-            var lines = _context.JournalEntryLines
+            const int pageSize = 10;
+            var query = _context.JournalEntryLines
                 .Include(j => j.ChartOfAccount)
                 .Include(j => j.JournalEntry)
-                .Where(j => j.JournalEntry.BusinessId == businessId.Value);
-
-            return View(await lines.ToListAsync());
+                .Where(j => j.JournalEntry.BusinessId == businessId.Value)
+                .OrderByDescending(j => j.JournalEntry.EntryDate)
+                .ThenByDescending(j => j.JournalLineId);
+            var totalCount = await query.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
+            return View(await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync());
         }
 
         // GET: JournalEntryLines/Details/5
@@ -161,46 +169,19 @@ namespace ZoneBill_Lloren.Controllers
             return View(journalEntryLine);
         }
 
-        // GET: JournalEntryLines/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: JournalEntryLines/Delete — Deletion disabled
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var journalEntryLine = await _context.JournalEntryLines
-                .Include(j => j.ChartOfAccount)
-                .Include(j => j.JournalEntry)
-                .FirstOrDefaultAsync(m => m.JournalLineId == id && m.JournalEntry.BusinessId == businessId.Value);
-            if (journalEntryLine == null)
-            {
-                return NotFound();
-            }
-
-            return View(journalEntryLine);
+            TempData["Warning"] = "Deletion is disabled. Journal entry lines are permanent ledger records.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: JournalEntryLines/Delete/5
+        // POST: JournalEntryLines/Delete — Deletion disabled
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var journalEntryLine = await _context.JournalEntryLines
-                .Include(j => j.JournalEntry)
-                .FirstOrDefaultAsync(j => j.JournalLineId == id && j.JournalEntry.BusinessId == businessId.Value);
-            if (journalEntryLine != null)
-            {
-                _context.JournalEntryLines.Remove(journalEntryLine);
-            }
-
-            await _context.SaveChangesAsync();
+            TempData["Warning"] = "Deletion is disabled. Journal entry lines are permanent ledger records.";
             return RedirectToAction(nameof(Index));
         }
 

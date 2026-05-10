@@ -3,6 +3,7 @@
 
 @{
     ViewData["Title"] = "SaaS Dashboard";
+    var nowPh = PhilippineTime.Now;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -12,38 +13,62 @@
     </div>
 </div>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-3">
+<div class="row row-cols-2 row-cols-md-5 g-3 mb-4">
+    <div class="col">
         <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
             <div class="zb-kpi-label">Total Businesses</div>
             <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalBusinesses</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col">
         <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
             <div class="zb-kpi-label">Active Businesses</div>
             <div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveBusinesses</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col">
         <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
             <div class="zb-kpi-label">Total Users</div>
             <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalUsers</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="zb-kpi-label">Needs Attention</div>
+            <div class="zb-kpi-value" style="color:#ef4444;">@Model.BusinessesNeedingAttention</div>
+        </div>
+    </div>
+    <div class="col">
         <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
-            <div class="zb-kpi-label">MRR</div>
+            <div class="zb-kpi-label">Current MRR</div>
             <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.MonthlyRecurringRevenue.ToString("C")</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
+            <div class="zb-kpi-label">Collected (Month)</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@Model.CollectedThisMonth.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
+            <div class="zb-kpi-label">Failed (Month)</div>
+            <div class="zb-kpi-value" style="color:#ef4444;">@Model.FailedThisMonth.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
+            <div class="zb-kpi-label">Outstanding</div>
+            <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.OutstandingReceivables.ToString("C")</div>
+        </div>
+    </div>
+    <div class="col">
         <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
             <div class="zb-kpi-label">Active Subscriptions</div>
             <div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveSubscriptions</div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col">
         <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
             <div class="zb-kpi-label">Past Due / Expired</div>
             <div class="zb-kpi-value" style="color:#ef4444;">@Model.PastDueSubscriptions</div>
@@ -51,7 +76,143 @@
     </div>
 </div>
 
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.35);">
+            <div class="zb-kpi-label">New Businesses Trend</div>
+            <div class="d-flex justify-content-between align-items-end">
+                <div>
+                    <div class="zb-kpi-value" style="color:#22c55e;">@Model.NewBusinesses30Days</div>
+                    <div class="small" style="color:var(--zb-text-muted);">Last 30 days</div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-semibold" style="color:var(--zb-text);font-size:1.1rem;">@Model.NewBusinesses90Days</div>
+                    <div class="small" style="color:var(--zb-text-muted);">Last 90 days</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.35);">
+            <div class="zb-kpi-label">Churn Trend</div>
+            <div class="d-flex justify-content-between align-items-end">
+                <div>
+                    <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.ChurnedBusinesses30Days</div>
+                    <div class="small" style="color:var(--zb-text-muted);">Last 30 days</div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-semibold" style="color:var(--zb-text);font-size:1.1rem;">@Model.ChurnedBusinesses90Days</div>
+                    <div class="small" style="color:var(--zb-text-muted);">Last 90 days</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.35);">
+            <div class="zb-kpi-label">Failed Renewals</div>
+            <div class="d-flex justify-content-between align-items-end">
+                <div>
+                    <div class="zb-kpi-value" style="color:#ef4444;">@Model.FailedRenewals30Days</div>
+                    <div class="small" style="color:var(--zb-text-muted);">Last 30 days</div>
+                </div>
+                <div class="text-end">
+                    <div class="fw-semibold" style="color:var(--zb-text);font-size:1.1rem;">@Model.FailedRenewals90Days</div>
+                    <div class="small" style="color:var(--zb-text-muted);">Last 90 days</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4">
+    <div class="col-12">
+        <div class="zb-table-card">
+            <div class="px-4 pt-3 pb-2 border-bottom d-flex align-items-center justify-content-between" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-exclamation-diamond me-2"></i>Businesses Needing Attention</h6>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="zb-badge" style="background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">@Model.BusinessesNeedingAttention flagged</span>
+                    <a asp-controller="Home" asp-action="AllAttentionBusinesses" class="btn btn-sm fw-semibold"
+                       style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3);font-size:.78rem;">
+                        <i class="bi bi-list-ul me-1"></i>View All
+                    </a>
+                </div>
+            </div>
+            @if (!Model.AttentionBusinesses.Any())
+            {
+                <div class="p-4 text-center" style="color:var(--zb-text-muted);">No critical tenant issues right now.</div>
+            }
+            else
+            {
+                <div class="px-4 pt-3 pb-2 border-bottom d-flex align-items-center gap-2" style="border-color:rgba(6,182,212,0.12)!important;">
+                    <button type="button" class="sa-attn-filter zb-badge" data-filter="all" style="cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(6,182,212,0.35);background:rgba(6,182,212,0.15);color:var(--zb-secondary);">All</button>
+                    <button type="button" class="sa-attn-filter zb-badge" data-filter="expired" style="cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:var(--zb-text-muted);">Expired</button>
+                    <button type="button" class="sa-attn-filter zb-badge" data-filter="failed" style="cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:var(--zb-text-muted);">Failed</button>
+                    <button type="button" class="sa-attn-filter zb-badge" data-filter="pending" style="cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(249,115,22,0.35);background:transparent;color:var(--zb-text-muted);">Pending</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table zb-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>Business</th>
+                                <th>Plan</th>
+                                <th>Subscription</th>
+                                <th>Period End (PH)</th>
+                                <th>Latest Invoice</th>
+                                <th>Why Flagged</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="saAttentionBody">
+                        @foreach (var item in Model.AttentionBusinesses)
+                        {
+                            var isExpired = !item.CurrentPeriodEnd.HasValue || PhilippineTime.ToDateTime(item.CurrentPeriodEnd.Value) <= nowPh;
+                            var invoiceStatus = (item.LatestInvoiceStatus ?? string.Empty).ToLowerInvariant();
+                            var subBadge = item.SubscriptionStatus == "Active" ? "zb-badge-green" : "zb-badge-red";
+                            var invBadge = item.LatestInvoiceStatus switch
+                            {
+                                "Paid" => "zb-badge-green",
+                                "Pending" => "zb-badge-cyan",
+                                "Overdue" => "zb-badge-orange",
+                                "Failed" => "zb-badge-red",
+                                "Cancelled" => "zb-badge-yellow",
+                                _ => "zb-badge-cyan"
+                            };
+                            <tr data-expired="@isExpired.ToString().ToLowerInvariant()" data-invoice-status="@invoiceStatus">
+                                <td class="fw-semibold" style="color:var(--zb-text);">@item.BusinessName</td>
+                                <td>@item.PlanName</td>
+                                <td><span class="zb-badge @subBadge">@item.SubscriptionStatus</span></td>
+                                <td>
+                                    @if (item.CurrentPeriodEnd.HasValue)
+                                    {
+                                        <span class="zb-mono">@PhilippineTime.ToDateTime(item.CurrentPeriodEnd.Value).ToString("MMM d, yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span style="color:var(--zb-text-muted);">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="zb-badge @invBadge">@item.LatestInvoiceStatus</span>
+                                    @if (item.LatestInvoiceAmount > 0)
+                                    {
+                                        <span class="zb-mono ms-1">@item.LatestInvoiceAmount.ToString("C")</span>
+                                    }
+                                </td>
+                                <td style="font-size:.82rem;color:var(--zb-text-muted);">@item.AttentionReason</td>
+                                <td>
+                                    <a asp-controller="Businesses" asp-action="Details" asp-route-id="@item.BusinessId" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                                        Open Business
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
     <div class="col-lg-6">
         <div class="zb-table-card h-100">
             <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
@@ -90,6 +251,89 @@
             </div>
         </div>
     </div>
+
+    <div class="col-lg-4">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(34,197,94,0.2)!important;">
+                <h6 class="fw-bold mb-0" style="color:#22c55e;"><i class="bi bi-graph-up-arrow me-2"></i>Signups Sparkline</h6>
+            </div>
+            <div class="p-4">
+                <canvas id="signupTrendChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(249,115,22,0.2)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-accent);"><i class="bi bi-graph-down-arrow me-2"></i>Churn Sparkline</h6>
+            </div>
+            <div class="p-4">
+                <canvas id="churnTrendChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(239,68,68,0.2)!important;">
+                <h6 class="fw-bold mb-0" style="color:#ef4444;"><i class="bi bi-activity me-2"></i>Failed Renewals Sparkline</h6>
+            </div>
+            <div class="p-4">
+                <canvas id="failedTrendChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="zb-table-card">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);"><i class="bi bi-journal-text me-2"></i>Recent Admin Actions</h6>
+                    <a asp-controller="Home" asp-action="SuperAdminAuditLog" class="btn btn-sm"
+                       style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);font-size:.78rem;">
+                        <i class="bi bi-list-ul me-1"></i>Full Log
+                    </a>
+                </div>
+            </div>
+            @if (!Model.RecentAuditLogs.Any())
+            {
+                <div class="p-4 text-center" style="color:var(--zb-text-muted);">No audit actions recorded yet.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table zb-table mb-0">
+                        <thead>
+                            <tr>
+                                <th>When (PH)</th>
+                                <th>Action</th>
+                                <th>Entity</th>
+                                <th>Details</th>
+                                <th>By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var log in Model.RecentAuditLogs)
+                        {
+                            <tr>
+                                <td><span class="zb-mono">@PhilippineTime.ToDateTime(log.CreatedAt).ToString("MMM d, h:mm tt")</span></td>
+                                <td><span class="zb-badge zb-badge-cyan">@log.ActionType</span></td>
+                                <td>@log.EntityType</td>
+                                <td style="font-size:.82rem;color:var(--zb-text-muted);">
+                                    @log.Details
+                                    @if (!string.IsNullOrWhiteSpace(log.Reason))
+                                    {
+                                        <span> | Reason: @log.Reason</span>
+                                    }
+                                </td>
+                                <td>@log.ActorName</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
 @section Scripts {
@@ -100,6 +344,10 @@
 
         const planLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlanLabels));
         const planCounts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.PlanBusinessCounts));
+        const trendLabels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendLabels));
+        const signupTrend = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.NewBusinessTrend));
+        const churnTrend = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChurnTrend));
+        const failedTrend = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FailedRenewalTrend));
 
         new Chart(document.getElementById('planChart'), {
             type: 'bar',
@@ -113,5 +361,72 @@
                 }]
             }
         });
+
+        function renderSparkline(id, data, color) {
+            new Chart(document.getElementById(id), {
+                type: 'line',
+                data: {
+                    labels: trendLabels,
+                    datasets: [{
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.35,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        renderSparkline('signupTrendChart', signupTrend, '#22c55e');
+        renderSparkline('churnTrendChart', churnTrend, '#f97316');
+        renderSparkline('failedTrendChart', failedTrend, '#ef4444');
+
+        (function () {
+            const chips = document.querySelectorAll('.sa-attn-filter');
+            const rows = document.querySelectorAll('#saAttentionBody tr');
+            if (!chips.length || !rows.length) return;
+
+            const activeStyle = 'cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(6,182,212,0.35);background:rgba(6,182,212,0.15);color:var(--zb-secondary);';
+            const resetStyle = {
+                all: 'cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(6,182,212,0.35);background:transparent;color:var(--zb-text-muted);',
+                expired: 'cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:var(--zb-text-muted);',
+                failed: 'cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(239,68,68,0.35);background:transparent;color:var(--zb-text-muted);',
+                pending: 'cursor:pointer;padding:4px 12px;border-radius:20px;border:1px solid rgba(249,115,22,0.35);background:transparent;color:var(--zb-text-muted);'
+            };
+
+            function applyFilter(filter) {
+                rows.forEach(function (row) {
+                    const expired = row.getAttribute('data-expired') === 'true';
+                    const inv = row.getAttribute('data-invoice-status');
+                    let show = true;
+
+                    if (filter === 'expired') show = expired;
+                    if (filter === 'failed') show = inv === 'failed' || inv === 'overdue';
+                    if (filter === 'pending') show = inv === 'pending';
+
+                    row.style.display = show ? '' : 'none';
+                });
+
+                chips.forEach(function (chip) {
+                    const f = chip.getAttribute('data-filter');
+                    chip.style.cssText = f === filter ? activeStyle : (resetStyle[f] || resetStyle.all);
+                });
+            }
+
+            chips.forEach(function (chip) {
+                chip.addEventListener('click', function () {
+                    applyFilter(chip.getAttribute('data-filter') || 'all');
+                });
+            });
+        })();
     </script>
 }

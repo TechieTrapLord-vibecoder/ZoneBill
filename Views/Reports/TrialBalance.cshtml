@@ -1,0 +1,105 @@
+@model ZoneBill_Lloren.Models.TrialBalanceViewModel
+
+@{
+    ViewData["Title"] = "Trial Balance";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-calculator me-2" style="color:var(--zb-secondary);"></i>Trial Balance</h4>
+        <p class="text-muted small mb-0">All account balances as of @Model.AsOfDate.ToString("MMMM dd, yyyy")</p>
+    </div>
+    <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+        <i class="bi bi-arrow-left me-1"></i>Back to Reports
+    </a>
+</div>
+
+@if (!Model.Rows.Any())
+{
+    <div class="zb-table-card p-4 text-center">
+        <i class="bi bi-journal-x fs-2 mb-2 d-block" style="color:var(--zb-text-muted);"></i>
+        <p class="text-muted mb-0">No journal entries recorded yet. Trial balance will populate once payments and adjustments are processed.</p>
+    </div>
+}
+else
+{
+    <div class="zb-table-card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" style="color:var(--zb-text);">
+                <thead>
+                    <tr style="border-bottom:1px solid rgba(6,182,212,0.2); background:rgba(15,23,42,0.6);">
+                        <th class="ps-4 py-3" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Account Name</th>
+                        <th class="py-3" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Type</th>
+                        <th class="py-3 text-end" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Debit (₱)</th>
+                        <th class="pe-4 py-3 text-end" style="color:var(--zb-text-muted); font-size:.8rem; font-weight:600; text-transform:uppercase; letter-spacing:.05em;">Credit (₱)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Rows)
+                    {
+                        <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+                            <td class="ps-4 py-3 fw-semibold">@row.AccountName</td>
+                            <td class="py-3">
+                                @{
+                                    var (typeBg, typeColor) = row.AccountType switch
+                                    {
+                                        "Asset"     => ("rgba(34,197,94,0.12)",  "#22c55e"),
+                                        "Revenue"   => ("rgba(6,182,212,0.12)",  "#06b6d4"),
+                                        "Expense"   => ("rgba(239,68,68,0.12)",  "#ef4444"),
+                                        "Liability" => ("rgba(249,115,22,0.12)", "#f97316"),
+                                        "Equity"    => ("rgba(168,85,247,0.12)", "#a855f7"),
+                                        _           => ("rgba(255,255,255,0.06)", "var(--zb-text-muted)")
+                                    };
+                                }
+                                <span class="badge" style="background:@typeBg; color:@typeColor; font-size:.75rem;">@row.AccountType</span>
+                            </td>
+                            <td class="py-3 text-end font-monospace">
+                                @if (row.TotalDebit > 0)
+                                {
+                                    <span>@row.TotalDebit.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--zb-text-muted);">—</span>
+                                }
+                            </td>
+                            <td class="pe-4 py-3 text-end font-monospace">
+                                @if (row.TotalCredit > 0)
+                                {
+                                    <span>@row.TotalCredit.ToString("N2")</span>
+                                }
+                                else
+                                {
+                                    <span style="color:var(--zb-text-muted);">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr style="border-top:2px solid rgba(6,182,212,0.35); background:rgba(6,182,212,0.05);">
+                        <td class="ps-4 py-3 fw-bold" colspan="2" style="color:var(--zb-secondary);">TOTALS</td>
+                        <td class="py-3 text-end fw-bold font-monospace" style="color:var(--zb-secondary);">@Model.GrandTotalDebit.ToString("N2")</td>
+                        <td class="pe-4 py-3 text-end fw-bold font-monospace" style="color:var(--zb-secondary);">@Model.GrandTotalCredit.ToString("N2")</td>
+                    </tr>
+                    @if (Model.GrandTotalDebit == Model.GrandTotalCredit)
+                    {
+                        <tr style="background:rgba(34,197,94,0.06);">
+                            <td colspan="4" class="ps-4 py-2 text-center">
+                                <span style="color:#22c55e; font-size:.85rem;"><i class="bi bi-check-circle-fill me-1"></i>Balanced — Debits equal Credits</span>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr style="background:rgba(239,68,68,0.06);">
+                            <td colspan="4" class="ps-4 py-2 text-center">
+                                <span style="color:#ef4444; font-size:.85rem;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Out of Balance — Difference: ₱@(Math.Abs(Model.GrandTotalDebit - Model.GrandTotalCredit).ToString("N2"))</span>
+                            </td>
+                        </tr>
+                    }
+                </tfoot>
+            </table>
+        </div>
+    </div>
+}

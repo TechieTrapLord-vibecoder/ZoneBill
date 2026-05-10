@@ -44,16 +44,126 @@ namespace ZoneBill_Lloren.Controllers
                 .Take(12)
                 .ToListAsync();
 
+            var stripeSecretKey = _configuration["Stripe:SecretKey"];
+            var hasConfiguredSecret = !string.IsNullOrWhiteSpace(stripeSecretKey) && !stripeSecretKey.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase);
+            var hasStripeSubscription = !string.IsNullOrWhiteSpace(business.StripeSubscriptionId) && !business.StripeSubscriptionId.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase);
+            var canManageStripeSubscription = hasConfiguredSecret && hasStripeSubscription;
+            var isCancellationScheduled = false;
+            DateTime? cancellationEffectiveDate = business.CurrentPeriodEnd;
+            var subscriptionManagementStatus = business.Plan.MonthlyPrice <= 0m
+                ? "Free plans do not create a Stripe subscription. Switch plans anytime from the cards below."
+                : "No linked Stripe subscription was found for this business yet.";
+
+            if (canManageStripeSubscription)
+            {
+                try
+                {
+                    var subscription = await new SubscriptionService().GetAsync(business.StripeSubscriptionId);
+                    isCancellationScheduled = subscription.CancelAtPeriodEnd;
+                    cancellationEffectiveDate = subscription.CancelAt ?? business.CurrentPeriodEnd;
+                    subscriptionManagementStatus = isCancellationScheduled
+                        ? $"Your subscription will remain active until {(subscription.CancelAt ?? business.CurrentPeriodEnd ?? PhilippineTime.Now):yyyy-MM-dd}."
+                        : "Your subscription is managed in-app. You can schedule cancellation at period end and resume before renewal.";
+                }
+                catch (StripeException ex)
+                {
+                    canManageStripeSubscription = false;
+                    subscriptionManagementStatus = $"Unable to sync Stripe subscription details right now: {ex.Message}";
+                }
+            }
+
             var viewModel = new BillingPageViewModel
             {
                 Business = business,
                 CurrentPlan = business.Plan,
                 AvailablePlans = availablePlans,
                 RecentInvoices = invoices,
-                IsSubscriptionExpired = IsSubscriptionExpired(business)
+                IsSubscriptionExpired = IsSubscriptionExpired(business),
+                CanManageStripeSubscription = canManageStripeSubscription,
+                IsCancellationScheduled = isCancellationScheduled,
+                CancellationEffectiveDate = cancellationEffectiveDate,
+                SubscriptionManagementStatus = subscriptionManagementStatus,
+                PlanComparisonRows = BuildPlanComparisonRows(availablePlans)
             };
 
             return View(viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CancelSubscription()
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            var business = await _context.Businesses
+                .FirstOrDefaultAsync(b => b.BusinessId == businessId.Value);
+            if (business == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(business.StripeSubscriptionId))
+            {
+                TempData["Error"] = "No active Stripe subscription is linked to this business.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                var subscription = await new SubscriptionService().UpdateAsync(
+                    business.StripeSubscriptionId,
+                    new SubscriptionUpdateOptions
+                    {
+                        CancelAtPeriodEnd = true
+                    });
+
+                business.CurrentPeriodEnd = subscription.CancelAt ?? business.CurrentPeriodEnd;
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = $"Subscription cancellation scheduled. Access will remain active until {(subscription.CancelAt ?? business.CurrentPeriodEnd ?? PhilippineTime.Now):yyyy-MM-dd}.";
+            }
+            catch (StripeException ex)
+            {
+                TempData["Error"] = $"Unable to schedule cancellation: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResumeSubscription()
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            var business = await _context.Businesses
+                .FirstOrDefaultAsync(b => b.BusinessId == businessId.Value);
+            if (business == null) return NotFound();
+
+            if (string.IsNullOrWhiteSpace(business.StripeSubscriptionId))
+            {
+                TempData["Error"] = "No Stripe subscription is linked to this business.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            try
+            {
+                var subscription = await new SubscriptionService().UpdateAsync(
+                    business.StripeSubscriptionId,
+                    new SubscriptionUpdateOptions
+                    {
+                        CancelAtPeriodEnd = false
+                    });
+
+                await _context.SaveChangesAsync();
+
+                TempData["Success"] = "Scheduled cancellation removed. Your subscription will renew normally.";
+            }
+            catch (StripeException ex)
+            {
+                TempData["Error"] = $"Unable to resume subscription: {ex.Message}";
+            }
+
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
@@ -333,6 +443,73 @@ namespace ZoneBill_Lloren.Controllers
             return prices.Data
                 .FirstOrDefault(p => p.Recurring?.Interval == "month")
                 ?.Id;
+        }
+
+        private static List<BillingPlanComparisonRow> BuildPlanComparisonRows(IReadOnlyList<SubscriptionPlan> plans)
+        {
+            return new List<BillingPlanComparisonRow>
+            {
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "Monthly price",
+                    Values = plans.Select(plan => plan.MonthlyPrice <= 0m ? "Free" : plan.MonthlyPrice.ToString("C")).ToList()
+                },
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "Max tables",
+                    Values = plans.Select(plan => plan.MaxTablesAllowed.ToString()).ToList()
+                },
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "POS and checkout",
+                    Values = plans.Select(_ => "Included").ToList()
+                },
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "Inventory tracking",
+                    Values = plans.Select(_ => "Included").ToList()
+                },
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "Financial reports",
+                    Values = plans.Select(_ => "Included").ToList()
+                },
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "Shift and drawer controls",
+                    Values = plans.Select(_ => "Included").ToList()
+                },
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "Billing mode",
+                    Values = plans.Select(plan => plan.MonthlyPrice <= 0m ? "No Stripe charge" : "Stripe monthly renewal").ToList()
+                },
+                new BillingPlanComparisonRow
+                {
+                    FeatureLabel = "Best fit",
+                    Values = plans.Select(DescribePlanFit).ToList()
+                }
+            };
+        }
+
+        private static string DescribePlanFit(SubscriptionPlan plan)
+        {
+            if (plan.MonthlyPrice <= 0m)
+            {
+                return "Testing and setup";
+            }
+
+            if (plan.MaxTablesAllowed <= 10)
+            {
+                return "Small floor operations";
+            }
+
+            if (plan.MaxTablesAllowed <= 25)
+            {
+                return "Growing venues";
+            }
+
+            return "High-volume branches";
         }
     }
 }

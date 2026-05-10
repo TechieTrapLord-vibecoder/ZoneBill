@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ZoneBill_Lloren.Data;
+using ZoneBill_Lloren.Helpers;
 using ZoneBill_Lloren.Models;
 
 namespace ZoneBill_Lloren.Controllers
@@ -22,19 +23,28 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: JournalEntrys
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
 
-            var entries = await _context.JournalEntries
+            const int pageSize = 10;
+            var entriesQuery = _context.JournalEntries
                 .Include(j => j.Business)
                 .Where(j => j.BusinessId == businessId.Value)
                 .OrderByDescending(j => j.EntryDate)
-                .ThenByDescending(j => j.JournalEntryId)
+                .ThenByDescending(j => j.JournalEntryId);
+
+            var totalCount = await entriesQuery.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+
+            var pagedEntries = await entriesQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            var entryIds = entries.Select(e => e.JournalEntryId).ToList();
+            var entryIds = pagedEntries.Select(e => e.JournalEntryId).ToList();
 
             var lines = await _context.JournalEntryLines
                 .Include(l => l.ChartOfAccount)
@@ -43,7 +53,7 @@ namespace ZoneBill_Lloren.Controllers
                 .ThenBy(l => l.JournalLineId)
                 .ToListAsync();
 
-            var timelines = entries.Select(entry =>
+            var timelines = pagedEntries.Select(entry =>
             {
                 var entryLines = lines.Where(l => l.JournalEntryId == entry.JournalEntryId).ToList();
                 return new JournalEntryTimelineViewModel
@@ -55,6 +65,9 @@ namespace ZoneBill_Lloren.Controllers
                 };
             }).ToList();
 
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+            ViewBag.TotalCount = totalCount;
             return View(timelines);
         }
 
@@ -81,12 +94,19 @@ namespace ZoneBill_Lloren.Controllers
         }
 
         // GET: JournalEntrys/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName");
-            return View();
+
+            var model = new JournalEntryEditorViewModel
+            {
+                BusinessId = businessId.Value,
+                EntryDate = PhilippineTime.Now
+            };
+
+            await PopulateEditorOptionsAsync(model, businessId.Value);
+            return View(model);
         }
 
         // POST: JournalEntrys/Create
@@ -94,20 +114,42 @@ namespace ZoneBill_Lloren.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("JournalEntryId,BusinessId,ReferenceId,ReferenceType,EntryDate,Description")] JournalEntry journalEntry)
+        public async Task<IActionResult> Create(JournalEntryEditorViewModel model)
         {
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
-            journalEntry.BusinessId = businessId.Value;
+            model.BusinessId = businessId.Value;
+            NormalizeLines(model);
+            ValidateLines(model);
 
             if (ModelState.IsValid)
             {
+                var journalEntry = new JournalEntry
+                {
+                    BusinessId = businessId.Value,
+                    ReferenceId = model.ReferenceId,
+                    ReferenceType = string.IsNullOrWhiteSpace(model.ReferenceType) ? null : model.ReferenceType.Trim(),
+                    EntryDate = model.EntryDate == default ? PhilippineTime.Now : model.EntryDate,
+                    Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim()
+                };
+
                 _context.Add(journalEntry);
+                await _context.SaveChangesAsync();
+
+                _context.JournalEntryLines.AddRange(model.Lines.Select(line => new JournalEntryLine
+                {
+                    JournalEntryId = journalEntry.JournalEntryId,
+                    AccountId = line.AccountId!.Value,
+                    Debit = line.Debit,
+                    Credit = line.Credit
+                }));
+
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName", journalEntry.BusinessId);
-            return View(journalEntry);
+
+            await PopulateEditorOptionsAsync(model, businessId.Value);
+            return View(model);
         }
 
         // GET: JournalEntrys/Edit/5
@@ -126,8 +168,29 @@ namespace ZoneBill_Lloren.Controllers
             {
                 return NotFound();
             }
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName", journalEntry.BusinessId);
-            return View(journalEntry);
+            var model = new JournalEntryEditorViewModel
+            {
+                JournalEntryId = journalEntry.JournalEntryId,
+                BusinessId = journalEntry.BusinessId,
+                ReferenceId = journalEntry.ReferenceId,
+                ReferenceType = journalEntry.ReferenceType,
+                EntryDate = journalEntry.EntryDate,
+                Description = journalEntry.Description,
+                Lines = await _context.JournalEntryLines
+                    .Where(l => l.JournalEntryId == journalEntry.JournalEntryId)
+                    .OrderBy(l => l.JournalLineId)
+                    .Select(l => new JournalEntryLineEditorViewModel
+                    {
+                        JournalLineId = l.JournalLineId,
+                        AccountId = l.AccountId,
+                        Debit = l.Debit,
+                        Credit = l.Credit
+                    })
+                    .ToListAsync()
+            };
+
+            await PopulateEditorOptionsAsync(model, businessId.Value);
+            return View(model);
         }
 
         // POST: JournalEntrys/Edit/5
@@ -135,27 +198,53 @@ namespace ZoneBill_Lloren.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("JournalEntryId,BusinessId,ReferenceId,ReferenceType,EntryDate,Description")] JournalEntry journalEntry)
+        public async Task<IActionResult> Edit(int id, JournalEntryEditorViewModel model)
         {
-            if (id != journalEntry.JournalEntryId)
+            if (id != model.JournalEntryId)
             {
                 return NotFound();
             }
 
             var businessId = GetBusinessId();
             if (businessId == null) return Forbid();
-            journalEntry.BusinessId = businessId.Value;
+            model.BusinessId = businessId.Value;
+            NormalizeLines(model);
+            ValidateLines(model);
 
             if (ModelState.IsValid)
             {
+                var existingEntry = await _context.JournalEntries
+                    .FirstOrDefaultAsync(j => j.JournalEntryId == id && j.BusinessId == businessId.Value);
+                if (existingEntry == null)
+                {
+                    return NotFound();
+                }
+
                 try
                 {
-                    _context.Update(journalEntry);
+                    existingEntry.ReferenceId = model.ReferenceId;
+                    existingEntry.ReferenceType = string.IsNullOrWhiteSpace(model.ReferenceType) ? null : model.ReferenceType.Trim();
+                    existingEntry.EntryDate = model.EntryDate;
+                    existingEntry.Description = string.IsNullOrWhiteSpace(model.Description) ? null : model.Description.Trim();
+
+                    var existingLines = await _context.JournalEntryLines
+                        .Where(l => l.JournalEntryId == existingEntry.JournalEntryId)
+                        .ToListAsync();
+
+                    _context.JournalEntryLines.RemoveRange(existingLines);
+                    _context.JournalEntryLines.AddRange(model.Lines.Select(line => new JournalEntryLine
+                    {
+                        JournalEntryId = existingEntry.JournalEntryId,
+                        AccountId = line.AccountId!.Value,
+                        Debit = line.Debit,
+                        Credit = line.Credit
+                    }));
+
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!JournalEntryExists(journalEntry.JournalEntryId))
+                    if (!JournalEntryExists(id))
                     {
                         return NotFound();
                     }
@@ -166,47 +255,24 @@ namespace ZoneBill_Lloren.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName", journalEntry.BusinessId);
-            return View(journalEntry);
+
+            await PopulateEditorOptionsAsync(model, businessId.Value);
+            return View(model);
         }
 
-        // GET: JournalEntrys/Delete/5
-        public async Task<IActionResult> Delete(int? id)
+        // GET: JournalEntrys/Delete — Deletion disabled
+        public IActionResult Delete(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var journalEntry = await _context.JournalEntries
-                .Include(j => j.Business)
-                .FirstOrDefaultAsync(m => m.JournalEntryId == id && m.BusinessId == businessId.Value);
-            if (journalEntry == null)
-            {
-                return NotFound();
-            }
-
-            return View(journalEntry);
+            TempData["Warning"] = "Deletion is disabled. Journal entries are permanent ledger records.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // POST: JournalEntrys/Delete/5
+        // POST: JournalEntrys/Delete — Deletion disabled
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public IActionResult DeleteConfirmed(int id)
         {
-            var businessId = GetBusinessId();
-            if (businessId == null) return Forbid();
-
-            var journalEntry = await _context.JournalEntries.FirstOrDefaultAsync(j => j.JournalEntryId == id && j.BusinessId == businessId.Value);
-            if (journalEntry != null)
-            {
-                _context.JournalEntries.Remove(journalEntry);
-            }
-
-            await _context.SaveChangesAsync();
+            TempData["Warning"] = "Deletion is disabled. Journal entries are permanent ledger records.";
             return RedirectToAction(nameof(Index));
         }
 
@@ -221,6 +287,71 @@ namespace ZoneBill_Lloren.Controllers
         {
             var value = User.FindFirst("BusinessId")?.Value;
             return int.TryParse(value, out var businessId) ? businessId : null;
+        }
+
+        private async Task PopulateEditorOptionsAsync(JournalEntryEditorViewModel model, int businessId)
+        {
+            model.AccountOptions = await _context.ChartOfAccounts
+                .Where(a => a.BusinessId == businessId && a.IsActive)
+                .OrderBy(a => a.AccountType)
+                .ThenBy(a => a.AccountName)
+                .Select(a => new SelectListItem
+                {
+                    Value = a.AccountId.ToString(),
+                    Text = $"{a.AccountName} ({a.AccountType})"
+                })
+                .ToListAsync();
+
+            while (model.Lines.Count < 8)
+            {
+                model.Lines.Add(new JournalEntryLineEditorViewModel());
+            }
+        }
+
+        private static void NormalizeLines(JournalEntryEditorViewModel model)
+        {
+            model.Lines = model.Lines
+                .Where(line => line.AccountId.HasValue || line.Debit > 0 || line.Credit > 0)
+                .ToList();
+        }
+
+        private void ValidateLines(JournalEntryEditorViewModel model)
+        {
+            if (!model.Lines.Any())
+            {
+                ModelState.AddModelError(string.Empty, "Add at least two journal lines.");
+                return;
+            }
+
+            var totalDebit = 0m;
+            var totalCredit = 0m;
+
+            for (var index = 0; index < model.Lines.Count; index++)
+            {
+                var line = model.Lines[index];
+                if (!line.AccountId.HasValue)
+                {
+                    ModelState.AddModelError($"Lines[{index}].AccountId", "Select an account.");
+                }
+
+                if ((line.Debit <= 0 && line.Credit <= 0) || (line.Debit > 0 && line.Credit > 0))
+                {
+                    ModelState.AddModelError(string.Empty, $"Line {index + 1} must have either a debit or a credit amount.");
+                }
+
+                totalDebit += line.Debit;
+                totalCredit += line.Credit;
+            }
+
+            if (model.Lines.Count < 2)
+            {
+                ModelState.AddModelError(string.Empty, "Add at least two journal lines.");
+            }
+
+            if (totalDebit != totalCredit)
+            {
+                ModelState.AddModelError(string.Empty, $"Entry is unbalanced. Debit {totalDebit:C} must equal Credit {totalCredit:C}.");
+            }
         }
     }
 }

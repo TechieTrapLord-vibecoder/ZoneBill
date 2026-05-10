@@ -3,6 +3,10 @@
 
 @{
     ViewData["Title"] = "Businesses";
+    var currentPage = (int)(ViewBag.CurrentPage ?? 1);
+    var totalPages  = (int)(ViewBag.TotalPages  ?? 1);
+    var totalCount  = (int)(ViewBag.TotalCount  ?? 0);
+    var paging = new ZoneBill_Lloren.Models.PagingInfo { CurrentPage = currentPage, TotalPages = totalPages, TotalCount = totalCount, UrlTemplate = Url.Action("Index", new { page = "__PAGE__" }) ?? "#" };
 }
 
 <div class="d-flex align-items-center justify-content-between mb-4">
@@ -19,13 +23,13 @@
     <div class="col-6 col-md-3">
         <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
             <div class="zb-kpi-label">Total Businesses</div>
-            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.Count()</div>
+            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@totalCount</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
         <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
             <div class="zb-kpi-label">Active</div>
-            <div class="zb-kpi-value" style="color:#22c55e;">@Model.Count(b => b.IsActive)</div>
+            <div class="zb-kpi-value" style="color:#22c55e;">@(ViewBag.ActiveCount ?? 0)</div>
         </div>
     </div>
 </div>
@@ -43,7 +47,7 @@
                     <th></th>
                 </tr>
             </thead>
-            <tbody data-paginate="5">
+            <tbody>
                 @foreach (var item in Model)
                 {
                     <tr>
@@ -65,7 +69,20 @@
                             <div class="d-flex gap-1">
                                 <a asp-action="Details" asp-route-id="@item.BusinessId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
                                 <a asp-action="Edit" asp-route-id="@item.BusinessId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
-                                <a asp-action="Delete" asp-route-id="@item.BusinessId" class="zb-action-btn zb-action-danger" title="Delete"><i class="bi bi-trash"></i></a>
+                                @if (User.IsInRole("SuperAdmin"))
+                                {
+                                    <form asp-action="SetLifecycleState" method="post" class="d-inline" onsubmit="return zbBusinessLifecyclePrompt(this, '@item.BusinessName', @(item.IsActive.ToString().ToLowerInvariant()));">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@item.BusinessId" />
+                                        <input type="hidden" name="isActive" value="@(!item.IsActive)" />
+                                        <input type="hidden" name="reason" value="" />
+                                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                                        <button type="submit" class="zb-action-btn @(item.IsActive ? "zb-action-archive" : "zb-action-restore")" title="@(item.IsActive ? "Suspend" : "Reactivate")">
+                                            <i class="bi @(item.IsActive ? "bi-pause-circle" : "bi-play-circle")"></i>
+                                        </button>
+                                    </form>
+                                }
+
                             </div>
                         </td>
                     </tr>
@@ -73,4 +90,15 @@
             </tbody>
         </table>
     </div>
+    @await Html.PartialAsync("_Pagination", paging)
 </div>
+    <script>
+        function zbBusinessLifecyclePrompt(form, businessName, currentlyActive) {
+            const actionLabel = currentlyActive ? 'suspend' : 'reactivate';
+            const reason = prompt('Reason to ' + actionLabel + ' "' + businessName + '"?', currentlyActive ? 'Billing review' : 'Issue resolved');
+            if (reason === null) return false;
+            form.querySelector('input[name="reason"]').value = reason.trim();
+            return confirm('Confirm ' + actionLabel + ' for "' + businessName + '"?');
+        }
+    </script>
+}

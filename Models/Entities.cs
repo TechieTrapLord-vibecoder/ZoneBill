@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace ZoneBill_Lloren.Models
 {
@@ -23,12 +24,104 @@ namespace ZoneBill_Lloren.Models
         [Required, MaxLength(50)] public string DomainPrefix { get; set; } = null!;
         [MaxLength(500)] public string? LogoUrl { get; set; }
         [Column(TypeName = "decimal(5,2)")] public decimal TaxRatePercentage { get; set; } = 0m;
+        [Column(TypeName = "decimal(18,2)")] public decimal InitialCapital { get; set; } = 0m;
         [Required, MaxLength(20)] public string SubscriptionStatus { get; set; } = "Active";
         public DateTime? CurrentPeriodEnd { get; set; }
         [MaxLength(100)] public string? StripeCustomerId { get; set; }
         [MaxLength(100)] public string? StripeSubscriptionId { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool IsActive { get; set; } = true;
+        [MaxLength(50)] public string ThemePreference { get; set; } = "Nightlife";
+        public bool InventoryAlertEnabled { get; set; } = true;
+        [MaxLength(256)] public string? InventoryAlertEmail { get; set; }
+        public int InventoryReorderLookbackDays { get; set; } = 30;
+        public int InventoryLeadTimeDays { get; set; } = 3;
+        public int InventorySafetyStockDays { get; set; } = 2;
+        public int InventoryTargetCoverageDays { get; set; } = 7;
+        public int InventoryForecastLookbackDays { get; set; } = 28;
+        public int InventoryForecastHorizonDays { get; set; } = 7;
+    }
+
+    public class InventoryAlertLog
+    {
+        [Key] public int InventoryAlertLogId { get; set; }
+        public int BusinessId { get; set; }
+        [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
+        [Required, MaxLength(32)] public string AlertType { get; set; } = "ReorderDigest";
+        [Required, MaxLength(32)] public string TriggerSource { get; set; } = "Automation";
+        [Required, MaxLength(256)] public string RecipientEmail { get; set; } = null!;
+        [Required, MaxLength(120)] public string RecipientName { get; set; } = null!;
+        public int RecommendationCount { get; set; }
+        public int RecommendedUnits { get; set; }
+        [Required, MaxLength(128)] public string AlertSignature { get; set; } = null!;
+        [Required] public string RecommendationSnapshotJson { get; set; } = null!;
+        public DateTime SentAt { get; set; }
+    }
+
+    public class Supplier
+    {
+        [Key] public int SupplierId { get; set; }
+        public int BusinessId { get; set; }
+        [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
+        [Required, MaxLength(120)] public string SupplierName { get; set; } = null!;
+        [MaxLength(120)] public string? ContactPerson { get; set; }
+        [MaxLength(256)] public string? EmailAddress { get; set; }
+        [MaxLength(30)] public string? PhoneNumber { get; set; }
+        public int? LeadTimeDaysOverride { get; set; }
+        public bool IsActive { get; set; } = true;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+    }
+
+    public class PurchaseOrder
+    {
+        [Key] public int PurchaseOrderId { get; set; }
+        public int BusinessId { get; set; }
+        [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
+        public int SupplierId { get; set; }
+        [ForeignKey("SupplierId")] public Supplier Supplier { get; set; } = null!;
+        [Required, MaxLength(40)] public string PurchaseOrderNumber { get; set; } = null!;
+        [Required, MaxLength(20)] public string Status { get; set; } = "Draft";
+        [MaxLength(255)] public string? Notes { get; set; }
+        public int? CreatedByUserId { get; set; }
+        [ForeignKey("CreatedByUserId")] public User? CreatedByUser { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? OrderedAt { get; set; }
+        public DateTime? ReceivedAt { get; set; }
+        public DateTime? ExpectedDeliveryDate { get; set; }
+        public ICollection<PurchaseOrderLine> PurchaseOrderLines { get; set; } = new List<PurchaseOrderLine>();
+        public ICollection<PurchaseOrderReceipt> Receipts { get; set; } = new List<PurchaseOrderReceipt>();
+    }
+
+    public class PurchaseOrderLine
+    {
+        [Key] public int PurchaseOrderLineId { get; set; }
+        public int PurchaseOrderId { get; set; }
+        [ForeignKey("PurchaseOrderId")] public PurchaseOrder PurchaseOrder { get; set; } = null!;
+        public int ItemId { get; set; }
+        [ForeignKey("ItemId")] public MenuItem MenuItem { get; set; } = null!;
+        public int Quantity { get; set; }
+        public int ReceivedQuantity { get; set; }
+        [Column(TypeName = "decimal(18,2)")] public decimal UnitCost { get; set; }
+        [Column(TypeName = "decimal(18,2)")] public decimal LineTotal { get; set; }
+    }
+
+    public class PurchaseOrderReceipt
+    {
+        [Key] public int PurchaseOrderReceiptId { get; set; }
+        public int PurchaseOrderId { get; set; }
+        [ForeignKey("PurchaseOrderId")] public PurchaseOrder PurchaseOrder { get; set; } = null!;
+        public int BusinessId { get; set; }
+        [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
+        public int ItemId { get; set; }
+        [ForeignKey("ItemId")] public MenuItem MenuItem { get; set; } = null!;
+        public int QuantityReceived { get; set; }
+        public int PreviousReceivedQuantity { get; set; }
+        public int NewReceivedQuantity { get; set; }
+        public int PreviousStock { get; set; }
+        public int NewStock { get; set; }
+        [MaxLength(255)] public string? Notes { get; set; }
+        public DateTime ReceivedAt { get; set; }
     }
 
     public class SubscriptionInvoice
@@ -163,6 +256,9 @@ namespace ZoneBill_Lloren.Models
         public int BusinessId { get; set; }
         [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
         [Required, MaxLength(100)] public string ItemName { get; set; } = null!;
+        [Required, MaxLength(50)] public string Category { get; set; } = "Food";
+        [MaxLength(500)] public string? ImageUrl { get; set; }
+        public int SortOrder { get; set; } = 0;
         [Column(TypeName = "decimal(18,2)")] public decimal CurrentPrice { get; set; }
         [Column(TypeName = "decimal(18,2)")] public decimal CostPrice { get; set; } = 0m;
         public int StockAvailable { get; set; } = 0;
@@ -195,6 +291,8 @@ namespace ZoneBill_Lloren.Models
         public int CashierId { get; set; }
         [ForeignKey("CashierId")] public User Cashier { get; set; } = null!;
         public DateTime OrderTime { get; set; }
+        /// <summary>"POS" or "Portal"</summary>
+        [MaxLength(10)] public string OrderSource { get; set; } = "POS";
     }
 
     public class OrderDetail
@@ -206,6 +304,8 @@ namespace ZoneBill_Lloren.Models
         [ForeignKey("ItemId")] public MenuItem MenuItem { get; set; } = null!;
         public int Quantity { get; set; }
         [Column(TypeName = "decimal(18,2)")] public decimal LockedUnitPrice { get; set; }
+        public bool IsServed { get; set; } = false;
+        public DateTime? ServedAt { get; set; }
     }
 
     public class Invoice
@@ -215,6 +315,7 @@ namespace ZoneBill_Lloren.Models
         [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
         public int BookingId { get; set; }
         [ForeignKey("BookingId")] public Booking Booking { get; set; } = null!;
+        [MaxLength(20)] public string InvoiceNumber { get; set; } = "";
         [Column(TypeName = "decimal(18,2)")] public decimal SubTotal { get; set; }
         [Column(TypeName = "decimal(18,2)")] public decimal DiscountAmount { get; set; }
         [Column(TypeName = "decimal(18,2)")] public decimal TaxAmount { get; set; }
@@ -305,5 +406,34 @@ namespace ZoneBill_Lloren.Models
         public DateTime CreatedAt { get; set; }
         public DateTime ExpiresAt { get; set; }
         public bool IsUsed { get; set; } = false;
+    }
+
+    public class BusinessLifecycleEvent
+    {
+        [Key] public int EventId { get; set; }
+        public int BusinessId { get; set; }
+        [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
+        [Required, MaxLength(40)] public string EventType { get; set; } = null!;
+        [MaxLength(100)] public string? PreviousValue { get; set; }
+        [MaxLength(100)] public string? NewValue { get; set; }
+        [MaxLength(300)] public string? Reason { get; set; }
+        public int? ActorUserId { get; set; }
+        [MaxLength(120)] public string? ActorName { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class SuperAdminAuditLog
+    {
+        [Key] public int AuditLogId { get; set; }
+        [Required, MaxLength(40)] public string ActionType { get; set; } = null!;
+        [Required, MaxLength(40)] public string EntityType { get; set; } = null!;
+        public int? EntityId { get; set; }
+        public int? BusinessId { get; set; }
+        [MaxLength(120)] public string? BusinessName { get; set; }
+        [MaxLength(400)] public string? Details { get; set; }
+        [MaxLength(300)] public string? Reason { get; set; }
+        public int? ActorUserId { get; set; }
+        [MaxLength(120)] public string? ActorName { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

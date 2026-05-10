@@ -1,16 +1,22 @@
+@{
+    var themePreference = Context.Items["ThemePreference"] as string ?? "Nightlife";
+    var themeClass = $"theme-{themePreference.ToLower()}";
+    var brandName = Context.Items["BrandName"] as string ?? "ZoneBill";
+    var brandLogoUrl = Context.Items["BrandLogoUrl"] as string ?? Url.Content("~/images/my-logo.png");
+}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="@themeClass">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ZoneBill</title>
+    <title>@ViewData["Title"] - @brandName</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ZoneBill_Lloren.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.output.css" asp-append-version="true" />
 </head>
-<body>
+<body class="@themeClass">
     @{
         var isMainAdmin = User.IsInRole("MainAdmin");
         var isManager = User.IsInRole("Manager");
@@ -31,15 +37,19 @@
     <div class="zb-topbar d-flex d-md-none align-items-center">
         <button class="btn btn-link zb-topbar-toggle me-2" type="button"
                 data-bs-toggle="offcanvas" data-bs-target="#zbSidebar" aria-controls="zbSidebar">
-            <i class="bi bi-list fs-3" style="color:#06B6D4;"></i>
+            <i class="bi bi-list fs-3" style="color:var(--zb-secondary);"></i>
         </button>
-        <span class="fw-bold fs-5" style="color:#06B6D4;">ZoneBill</span>
+        <img src="@brandLogoUrl" alt="@brandName logo" class="zb-logo-img zb-topbar-logo me-2" />
+        <span class="fw-bold fs-5 text-truncate" style="color:var(--zb-secondary);">@brandName</span>
     </div>
 
     <!-- Sidebar -->
-    <div class="offcanvas-md offcanvas-start zb-sidebar" tabindex="-1" id="zbSidebar">
-        <div class="offcanvas-header d-md-none border-bottom" style="border-color:#1E293B!important;">
-            <h5 class="offcanvas-title" style="color:#06B6D4;">ZoneBill</h5>
+    <div class="offcanvas offcanvas-start zb-sidebar" tabindex="-1" id="zbSidebar" aria-hidden="true">
+        <div class="offcanvas-header d-md-none border-bottom" style="border-color:var(--zb-primary-mid)!important;">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+                <img src="@brandLogoUrl" alt="@brandName logo" class="zb-logo-img" />
+                <h5 class="offcanvas-title text-truncate mb-0" style="color:var(--zb-secondary);">@brandName</h5>
+            </div>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#zbSidebar"></button>
         </div>
         <div class="offcanvas-body d-flex flex-column p-0 h-100">
@@ -47,8 +57,8 @@
             <!-- Brand (desktop only) -->
             <div class="zb-brand d-none d-md-flex align-items-center gap-2">
                 <a asp-controller="Home" asp-action="Index" class="d-flex align-items-center gap-2 text-decoration-none">
-                    <img src="~/images/my-logo.png" alt="ZoneBill" class="zb-logo-img" />
-                    <span class="zb-brand-text">ZoneBill</span>
+                    <img src="@brandLogoUrl" alt="@brandName logo" class="zb-logo-img" />
+                    <span class="zb-brand-text text-truncate">@brandName</span>
                 </a>
             </div>
 
@@ -70,19 +80,40 @@
                     <a class="zb-nav-link @NavCtrl("SubscriptionPlans")" asp-controller="SubscriptionPlans" asp-action="Index"><i class="bi bi-card-list"></i> Subscription Plans</a>
                     <a class="zb-nav-link @NavCtrl("SubscriptionInvoices")" asp-controller="SubscriptionInvoices" asp-action="Index"><i class="bi bi-receipt"></i> Subscription Invoices</a>
                     <a class="zb-nav-link @NavCtrl("Users")" asp-controller="Users" asp-action="Index"><i class="bi bi-people"></i> System Users</a>
+                    <a class="zb-nav-link @Nav("Home","AllAttentionBusinesses")" asp-controller="Home" asp-action="AllAttentionBusinesses"><i class="bi bi-exclamation-diamond"></i> Flagged Tenants</a>
+                    <a class="zb-nav-link @Nav("Home","SuperAdminAuditLog")" asp-controller="Home" asp-action="SuperAdminAuditLog"><i class="bi bi-journal-text"></i> Audit Log</a>
                 }
 
                 @* ── Front Desk / POS (daily operations — shown first) ── *@
                 @if (canUsePos)
                 {
                     <div class="zb-nav-label"><i class="bi bi-display me-1"></i>Front Desk / POS</div>
-                    <a class="zb-nav-link @NavCtrl("POS")" asp-controller="POS" asp-action="Index"><i class="bi bi-display"></i> POS Dashboard</a>
-                    <a class="zb-nav-link @NavCtrl("Shifts")" asp-controller="Shifts" asp-action="Index"><i class="bi bi-shop"></i> Shift &amp; Cash Drawer</a>
-                    <a class="zb-nav-link @NavCtrl("Bookings")" asp-controller="Bookings" asp-action="Index"><i class="bi bi-calendar-check"></i> Active Bookings</a>
-                    <a class="zb-nav-link @NavCtrl("Customers")" asp-controller="Customers" asp-action="Index"><i class="bi bi-person-lines-fill"></i> Customers</a>
+                    <a class="zb-nav-link @NavCtrl("POS")" asp-controller="POS" asp-action="Index">
+                        <i class="bi bi-display"></i>
+                        <span>POS Dashboard</span>
+                        <span class="zb-sidebar-alert-dot" id="zbSidebarPosDot" style="display:none;" aria-hidden="true"></span>
+                    </a>
+                    <a class="zb-nav-link @NavCtrl("Shifts")" asp-controller="Shifts" asp-action="Index">
+                        <i class="bi bi-shop"></i>
+                        <span>Shift &amp; Cash Drawer</span>
+                        <span class="zb-sidebar-alert-dot" id="zbSidebarShiftsDot" style="display:none;" aria-hidden="true"></span>
+                    </a>
+                    <a class="zb-nav-link @NavCtrl("Bookings")" asp-controller="Bookings" asp-action="Index">
+                        <i class="bi bi-calendar-check"></i>
+                        <span>Active Bookings</span>
+                        <span class="zb-sidebar-alert-dot" id="zbSidebarBookingsDot" style="display:none;" aria-hidden="true"></span>
+                    </a>
                     <a class="zb-nav-link @NavCtrl("Orders")" asp-controller="Orders" asp-action="Index"><i class="bi bi-bag"></i> Orders</a>
-                    <a class="zb-nav-link @NavCtrl("Invoices")" asp-controller="Invoices" asp-action="Index"><i class="bi bi-receipt-cutoff"></i> Invoices</a>
-                    <a class="zb-nav-link @NavCtrl("Payments")" asp-controller="Payments" asp-action="Index"><i class="bi bi-cash-coin"></i> Payments</a>
+                    <a class="zb-nav-link @NavCtrl("Invoices")" asp-controller="Invoices" asp-action="Index">
+                        <i class="bi bi-receipt-cutoff"></i>
+                        <span>Invoices</span>
+                        <span class="zb-sidebar-alert-dot" id="zbSidebarInvoicesDot" style="display:none;" aria-hidden="true"></span>
+                    </a>
+                    <a class="zb-nav-link @NavCtrl("Payments")" asp-controller="Payments" asp-action="Index">
+                        <i class="bi bi-cash-coin"></i>
+                        <span>Payments</span>
+                        <span class="zb-sidebar-alert-dot" id="zbSidebarPaymentsDot" style="display:none;" aria-hidden="true"></span>
+                    </a>
                     <a class="zb-nav-link @NavCtrl("Adjustments")" asp-controller="Adjustments" asp-action="Index"><i class="bi bi-sliders"></i> Adjustments</a>
                 }
 
@@ -107,10 +138,31 @@
                     <div class="zb-nav-label"><i class="bi bi-grid-3x3-gap me-1"></i>Venue Setup</div>
                     <a class="zb-nav-link @NavCtrl("Spaces")" asp-controller="Spaces" asp-action="Index"><i class="bi bi-grid-3x3-gap"></i> Spaces</a>
                     <a class="zb-nav-link @NavCtrl("MenuItems")" asp-controller="MenuItems" asp-action="Index"><i class="bi bi-cup-straw"></i> Menu Items</a>
-                    <a class="zb-nav-link @NavCtrl("Inventory")" asp-controller="Inventory" asp-action="Index"><i class="bi bi-boxes"></i> Inventory</a>
+                    <a class="zb-nav-link @NavCtrl("Inventory")" asp-controller="Inventory" asp-action="Index">
+                        <i class="bi bi-boxes"></i>
+                        <span>Inventory</span>
+                        <span class="zb-sidebar-alert-dot" id="zbSidebarInventoryDot" style="display:none;" aria-hidden="true"></span>
+                    </a>
+                }
+
+                @* ── Team & Settings ── *@
+                @if (isAuthenticated)
+                {
+                    <div class="zb-nav-label"><i class="bi bi-person-gear me-1"></i>Team &amp; Settings</div>
                     @if (isMainAdmin)
                     {
                         <a class="zb-nav-link @NavCtrl("Users")" asp-controller="Users" asp-action="Index"><i class="bi bi-person-badge"></i> Staff Members</a>
+                    }
+                    <a class="zb-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Account" && ViewContext.RouteData.Values["action"]?.ToString() == "ChangePassword" ? "active" : "")"
+                       asp-controller="Account" asp-action="ChangePassword">
+                        <i class="bi bi-key"></i> Change Password
+                    </a>
+                    @if (isMainAdmin)
+                    {
+                        <a class="zb-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Businesses" && ViewContext.RouteData.Values["action"]?.ToString() == "Settings" ? "active" : "")"
+                           asp-controller="Businesses" asp-action="Settings">
+                            <i class="bi bi-gear"></i> Business Settings
+                        </a>
                     }
                 }
 
@@ -121,6 +173,10 @@
                     <a class="zb-nav-link @NavCtrl("ChartOfAccounts")" asp-controller="ChartOfAccounts" asp-action="Index"><i class="bi bi-journal-text"></i> Chart of Accounts</a>
                     <a class="zb-nav-link @NavCtrl("JournalEntrys")" asp-controller="JournalEntrys" asp-action="Index"><i class="bi bi-journal-bookmark"></i> Journal Entries</a>
                     <a class="zb-nav-link @NavCtrl("JournalEntryLines")" asp-controller="JournalEntryLines" asp-action="Index"><i class="bi bi-list-columns"></i> Journal Lines</a>
+                    <a class="zb-nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "IncomeStatement" ? "active" : "")" asp-controller="Reports" asp-action="IncomeStatement"><i class="bi bi-graph-up-arrow"></i> Income Statement</a>
+                    <a class="zb-nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "BalanceSheet" ? "active" : "")" asp-controller="Reports" asp-action="BalanceSheet"><i class="bi bi-bank"></i> Balance Sheet</a>
+                    <a class="zb-nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "CashFlow" ? "active" : "")" asp-controller="Reports" asp-action="CashFlow"><i class="bi bi-currency-exchange"></i> Cash Flow</a>
+                    <a class="zb-nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "TrialBalance" ? "active" : "")" asp-controller="Reports" asp-action="TrialBalance"><i class="bi bi-calculator"></i> Trial Balance</a>
                 }
             </nav>
 
@@ -130,22 +186,13 @@
                 {
                     var userName = User.Identity!.Name;
                     var userRole = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <div class="zb-user-info mb-0">
-                            <i class="bi bi-person-circle me-1"></i>
-                            <div>
-                                <div class="small fw-semibold text-truncate" style="max-width:150px;">@userName</div>
-                                <div class="zb-role-tag">@userRole</div>
-                            </div>
+                    <div class="zb-user-info mb-1">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <div>
+                            <div class="small fw-semibold text-truncate" style="max-width:150px;">@userName</div>
+                            <div class="zb-role-tag">@userRole</div>
                         </div>
-                        <a asp-controller="Home" asp-action="Dashboard" class="zb-notif-bell" title="Notifications" id="zbNotifBell">
-                            <i class="bi bi-bell" style="font-size:1.1rem;color:var(--zb-text-muted);"></i>
-                            <span class="zb-notif-badge" id="zbNotifCount" style="display:none;">0</span>
-                        </a>
                     </div>
-                    <a class="zb-nav-link" asp-controller="Account" asp-action="ChangePassword">
-                        <i class="bi bi-key"></i> Change Password
-                    </a>
                     <form asp-controller="Account" asp-action="Logout" method="post">
                         <button type="submit" class="zb-logout-btn">
                             <i class="bi bi-box-arrow-left"></i> Logout
@@ -166,6 +213,67 @@
 
     <!-- Main content area -->
     <div class="zb-main">
+        @if (isAuthenticated)
+        {
+            <div class="zb-page-toolbar">
+                @if (User.IsInRole("SuperAdmin"))
+                {
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-link zb-notif-bell zb-page-bell border-0"
+                                id="zbSaNotifToggle" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="Admin Alerts">
+                            <i class="bi bi-bell"></i>
+                            <span class="zb-notif-badge" id="zbSaNotifCount" style="display:none;">0</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end p-0" id="zbSaNotifMenu"
+                            style="min-width:310px;background:var(--zb-primary-mid);border:1px solid rgba(6,182,212,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.45);border-radius:10px;overflow:hidden;">
+                            <li class="px-3 py-2 border-bottom" style="border-color:rgba(6,182,212,0.2)!important;">
+                                <span class="fw-semibold small" style="color:var(--zb-secondary);">
+                                    <i class="bi bi-bell-fill me-2"></i>Admin Alerts
+                                </span>
+                            </li>
+                            <div id="zbSaNotifItems" style="max-height:260px;overflow-y:auto;">
+                                <div class="px-3 py-2 small" style="color:var(--zb-text-muted);">Loading…</div>
+                            </div>
+                            <li><hr class="dropdown-divider my-1" style="border-color:rgba(6,182,212,0.15);" /></li>
+                            <li>
+                                <a class="dropdown-item small py-2" asp-controller="Home" asp-action="SuperAdminAuditLog"
+                                   style="color:var(--zb-secondary);">
+                                    <i class="bi bi-journal-text me-2"></i>Full Audit Log
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item small py-2" asp-controller="Home" asp-action="AllAttentionBusinesses"
+                                   style="color:var(--zb-text-muted);">
+                                    <i class="bi bi-exclamation-diamond me-2"></i>All Flagged Tenants
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-link zb-notif-bell zb-page-bell border-0"
+                                id="zbNotifToggle" data-bs-toggle="dropdown" aria-expanded="false"
+                                title="Notifications">
+                            <i class="bi bi-bell"></i>
+                            <span class="zb-notif-badge" id="zbNotifCount" style="display:none;">0</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end p-0 zb-notif-menu" aria-labelledby="zbNotifToggle">
+                            <li class="zb-notif-menu-header">
+                                <i class="bi bi-bell-fill me-2"></i>Notifications
+                            </li>
+                            <li>
+                                <div id="zbNotifItems" class="zb-notif-list">
+                                    <div class="zb-notif-empty">Loading notifications…</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        }
         <main class="zb-content">
             @RenderBody()
         </main>
@@ -176,28 +284,123 @@
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
+    <div id="zbToastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1095;"></div>
+
+    <partial name="_TempDataToasts" />
+
+    <script>
+    /* ── Client-side pagination for tables with data-paginate="N" ── */
+    (function () {
+        function initTbodyPagination(tbody) {
+            var pageSize = parseInt(tbody.getAttribute('data-paginate'), 10) || 10;
+            var currentPage = 1;
+            function rows() { return Array.from(tbody.querySelectorAll(':scope > tr')); }
+            function totalPages(r) { return Math.max(1, Math.ceil(r.length / pageSize)); }
+            function render() {
+                var r = rows(), tp = totalPages(r);
+                currentPage = Math.min(Math.max(currentPage, 1), tp);
+                var start = (currentPage - 1) * pageSize;
+                r.forEach(function (row, i) { row.style.display = (i >= start && i < start + pageSize) ? '' : 'none'; });
+                buildCtrl(r.length, tp);
+            }
+            function buildCtrl(total, tp) {
+                var card = tbody.closest('.zb-table-card');
+                if (!card) return;
+                var ctrl = card.querySelector('.zb-js-paging');
+                if (!ctrl) {
+                    ctrl = document.createElement('div');
+                    ctrl.className = 'zb-js-paging px-4 py-3 border-top d-flex align-items-center justify-content-between flex-wrap gap-2';
+                    ctrl.style.borderColor = 'rgba(6,182,212,0.15)';
+                    card.appendChild(ctrl);
+                }
+                ctrl.innerHTML = '';
+                var info = document.createElement('span');
+                info.className = 'small'; info.style.color = 'var(--zb-text-muted)';
+                info.textContent = 'Page ' + currentPage + ' of ' + tp + '  \u00b7  ' + total.toLocaleString() + ' records';
+                ctrl.appendChild(info);
+                if (tp <= 1) return;
+                var nav = document.createElement('div');
+                nav.className = 'd-flex gap-1 align-items-center';
+                ctrl.appendChild(nav);
+                var bs = 'background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);';
+                var as = 'background:var(--zb-secondary);color:var(--zb-primary);font-weight:600;border:none;cursor:default;';
+                function btn(label, page, active, disabled) {
+                    if (disabled) return null;
+                    if (active) { var s = document.createElement('span'); s.className = 'btn btn-sm px-3'; s.style.cssText = as; s.textContent = label; return s; }
+                    var a = document.createElement('button'); a.type = 'button'; a.className = 'btn btn-sm'; a.style.cssText = bs; a.textContent = label;
+                    a.addEventListener('click', function () { currentPage = page; render(); }); return a;
+                }
+                function dot() { var s = document.createElement('span'); s.className = 'px-1'; s.style.color = 'var(--zb-text-muted)'; s.textContent = '\u2026'; return s; }
+                var sp = Math.max(1, currentPage - 2), ep = Math.min(tp, currentPage + 2);
+                var f = btn('\u00ab', 1, false, currentPage === 1); if (f) { f.classList.add('px-2'); nav.appendChild(f); }
+                var pv = btn('\u2039', currentPage - 1, false, currentPage === 1); if (pv) { pv.classList.add('px-2'); nav.appendChild(pv); }
+                if (sp > 1) nav.appendChild(dot());
+                for (var p = sp; p <= ep; p++) { var b = btn(String(p), p, p === currentPage, false); if (b) nav.appendChild(b); }
+                if (ep < tp) nav.appendChild(dot());
+                var nx = btn('\u203a', currentPage + 1, false, currentPage === tp); if (nx) { nx.classList.add('px-2'); nav.appendChild(nx); }
+                var la = btn('\u00bb', tp, false, currentPage === tp); if (la) { la.classList.add('px-2'); nav.appendChild(la); }
+            }
+            render();
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('tbody[data-paginate]').forEach(initTbodyPagination);
+        });
+    })();
+    </script>
+
     @if (isAuthenticated && !User.IsInRole("SuperAdmin"))
     {
         <script>
-            (function () {
-                function refreshBadge() {
-                    fetch('@Url.Action("GetNotificationCount", "Home")')
-                        .then(r => r.json())
-                        .then(data => {
-                            var el = document.getElementById('zbNotifCount');
-                            if (!el) return;
-                            if (data.count > 0) {
-                                el.textContent = data.count > 99 ? '99+' : data.count;
-                                el.style.display = '';
-                            } else {
-                                el.style.display = 'none';
-                            }
-                        })
-                        .catch(() => { });
-                }
-                refreshBadge();
-                setInterval(refreshBadge, 30000);
-            })();
+            window.ZoneBillNotifications.initBusinessBell({
+                url: '@Url.Action("GetNotifications", "Home")',
+                badgeId: 'zbNotifCount',
+                itemsId: 'zbNotifItems',
+                refreshMs: 15000,
+                sidebarIndicators: [
+                    {
+                        elementId: 'zbSidebarPosDot',
+                        keys: ['checkout-requests'],
+                        links: ['/pos/tables']
+                    },
+                    {
+                        elementId: 'zbSidebarShiftsDot',
+                        keys: ['stale-shifts'],
+                        links: ['/shifts']
+                    },
+                    {
+                        elementId: 'zbSidebarBookingsDot',
+                        keys: ['recent-bookings'],
+                        links: ['/bookings']
+                    },
+                    {
+                        elementId: 'zbSidebarInvoicesDot',
+                        keys: ['unpaid-invoices'],
+                        links: ['/invoices']
+                    },
+                    {
+                        elementId: 'zbSidebarPaymentsDot',
+                        keys: ['recent-payments'],
+                        links: ['/payments']
+                    },
+                    {
+                        elementId: 'zbSidebarInventoryDot',
+                        keys: ['low-stock'],
+                        links: ['/inventory']
+                    }
+                ]
+            });
+        </script>
+    }
+
+    @if (isAuthenticated && User.IsInRole("SuperAdmin"))
+    {
+        <script>
+            window.ZoneBillNotifications.initSuperAdminBell({
+                countUrl: '@Url.Action("GetSuperAdminNotificationCount", "Home")',
+                itemsUrl: '@Url.Action("GetSuperAdminNotifications", "Home")',
+                badgeId: 'zbSaNotifCount',
+                itemsId: 'zbSaNotifItems'
+            });
         </script>
     }
 </body>

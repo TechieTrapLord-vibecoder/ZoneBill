@@ -1,0 +1,248 @@
+@model ZoneBill_Lloren.Models.AttentionPageViewModel
+@using ZoneBill_Lloren.Helpers
+
+@{
+    ViewData["Title"] = "Flagged Tenants";
+    var nowPh = PhilippineTime.Now;
+
+    string PageLink(int p) => $"?page={p}&filter={Model.Filter}&search={Uri.EscapeDataString(Model.Search ?? "")}";
+    string ExportLink()    => $"?exportCsv=1&filter={Model.Filter}&search={Uri.EscapeDataString(Model.Search ?? "")}";
+
+    var filterChips = new[]
+    {
+        ("all",      "All",              "rgba(6,182,212,0.35)",   "rgba(6,182,212,0.15)",  "var(--zb-secondary)"),
+        ("expired",  "Expired",          "rgba(239,68,68,0.35)",   "rgba(239,68,68,0.1)",   "#ef4444"),
+        ("failed",   "Failed Invoice",   "rgba(239,68,68,0.35)",   "rgba(239,68,68,0.1)",   "#ef4444"),
+        ("pending",  "Pending Invoice",  "rgba(249,115,22,0.35)",  "rgba(249,115,22,0.1)",  "var(--zb-accent)"),
+        ("inactive", "Inactive",         "rgba(148,163,184,0.35)", "rgba(148,163,184,0.1)", "var(--zb-text-muted)"),
+    };
+
+    bool ChipActive(string f) => (Model.Filter ?? "all") == f || (string.IsNullOrWhiteSpace(Model.Filter) && f == "all");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-0" style="color:var(--zb-text);">
+            <i class="bi bi-exclamation-diamond me-2" style="color:#ef4444;"></i>Flagged Tenants
+        </h4>
+        <p class="text-muted small mb-0">All businesses needing attention — paginated, searchable and filterable.</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <a href="@ExportLink()" class="btn btn-sm fw-semibold"
+           style="background:rgba(34,197,94,0.12);color:#22c55e;border:1px solid rgba(34,197,94,0.3);">
+            <i class="bi bi-download me-1"></i>Export CSV
+        </a>
+        <a asp-controller="Home" asp-action="SuperAdminDashboard" class="btn btn-sm"
+           style="background:rgba(6,182,212,0.1);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.25);">
+            <i class="bi bi-arrow-left me-1"></i>Dashboard
+        </a>
+    </div>
+</div>
+
+@* Search + filter bar *@
+<div class="zb-table-card mb-4 p-3">
+    <form method="get" action="" class="d-flex flex-wrap gap-3 align-items-end">
+        <div style="flex:1;min-width:200px;">
+            <label class="form-label small mb-1" style="color:var(--zb-text-muted);">Search business name</label>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text" style="background:var(--zb-primary-alt);border-color:rgba(6,182,212,0.25);color:var(--zb-text-muted);">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" name="search" value="@Model.Search" placeholder="Type to search…"
+                       class="form-control zb-input" />
+            </div>
+        </div>
+        <input type="hidden" name="filter" value="@Model.Filter" id="hiddenFilter" />
+        <button type="submit" class="btn btn-sm fw-semibold"
+                style="background:rgba(6,182,212,0.15);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.35);">
+            <i class="bi bi-funnel me-1"></i>Apply
+        </button>
+        <a href="@Url.Action("AllAttentionBusinesses")" class="btn btn-sm"
+           style="background:rgba(148,163,184,0.1);color:var(--zb-text-muted);border:1px solid rgba(148,163,184,0.2);">
+            <i class="bi bi-x-lg me-1"></i>Clear
+        </a>
+    </form>
+
+    @* Filter chips *@
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        @foreach (var (val, label, borderColor, bgColor, textColor) in filterChips)
+        {
+            var isActive = ChipActive(val);
+            <button type="button" class="sa-filter-chip"
+                    data-filter="@val"
+                    style="cursor:pointer;padding:4px 14px;border-radius:20px;font-size:.82rem;
+                           border:1px solid @borderColor;
+                           background:@(isActive ? bgColor : "transparent");
+                           color:@(isActive ? textColor : "var(--zb-text-muted)");
+                           transition:all .15s;">
+                @label
+            </button>
+        }
+    </div>
+</div>
+
+@* Results table *@
+<div class="zb-table-card">
+    <div class="px-4 pt-3 pb-2 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2"
+         style="border-color:rgba(6,182,212,0.15)!important;">
+        <h6 class="fw-bold mb-0" style="color:#ef4444;">
+            <i class="bi bi-exclamation-triangle me-2"></i>Flagged
+            <span class="zb-badge ms-2" style="background:rgba(239,68,68,0.12);color:#ef4444;border:1px solid rgba(239,68,68,0.3);">@Model.TotalCount total</span>
+        </h6>
+        @if (Model.TotalCount > 0)
+        {
+            <span class="small" style="color:var(--zb-text-muted);">
+                Showing @(((Model.Page - 1) * Model.PageSize) + 1)–@(Math.Min(Model.Page * Model.PageSize, Model.TotalCount)) of @Model.TotalCount
+            </span>
+        }
+    </div>
+
+    @if (!Model.Businesses.Any())
+    {
+        <div class="p-5 text-center" style="color:var(--zb-text-muted);">
+            <i class="bi bi-check-circle-fill fs-2 d-block mb-2" style="color:#22c55e;"></i>
+            No flagged tenants match your criteria.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table zb-table mb-0">
+                <thead>
+                    <tr>
+                        <th>Business</th>
+                        <th>Plan</th>
+                        <th>Active?</th>
+                        <th>Subscription</th>
+                        <th>Period End (PH)</th>
+                        <th>Latest Invoice</th>
+                        <th>Flag Reason</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Businesses)
+                {
+                    var isExpiredSub = !item.CurrentPeriodEnd.HasValue || PhilippineTime.ToDateTime(item.CurrentPeriodEnd.Value) <= nowPh;
+                    var subBadge = item.SubscriptionStatus == "Active" && !isExpiredSub ? "zb-badge-green" : "zb-badge-red";
+                    var invBadge = item.LatestInvoiceStatus switch
+                    {
+                        "Paid"      => "zb-badge-green",
+                        "Pending"   => "zb-badge-cyan",
+                        "Overdue"   => "zb-badge-orange",
+                        "Failed"    => "zb-badge-red",
+                        "Cancelled" => "zb-badge-yellow",
+                        _           => "zb-badge-cyan"
+                    };
+                    <tr>
+                        <td class="fw-semibold" style="color:var(--zb-text);">@item.BusinessName</td>
+                        <td style="font-size:.85rem;">@item.PlanName</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="zb-badge zb-badge-green">Active</span>
+                            }
+                            else
+                            {
+                                <span class="zb-badge zb-badge-red">Inactive</span>
+                            }
+                        </td>
+                        <td><span class="zb-badge @subBadge">@item.SubscriptionStatus</span></td>
+                        <td>
+                            @if (item.CurrentPeriodEnd.HasValue)
+                            {
+                                var endPh = PhilippineTime.ToDateTime(item.CurrentPeriodEnd.Value);
+                                <span class="zb-mono @(isExpiredSub ? "text-danger" : "")">@endPh.ToString("MMM d, yyyy")</span>
+                                @if (isExpiredSub)
+                                {
+                                    <span class="zb-badge zb-badge-red ms-1" style="font-size:.7rem;">Expired</span>
+                                }
+                            }
+                            else
+                            {
+                                <span style="color:var(--zb-text-muted);">—</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="zb-badge @invBadge">@item.LatestInvoiceStatus</span>
+                            @if (item.LatestInvoiceAmount > 0)
+                            {
+                                <span class="zb-mono ms-1">@item.LatestInvoiceAmount.ToString("C")</span>
+                            }
+                        </td>
+                        <td style="font-size:.8rem;color:var(--zb-text-muted);max-width:200px;">@item.AttentionReason</td>
+                        <td>
+                            <a asp-controller="Businesses" asp-action="Details" asp-route-id="@item.BusinessId"
+                               class="btn btn-sm fw-semibold"
+                               style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+                                <i class="bi bi-arrow-right-circle me-1"></i>Open
+                            </a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @* Pagination *@
+        @if (Model.TotalPages > 1)
+        {
+            <div class="px-4 py-3 d-flex align-items-center justify-content-between flex-wrap gap-2 border-top"
+                 style="border-color:rgba(6,182,212,0.12)!important;">
+                <span class="small" style="color:var(--zb-text-muted);">Page @Model.Page of @Model.TotalPages</span>
+                <div class="d-flex gap-1 flex-wrap">
+                    @if (Model.Page > 1)
+                    {
+                        <a href="@PageLink(1)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);"><i class="bi bi-chevron-double-left"></i></a>
+                        <a href="@PageLink(Model.Page - 1)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);"><i class="bi bi-chevron-left"></i></a>
+                    }
+                    @{
+                        int rangeStart = Math.Max(1, Model.Page - 2);
+                        int rangeEnd   = Math.Min(Model.TotalPages, Model.Page + 2);
+                    }
+                    @for (int p = rangeStart; p <= rangeEnd; p++)
+                    {
+                        if (p == Model.Page)
+                        {
+                            <span class="btn btn-sm" style="background:rgba(6,182,212,0.25);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.4);font-weight:700;">@p</span>
+                        }
+                        else
+                        {
+                            <a href="@PageLink(p)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-text-muted);border:1px solid rgba(6,182,212,0.2);">@p</a>
+                        }
+                    }
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <a href="@PageLink(Model.Page + 1)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);"><i class="bi bi-chevron-right"></i></a>
+                        <a href="@PageLink(Model.TotalPages)" class="btn btn-sm" style="background:rgba(6,182,212,0.08);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.2);"><i class="bi bi-chevron-double-right"></i></a>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script>
+    (function () {
+        var chips = document.querySelectorAll('.sa-filter-chip');
+        var hiddenFilter = document.getElementById('hiddenFilter');
+        if (!chips.length || !hiddenFilter) return;
+
+        chips.forEach(function (chip) {
+            chip.addEventListener('click', function () {
+                var val = chip.getAttribute('data-filter') || 'all';
+                hiddenFilter.value = val === 'all' ? '' : val;
+                // update visual immediately
+                chips.forEach(function (c) {
+                    c.style.background = 'transparent';
+                    c.style.color = 'var(--zb-text-muted)';
+                });
+                chip.style.background = '';
+                chip.style.color = '';
+                chip.closest('form') && chip.closest('.zb-table-card').querySelector('form').submit();
+            });
+        });
+    })();
+    </script>
+}

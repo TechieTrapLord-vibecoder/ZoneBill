@@ -174,7 +174,8 @@ namespace ZoneBill_Lloren.Controllers
                     BusinessId = space.BusinessId,
                     BookingId = booking.BookingId,
                     CashierId = fallbackCashierId,
-                    OrderTime = PhilippineTime.Now
+                    OrderTime = PhilippineTime.Now,
+                    OrderSource = "Portal"
                 };
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
@@ -250,7 +251,8 @@ namespace ZoneBill_Lloren.Controllers
                     BusinessId = space.BusinessId,
                     BookingId = booking.BookingId,
                     CashierId = fallbackCashierId,
-                    OrderTime = PhilippineTime.Now
+                    OrderTime = PhilippineTime.Now,
+                    OrderSource = "Portal"
                 };
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();

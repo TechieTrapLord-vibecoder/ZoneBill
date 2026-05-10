@@ -48,6 +48,11 @@ namespace ZoneBill_Lloren.Filters
                 return;
             }
 
+            // Stash theme preference for _Layout.cshtml
+            context.HttpContext.Items["ThemePreference"] = string.IsNullOrWhiteSpace(business.ThemePreference) 
+                ? "Nightlife" 
+                : business.ThemePreference;
+
             var isActive = business.SubscriptionStatus == "Active";
             var isCurrent = business.CurrentPeriodEnd.HasValue && business.CurrentPeriodEnd.Value > PhilippineTime.Now;
 
