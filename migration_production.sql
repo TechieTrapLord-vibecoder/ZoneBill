@@ -1897,3 +1897,94 @@ GO
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260510155100_AddSecurityLockouts'
+)
+BEGIN
+    ALTER TABLE [Users] ADD [FailedLoginAttempts] int NOT NULL DEFAULT 0;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260510155100_AddSecurityLockouts'
+)
+BEGIN
+    ALTER TABLE [Users] ADD [LockoutEnd] datetime2 NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260510155100_AddSecurityLockouts'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260510155100_AddSecurityLockouts', N'8.0.26');
+END;
+GO
+
+COMMIT;
+GO
+
+BEGIN TRANSACTION;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260510160844_AddTenantAuditLog'
+)
+BEGIN
+    CREATE TABLE [TenantAuditLogs] (
+        [LogId] int NOT NULL IDENTITY,
+        [BusinessId] int NOT NULL,
+        [UserId] int NULL,
+        [UserName] nvarchar(120) NULL,
+        [UserRole] nvarchar(50) NULL,
+        [ActionType] nvarchar(50) NOT NULL,
+        [EntityType] nvarchar(50) NOT NULL,
+        [EntityId] nvarchar(50) NULL,
+        [Details] nvarchar(500) NULL,
+        [CreatedAt] datetime2 NOT NULL,
+        CONSTRAINT [PK_TenantAuditLogs] PRIMARY KEY ([LogId]),
+        CONSTRAINT [FK_TenantAuditLogs_Businesses_BusinessId] FOREIGN KEY ([BusinessId]) REFERENCES [Businesses] ([BusinessId]) ON DELETE NO ACTION,
+        CONSTRAINT [FK_TenantAuditLogs_Users_UserId] FOREIGN KEY ([UserId]) REFERENCES [Users] ([UserId]) ON DELETE NO ACTION
+    );
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260510160844_AddTenantAuditLog'
+)
+BEGIN
+    CREATE INDEX [IX_TenantAuditLogs_BusinessId] ON [TenantAuditLogs] ([BusinessId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260510160844_AddTenantAuditLog'
+)
+BEGIN
+    CREATE INDEX [IX_TenantAuditLogs_UserId] ON [TenantAuditLogs] ([UserId]);
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20260510160844_AddTenantAuditLog'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20260510160844_AddTenantAuditLog', N'8.0.26');
+END;
+GO
+
+COMMIT;
+GO
+

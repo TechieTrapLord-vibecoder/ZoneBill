@@ -3,36 +3,102 @@
 
 @{
     ViewData["Title"] = "Payment Details";
+    var methodColor = Model.PaymentMethod == "Cash" ? "#06b6d4" :
+                      Model.PaymentMethod == "GCash" ? "#f97316" :
+                      Model.PaymentMethod == "Card" ? "#a78bfa" : "#94a3b8";
+    var methodBg = Model.PaymentMethod == "Cash" ? "rgba(6,182,212,0.12)" :
+                   Model.PaymentMethod == "GCash" ? "rgba(249,115,22,0.12)" :
+                   Model.PaymentMethod == "Card" ? "rgba(167,139,250,0.12)" : "rgba(148,163,184,0.12)";
+    var methodBorder = Model.PaymentMethod == "Cash" ? "rgba(6,182,212,0.3)" :
+                       Model.PaymentMethod == "GCash" ? "rgba(249,115,22,0.3)" :
+                       Model.PaymentMethod == "Card" ? "rgba(167,139,250,0.3)" : "rgba(148,163,184,0.3)";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-info-circle me-2" style="color:var(--zb-secondary);"></i>Payment Details</h4>
-    <div class="d-flex gap-2">
-        <a asp-action="Edit" asp-route-id="@Model?.PaymentId" class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.12);color:var(--zb-accent);border:1px solid rgba(249,115,22,0.3);"><i class="bi bi-pencil me-1"></i>Edit</a>
-        <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);"><i class="bi bi-arrow-left me-1"></i>Back to List</a>
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h4 class="fw-bold mb-1" style="color:var(--zb-text);">
+            <i class="bi bi-cash-coin me-2" style="color:var(--zb-secondary);"></i>Payment Details
+        </h4>
+        <p class="text-muted small mb-0">Payment #@Model.PaymentId</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="zb-badge fw-semibold px-3 py-2" style="background:@methodBg;color:@methodColor;border:1px solid @methodBorder;font-size:.85rem;">
+            <i class="bi bi-@(Model.PaymentMethod == "Cash" ? "cash" : Model.PaymentMethod == "GCash" ? "phone" : "credit-card") me-1"></i>@Model.PaymentMethod
+        </span>
+        <a asp-action="Index" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
+            <i class="bi bi-arrow-left me-1"></i>Back to List
+        </a>
     </div>
 </div>
 
-<div class="zb-table-card">
-    <div class="p-4">
-        <dl class="row mb-0">
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Business)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.Business.BusinessName)</dd>
+<div class="row g-4">
+    @* Left: Payment details *@
+    <div class="col-lg-8">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);">
+                    <i class="bi bi-info-circle me-2"></i>Payment Information
+                </h6>
+            </div>
+            <div class="p-4">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="small mb-1" style="color:var(--zb-text-muted);">Business</div>
+                        <div class="fw-semibold" style="color:var(--zb-text);">@(Model.Business?.BusinessName ?? "—")</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small mb-1" style="color:var(--zb-text-muted);">Invoice Status</div>
+                        <div class="fw-semibold" style="color:var(--zb-text);">@(Model.Invoice?.PaymentStatus ?? "—")</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small mb-1" style="color:var(--zb-text-muted);">Payment Method</div>
+                        <span class="zb-badge fw-semibold" style="background:@methodBg;color:@methodColor;border:1px solid @methodBorder;">
+                            @Model.PaymentMethod
+                        </span>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small mb-1" style="color:var(--zb-text-muted);">Payment Date</div>
+                        <div class="fw-semibold zb-mono" style="color:var(--zb-text);">
+                            @PhilippineTime.ToDateTime(Model.PaymentDate).ToString("MMM dd, yyyy h:mm tt")
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small mb-1" style="color:var(--zb-text-muted);">Reference Number</div>
+                        <div class="fw-semibold zb-mono" style="color:var(--zb-text-muted);">
+                            @(string.IsNullOrEmpty(Model.ReferenceNumber) ? "—" : Model.ReferenceNumber)
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="small mb-1" style="color:var(--zb-text-muted);">Payment ID</div>
+                        <div class="fw-semibold zb-mono" style="color:var(--zb-text-muted);">#@Model.PaymentId</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.Invoice)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.Invoice.PaymentStatus)</dd>
-
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.AmountPaid)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.AmountPaid)</dd>
-
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.PaymentMethod)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.PaymentMethod)</dd>
-
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.PaymentDate)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@PhilippineTime.ToDateTime(Model.PaymentDate).ToString("yyyy-MM-dd HH:mm")</dd>
-
-            <dt class="col-sm-3 zb-form-label py-2">@Html.DisplayNameFor(model => model.ReferenceNumber)</dt>
-            <dd class="col-sm-9 py-2" style="color:var(--zb-text);">@Html.DisplayFor(model => model.ReferenceNumber)</dd>
-        </dl>
+    @* Right: Amount summary *@
+    <div class="col-lg-4">
+        <div class="zb-table-card h-100">
+            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(6,182,212,0.15)!important;">
+                <h6 class="fw-bold mb-0" style="color:var(--zb-secondary);">
+                    <i class="bi bi-receipt me-2"></i>Amount Summary
+                </h6>
+            </div>
+            <div class="p-4 d-flex flex-column gap-3">
+                <div class="text-center p-4 rounded" style="background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.2);">
+                    <div class="small mb-1" style="color:var(--zb-text-muted);">Amount Paid</div>
+                    <div class="fw-bold" style="color:#22c55e;font-size:2rem;">₱@Model.AmountPaid.ToString("N2")</div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background:@methodBg;border:1px solid @methodBorder;">
+                    <span class="small" style="color:var(--zb-text-muted);">Method</span>
+                    <span class="fw-bold" style="color:@methodColor;">@Model.PaymentMethod</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center p-3 rounded" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+                    <span class="small" style="color:var(--zb-text-muted);">Status</span>
+                    <span class="fw-bold" style="color:#22c55e;">Collected</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

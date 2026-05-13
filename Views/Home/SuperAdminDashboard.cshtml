@@ -6,6 +6,7 @@
     var nowPh = PhilippineTime.Now;
 }
 
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h4 class="fw-bold mb-0" style="color:var(--zb-text);"><i class="bi bi-globe me-2" style="color:var(--zb-secondary);"></i>SaaS Dashboard</h4>
@@ -14,111 +15,70 @@
 </div>
 
 <div class="row row-cols-2 row-cols-md-5 g-3 mb-4">
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
-            <div class="zb-kpi-label">Total Businesses</div>
-            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalBusinesses</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
-            <div class="zb-kpi-label">Active Businesses</div>
-            <div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveBusinesses</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
-            <div class="zb-kpi-label">Total Users</div>
-            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalUsers</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
-            <div class="zb-kpi-label">Needs Attention</div>
-            <div class="zb-kpi-value" style="color:#ef4444;">@Model.BusinessesNeedingAttention</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);">
-            <div class="zb-kpi-label">Current MRR</div>
-            <div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.MonthlyRecurringRevenue.ToString("C")</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
-            <div class="zb-kpi-label">Collected (Month)</div>
-            <div class="zb-kpi-value" style="color:#22c55e;">@Model.CollectedThisMonth.ToString("C")</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
-            <div class="zb-kpi-label">Failed (Month)</div>
-            <div class="zb-kpi-value" style="color:#ef4444;">@Model.FailedThisMonth.ToString("C")</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);">
-            <div class="zb-kpi-label">Outstanding</div>
-            <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.OutstandingReceivables.ToString("C")</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);">
-            <div class="zb-kpi-label">Active Subscriptions</div>
-            <div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveSubscriptions</div>
-        </div>
-    </div>
-    <div class="col">
-        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);">
-            <div class="zb-kpi-label">Past Due / Expired</div>
-            <div class="zb-kpi-value" style="color:#ef4444;">@Model.PastDueSubscriptions</div>
-        </div>
-    </div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);"><div class="zb-kpi-label">Total Businesses</div><div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalBusinesses</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);"><div class="zb-kpi-label">Active Businesses</div><div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveBusinesses</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);"><div class="zb-kpi-label">Total Users</div><div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.TotalUsers</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);"><div class="zb-kpi-label">Needs Attention</div><div class="zb-kpi-value" style="color:#ef4444;">@Model.BusinessesNeedingAttention</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(6,182,212,0.4);"><div class="zb-kpi-label">Current MRR</div><div class="zb-kpi-value" style="color:var(--zb-secondary);">@Model.MonthlyRecurringRevenue.ToString("C")</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);"><div class="zb-kpi-label">Collected (Month)</div><div class="zb-kpi-value" style="color:#22c55e;">@Model.CollectedThisMonth.ToString("C")</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);"><div class="zb-kpi-label">Failed (Month)</div><div class="zb-kpi-value" style="color:#ef4444;">@Model.FailedThisMonth.ToString("C")</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.4);"><div class="zb-kpi-label">Outstanding</div><div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.OutstandingReceivables.ToString("C")</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.4);"><div class="zb-kpi-label">Active Subscriptions</div><div class="zb-kpi-value" style="color:#22c55e;">@Model.ActiveSubscriptions</div></div></div>
+    <div class="col"><div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.4);"><div class="zb-kpi-label">Past Due / Expired</div><div class="zb-kpi-value" style="color:#ef4444;">@Model.PastDueSubscriptions</div></div></div>
 </div>
 
-<div class="row g-3 mb-4">
+<div class="row g-4 mb-4">
     <div class="col-md-4">
-        <div class="zb-kpi-card" style="border-color:rgba(34,197,94,0.35);">
-            <div class="zb-kpi-label">New Businesses Trend</div>
-            <div class="d-flex justify-content-between align-items-end">
+        <div class="zb-kpi-card position-relative overflow-hidden" style="border-color:rgba(34,197,94,0.35); padding-bottom: 0;">
+            <div class="d-flex justify-content-between align-items-start position-relative z-1">
                 <div>
-                    <div class="zb-kpi-value" style="color:#22c55e;">@Model.NewBusinesses30Days</div>
+                    <div class="zb-kpi-label mb-1">New Businesses Trend</div>
+                    <div class="fs-4 fw-bold" style="color:#22c55e;">@Model.NewBusinesses30Days</div>
                     <div class="small" style="color:var(--zb-text-muted);">Last 30 days</div>
                 </div>
                 <div class="text-end">
-                    <div class="fw-semibold" style="color:var(--zb-text);font-size:1.1rem;">@Model.NewBusinesses90Days</div>
+                    <div class="fw-bold" style="color:var(--zb-text);font-size:1.1rem;">@Model.NewBusinesses90Days</div>
                     <div class="small" style="color:var(--zb-text-muted);">Last 90 days</div>
                 </div>
+            </div>
+            <div style="height:90px; margin-top:-10px; margin-left:-20px; margin-right:-20px; margin-bottom:-20px;">
+                <canvas id="signupTrendChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="zb-kpi-card" style="border-color:rgba(249,115,22,0.35);">
-            <div class="zb-kpi-label">Churn Trend</div>
-            <div class="d-flex justify-content-between align-items-end">
+        <div class="zb-kpi-card position-relative overflow-hidden" style="border-color:rgba(249,115,22,0.35); padding-bottom: 0;">
+            <div class="d-flex justify-content-between align-items-start position-relative z-1">
                 <div>
-                    <div class="zb-kpi-value" style="color:var(--zb-accent);">@Model.ChurnedBusinesses30Days</div>
+                    <div class="zb-kpi-label mb-1">Churn Trend</div>
+                    <div class="fs-4 fw-bold" style="color:var(--zb-accent);">@Model.ChurnedBusinesses30Days</div>
                     <div class="small" style="color:var(--zb-text-muted);">Last 30 days</div>
                 </div>
                 <div class="text-end">
-                    <div class="fw-semibold" style="color:var(--zb-text);font-size:1.1rem;">@Model.ChurnedBusinesses90Days</div>
+                    <div class="fw-bold" style="color:var(--zb-text);font-size:1.1rem;">@Model.ChurnedBusinesses90Days</div>
                     <div class="small" style="color:var(--zb-text-muted);">Last 90 days</div>
                 </div>
+            </div>
+            <div style="height:90px; margin-top:-10px; margin-left:-20px; margin-right:-20px; margin-bottom:-20px;">
+                <canvas id="churnTrendChart"></canvas>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="zb-kpi-card" style="border-color:rgba(239,68,68,0.35);">
-            <div class="zb-kpi-label">Failed Renewals</div>
-            <div class="d-flex justify-content-between align-items-end">
+        <div class="zb-kpi-card position-relative overflow-hidden" style="border-color:rgba(239,68,68,0.35); padding-bottom: 0;">
+            <div class="d-flex justify-content-between align-items-start position-relative z-1">
                 <div>
-                    <div class="zb-kpi-value" style="color:#ef4444;">@Model.FailedRenewals30Days</div>
+                    <div class="zb-kpi-label mb-1">Failed Renewals</div>
+                    <div class="fs-4 fw-bold" style="color:#ef4444;">@Model.FailedRenewals30Days</div>
                     <div class="small" style="color:var(--zb-text-muted);">Last 30 days</div>
                 </div>
                 <div class="text-end">
-                    <div class="fw-semibold" style="color:var(--zb-text);font-size:1.1rem;">@Model.FailedRenewals90Days</div>
+                    <div class="fw-bold" style="color:var(--zb-text);font-size:1.1rem;">@Model.FailedRenewals90Days</div>
                     <div class="small" style="color:var(--zb-text-muted);">Last 90 days</div>
                 </div>
+            </div>
+            <div style="height:90px; margin-top:-10px; margin-left:-20px; margin-right:-20px; margin-bottom:-20px;">
+                <canvas id="failedTrendChart"></canvas>
             </div>
         </div>
     </div>
@@ -200,9 +160,16 @@
                                 </td>
                                 <td style="font-size:.82rem;color:var(--zb-text-muted);">@item.AttentionReason</td>
                                 <td>
-                                    <a asp-controller="Businesses" asp-action="Details" asp-route-id="@item.BusinessId" class="btn btn-sm fw-semibold" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">
-                                        Open Business
-                                    </a>
+                                    <div class="d-flex flex-column gap-1">
+                                        <a asp-controller="Businesses" asp-action="Details" asp-route-id="@item.BusinessId" class="btn btn-sm fw-semibold w-100" style="background:rgba(6,182,212,0.12);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3); font-size:.78rem;">
+                                            <i class="bi bi-search me-1"></i>View
+                                        </a>
+                                        @if(isExpired || invoiceStatus == "failed" || invoiceStatus == "overdue") {
+                                            <button type="button" class="btn btn-sm fw-semibold w-100" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.3); font-size:.78rem;" onclick="alert('Action taken for @item.BusinessName!')">
+                                                <i class="bi bi-envelope me-1"></i>Remind
+                                            </button>
+                                        }
+                                    </div>
                                 </td>
                             </tr>
                         }
@@ -252,36 +219,7 @@
         </div>
     </div>
 
-    <div class="col-lg-4">
-        <div class="zb-table-card h-100">
-            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(34,197,94,0.2)!important;">
-                <h6 class="fw-bold mb-0" style="color:#22c55e;"><i class="bi bi-graph-up-arrow me-2"></i>Signups Sparkline</h6>
-            </div>
-            <div class="p-4">
-                <canvas id="signupTrendChart" height="120"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="zb-table-card h-100">
-            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(249,115,22,0.2)!important;">
-                <h6 class="fw-bold mb-0" style="color:var(--zb-accent);"><i class="bi bi-graph-down-arrow me-2"></i>Churn Sparkline</h6>
-            </div>
-            <div class="p-4">
-                <canvas id="churnTrendChart" height="120"></canvas>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-4">
-        <div class="zb-table-card h-100">
-            <div class="px-4 pt-3 pb-2 border-bottom" style="border-color:rgba(239,68,68,0.2)!important;">
-                <h6 class="fw-bold mb-0" style="color:#ef4444;"><i class="bi bi-activity me-2"></i>Failed Renewals Sparkline</h6>
-            </div>
-            <div class="p-4">
-                <canvas id="failedTrendChart" height="120"></canvas>
-            </div>
-        </div>
-    </div>
+    <!-- Sparkline layout merged into trend cards above -->
 
     <div class="col-12">
         <div class="zb-table-card">
@@ -350,45 +288,62 @@
         const failedTrend = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.FailedRenewalTrend));
 
         new Chart(document.getElementById('planChart'), {
-            type: 'bar',
+            type: 'doughnut',
             data: {
                 labels: planLabels,
                 datasets: [{
-                    label: 'Businesses',
                     data: planCounts,
                     backgroundColor: ['#06b6d4', '#22c55e', '#f97316', '#ef4444', '#a855f7'],
-                    borderRadius: 4
+                    borderWidth: 0,
+                    hoverOffset: 6
                 }]
+            },
+            options: {
+                cutout: '75%',
+                plugins: {
+                    legend: { position: 'right', labels: { color: '#94a3b8', usePointStyle: true, padding: 20, font: { size: 13 } } }
+                },
+                layout: { padding: 10 }
             }
         });
 
-        function renderSparkline(id, data, color) {
-            new Chart(document.getElementById(id), {
+        function renderSparkline(id, data, colorStr, bgGradientStart, bgGradientEnd) {
+            const ctx = document.getElementById(id).getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 90);
+            gradient.addColorStop(0, bgGradientStart);
+            gradient.addColorStop(1, bgGradientEnd);
+
+            new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: trendLabels,
                     datasets: [{
                         data: data,
-                        borderColor: color,
-                        backgroundColor: 'transparent',
+                        borderColor: colorStr,
+                        backgroundColor: gradient,
+                        fill: true,
                         borderWidth: 2,
-                        tension: 0.35,
-                        pointRadius: 0
+                        tension: 0.4,
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        hoverBackgroundColor: colorStr
                     }]
                 },
                 options: {
-                    plugins: { legend: { display: false }, tooltip: { enabled: true } },
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: true, mode: 'index', intersect: false } },
                     scales: {
                         x: { display: false },
-                        y: { display: false, beginAtZero: true }
-                    }
+                        y: { display: false, beginAtZero: true, min: 0 }
+                    },
+                    layout: { padding: { top: 5, bottom: 0, left: 0, right: 0 } }
                 }
             });
         }
 
-        renderSparkline('signupTrendChart', signupTrend, '#22c55e');
-        renderSparkline('churnTrendChart', churnTrend, '#f97316');
-        renderSparkline('failedTrendChart', failedTrend, '#ef4444');
+        renderSparkline('signupTrendChart', signupTrend, '#22c55e', 'rgba(34,197,94,0.3)', 'rgba(34,197,94,0.0)');
+        renderSparkline('churnTrendChart', churnTrend, '#f97316', 'rgba(249,115,22,0.3)', 'rgba(249,115,22,0.0)');
+        renderSparkline('failedTrendChart', failedTrend, '#ef4444', 'rgba(239,68,68,0.3)', 'rgba(239,68,68,0.0)');
 
         (function () {
             const chips = document.querySelectorAll('.sa-attn-filter');

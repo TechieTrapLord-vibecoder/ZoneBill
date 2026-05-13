@@ -15,11 +15,13 @@ namespace ZoneBill_Lloren.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IEmailService _emailService;
+        private readonly ITenantAuditLogger _auditLogger;
 
-        public POSController(ApplicationDbContext context, IEmailService emailService)
+        public POSController(ApplicationDbContext context, IEmailService emailService, ITenantAuditLogger auditLogger)
         {
             _context = context;
             _emailService = emailService;
+            _auditLogger = auditLogger;
         }
 
         public async Task<IActionResult> Index()
@@ -270,6 +272,21 @@ namespace ZoneBill_Lloren.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // GET /POS/GetLiveStock — returns real-time stock for all active menu items
+        [HttpGet]
+        public async Task<IActionResult> GetLiveStock()
+        {
+            var businessId = GetBusinessId();
+            if (businessId == null) return Forbid();
+
+            var stocks = await _context.MenuItems
+                .Where(m => m.BusinessId == businessId.Value && m.IsActive)
+                .Select(m => new { m.ItemId, m.StockAvailable })
+                .ToListAsync();
+
+            return Json(stocks);
+        }
+
         // POST /POS/BatchAddOrder  (JSON — used by the POS card cart)
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -496,6 +513,41 @@ namespace ZoneBill_Lloren.Controllers
                 });
             }
 
+            // ── COGS Journal: Dr Cost of Goods Sold / Cr Inventory Purchases ──
+            var totalCogs = orderDetails.Sum(od => Math.Round(od.MenuItem.CostPrice * od.Quantity, 2));
+            if (totalCogs > 0m)
+            {
+                var cogsAccount       = await GetOrCreateAccountAsync(businessId.Value, "Cost of Goods Sold",  "Expense");
+                var inventoryAccount  = await GetOrCreateAccountAsync(businessId.Value, "Inventory Purchases", "Asset");
+
+                var cogsJournal = new JournalEntry
+                {
+                    BusinessId    = businessId.Value,
+                    ReferenceId   = invoice.InvoiceId,
+                    ReferenceType = "COGS",
+                    EntryDate     = PhilippineTime.Now,
+                    Description   = $"COGS for Invoice #{invoice.InvoiceId} — {orderDetails.Count} item line(s)"
+                };
+                _context.JournalEntries.Add(cogsJournal);
+                await _context.SaveChangesAsync();
+
+                _context.JournalEntryLines.AddRange(
+                    new JournalEntryLine
+                    {
+                        JournalEntryId = cogsJournal.JournalEntryId,
+                        AccountId      = cogsAccount.AccountId,
+                        Debit          = totalCogs,
+                        Credit         = 0m
+                    },
+                    new JournalEntryLine
+                    {
+                        JournalEntryId = cogsJournal.JournalEntryId,
+                        AccountId      = inventoryAccount.AccountId,
+                        Debit          = 0m,
+                        Credit         = totalCogs
+                    });
+            }
+
             booking.EndTime = endTime;
             booking.DurationHours = durationHours;
             booking.BookingStatus = "Completed";
@@ -504,6 +556,21 @@ namespace ZoneBill_Lloren.Controllers
             if (booking.Space != null)
             {
                 booking.Space.CurrentStatus = "Available";
+            }
+
+            // ── Mark all order items as served on checkout ──────────────────
+            var now = PhilippineTime.Now;
+            var unservedItems = await _context.OrderDetails
+                .Include(od => od.Order)
+                .Where(od => od.Order.BusinessId == businessId.Value
+                          && od.Order.BookingId == booking.BookingId
+                          && !od.IsServed)
+                .ToListAsync();
+
+            foreach (var item in unservedItems)
+            {
+                item.IsServed = true;
+                item.ServedAt = now;
             }
 
             // ── Auto-create Payment and mark invoice Paid ──────────────────
@@ -582,6 +649,14 @@ namespace ZoneBill_Lloren.Controllers
             }
 
             TempData["Success"] = $"Checkout complete. Invoice #{invoice.InvoiceId} — Paid via {normalizedPaymentMethod} ({discountPercentage:0.##}% discount, {business.TaxRatePercentage:0.##}% tax).";
+            
+            await _auditLogger.LogAsync(businessId.Value, User, "Processed", "Payment", invoice.InvoiceId.ToString(), $"Checkout complete. Total: {total:C}, Discount: {discountPercentage:0.##}%, Method: {normalizedPaymentMethod}");
+            
+            if (discountPercentage > 0)
+            {
+                await _auditLogger.LogAsync(businessId.Value, User, "Discount Applied", "Payment", invoice.InvoiceId.ToString(), $"Discount of {discountPercentage:0.##}% applied to Invoice #{invoice.InvoiceId}. Subtotal before: {(menuCharge + tableCharge):C}, Final total: {total:C}.");
+            }
+            
             return RedirectToAction(nameof(Index));
         }
 
@@ -1012,12 +1087,62 @@ namespace ZoneBill_Lloren.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            // ── COGS Journal (once for whole session, not per split) ──────────
+            var splitTotalCogs = orderDetails.Sum(od => Math.Round(od.MenuItem.CostPrice * od.Quantity, 2));
+            if (splitTotalCogs > 0m)
+            {
+                var cogsAccount      = await GetOrCreateAccountAsync(businessId.Value, "Cost of Goods Sold",  "Expense");
+                var inventoryAccount = await GetOrCreateAccountAsync(businessId.Value, "Inventory Purchases", "Asset");
+
+                var cogsJournal = new JournalEntry
+                {
+                    BusinessId    = businessId.Value,
+                    ReferenceId   = booking.BookingId,
+                    ReferenceType = "COGS",
+                    EntryDate     = PhilippineTime.Now,
+                    Description   = $"COGS for Booking #{booking.BookingId} \u2014 split {splitCount}-way checkout"
+                };
+                _context.JournalEntries.Add(cogsJournal);
+                await _context.SaveChangesAsync();
+
+                _context.JournalEntryLines.AddRange(
+                    new JournalEntryLine
+                    {
+                        JournalEntryId = cogsJournal.JournalEntryId,
+                        AccountId      = cogsAccount.AccountId,
+                        Debit          = splitTotalCogs,
+                        Credit         = 0m
+                    },
+                    new JournalEntryLine
+                    {
+                        JournalEntryId = cogsJournal.JournalEntryId,
+                        AccountId      = inventoryAccount.AccountId,
+                        Debit          = 0m,
+                        Credit         = splitTotalCogs
+                    });
+            }
+
             // Complete booking
             booking.EndTime = endTime;
             booking.DurationHours = durationHours;
             booking.BookingStatus = "Completed";
             booking.CheckoutRequested = false;
             if (booking.Space != null) booking.Space.CurrentStatus = "Available";
+
+            // ── Mark all order items as served on checkout ──────────────────
+            var now = PhilippineTime.Now;
+            var unservedItems = await _context.OrderDetails
+                .Include(od => od.Order)
+                .Where(od => od.Order.BusinessId == businessId.Value
+                          && od.Order.BookingId == booking.BookingId
+                          && !od.IsServed)
+                .ToListAsync();
+
+            foreach (var ui in unservedItems)
+            {
+                ui.IsServed = true;
+                ui.ServedAt = now;
+            }
 
             // Audit log
             var userId = GetUserId();

@@ -173,35 +173,78 @@ namespace ZoneBill_Lloren.Controllers
                     ? "Card Clearing"
                     : "Cash";
 
-            var cashAccount = await GetOrCreateAccountAsync(businessId.Value, cashAccountName, "Asset");
-            var accountsReceivable = await GetOrCreateAccountAsync(businessId.Value, "Accounts Receivable", "Asset");
+            var cashAccount          = await GetOrCreateAccountAsync(businessId.Value, cashAccountName,       "Asset");
+            var accountsReceivable   = await GetOrCreateAccountAsync(businessId.Value, "Accounts Receivable", "Asset");
+            var salesRevenue         = await GetOrCreateAccountAsync(businessId.Value, "Sales Revenue",        "Revenue");
 
-            var journalEntry = new JournalEntry
+            // ── Step 1: Invoice recognition journal (Dr AR / Cr Sales Revenue / Cr Tax) ──
+            var taxableBase = invoice.TotalAmount - invoice.TaxAmount;
+            var taxPayable = invoice.TaxAmount > 0m
+                ? await GetOrCreateAccountAsync(businessId.Value, "Output Tax Payable", "Liability")
+                : null;
+
+            var invoiceJournal = new JournalEntry
             {
-                BusinessId = businessId.Value,
-                ReferenceId = invoice.InvoiceId,
-                ReferenceType = "Payment",
-                EntryDate = PhilippineTime.Now,
-                Description = $"Payment received for Invoice #{invoice.InvoiceId} via {normalizedPaymentMethod}"
+                BusinessId   = businessId.Value,
+                ReferenceId  = invoice.InvoiceId,
+                ReferenceType = "Invoice",
+                EntryDate    = PhilippineTime.Now,
+                Description  = $"Invoice #{invoice.InvoiceId} — revenue recognised on collection"
             };
+            _context.JournalEntries.Add(invoiceJournal);
+            await _context.SaveChangesAsync();
 
-            _context.JournalEntries.Add(journalEntry);
+            _context.JournalEntryLines.Add(new JournalEntryLine
+            {
+                JournalEntryId = invoiceJournal.JournalEntryId,
+                AccountId      = accountsReceivable.AccountId,
+                Debit          = invoice.TotalAmount,
+                Credit         = 0m
+            });
+            _context.JournalEntryLines.Add(new JournalEntryLine
+            {
+                JournalEntryId = invoiceJournal.JournalEntryId,
+                AccountId      = salesRevenue.AccountId,
+                Debit          = 0m,
+                Credit         = taxableBase
+            });
+            if (taxPayable != null)
+            {
+                _context.JournalEntryLines.Add(new JournalEntryLine
+                {
+                    JournalEntryId = invoiceJournal.JournalEntryId,
+                    AccountId      = taxPayable.AccountId,
+                    Debit          = 0m,
+                    Credit         = invoice.TaxAmount
+                });
+            }
+
+            // ── Step 2: Payment collection journal (Dr Cash / Cr AR) ──
+            var paymentJournal = new JournalEntry
+            {
+                BusinessId    = businessId.Value,
+                ReferenceId   = invoice.InvoiceId,
+                ReferenceType = "Payment",
+                EntryDate     = PhilippineTime.Now,
+                Description   = $"Payment received for Invoice #{invoice.InvoiceId} via {normalizedPaymentMethod}"
+            };
+            _context.JournalEntries.Add(paymentJournal);
             await _context.SaveChangesAsync();
 
             _context.JournalEntryLines.AddRange(
                 new JournalEntryLine
                 {
-                    JournalEntryId = journalEntry.JournalEntryId,
-                    AccountId = cashAccount.AccountId,
-                    Debit = payment.AmountPaid,
-                    Credit = 0m
+                    JournalEntryId = paymentJournal.JournalEntryId,
+                    AccountId      = cashAccount.AccountId,
+                    Debit          = payment.AmountPaid,
+                    Credit         = 0m
                 },
                 new JournalEntryLine
                 {
-                    JournalEntryId = journalEntry.JournalEntryId,
-                    AccountId = accountsReceivable.AccountId,
-                    Debit = 0m,
-                    Credit = payment.AmountPaid
+                    JournalEntryId = paymentJournal.JournalEntryId,
+                    AccountId      = accountsReceivable.AccountId,
+                    Debit          = 0m,
+                    Credit         = payment.AmountPaid
                 });
 
             invoice.PaymentStatus = "Paid";

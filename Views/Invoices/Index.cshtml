@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ZoneBill_Lloren.Models.Invoice>
+@model IEnumerable<ZoneBill_Lloren.Models.Invoice>
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -148,7 +148,6 @@
                                     {
                                         <a asp-action="Details" asp-route-id="@item.InvoiceId" class="zb-action-btn" title="Receive Payment" style="color:#22c55e;"><i class="bi bi-cash-coin"></i></a>
                                     }
-                                    <a asp-action="Edit" asp-route-id="@item.InvoiceId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
                                 </div>
                             </td>
                         </tr>

@@ -111,8 +111,15 @@
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.75rem;">
                         <div>
                             <label asp-for="Password" class="zb-reg-label">Password</label>
-                            <input asp-for="Password" class="zb-reg-input" />
+                            <input asp-for="Password" class="zb-reg-input" id="Password" />
                             <span asp-validation-for="Password" class="zb-field-error"></span>
+                            <ul id="pwd-rules" class="small mt-2 mb-0" style="list-style:none; padding-left:0; color:#94a3b8; font-size:0.75rem;">
+                                <li id="rule-len"><i class="bi bi-x-circle text-danger me-1"></i> 12+ Characters</li>
+                                <li id="rule-upper"><i class="bi bi-x-circle text-danger me-1"></i> 1 Uppercase</li>
+                                <li id="rule-lower"><i class="bi bi-x-circle text-danger me-1"></i> 1 Lowercase</li>
+                                <li id="rule-num"><i class="bi bi-x-circle text-danger me-1"></i> 1 Number</li>
+                                <li id="rule-spec"><i class="bi bi-x-circle text-danger me-1"></i> 1 Special (@@$!%*?&)</li>
+                            </ul>
                         </div>
                         <div>
                             <label asp-for="ConfirmPassword" class="zb-reg-label">Confirm Password</label>
@@ -143,4 +150,25 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.getElementById('Password').addEventListener('input', function() {
+            var p = this.value;
+            var checkRule = function(id, regex) {
+                var el = document.getElementById(id);
+                var text = el.innerText.trim();
+                if (regex.test(p)) {
+                    el.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i> ' + text;
+                    el.style.color = '#22c55e';
+                } else {
+                    el.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i> ' + text;
+                    el.style.color = '#94a3b8';
+                }
+            };
+            checkRule('rule-len', /.{12,}/);
+            checkRule('rule-upper', /[A-Z]/);
+            checkRule('rule-lower', /[a-z]/);
+            checkRule('rule-num', /\d/);
+            checkRule('rule-spec', /[@@$!%*?&]/);
+        });
+    </script>
 }

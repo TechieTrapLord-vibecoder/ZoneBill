@@ -668,11 +668,11 @@
                         var isPortal = it.orderSource === 'Portal';
                         var sourceBadge = isPortal
                             ? '<span class="ms-1" style="font-size:.68rem;padding:1px 5px;border-radius:4px;background:rgba(6,182,212,0.18);color:var(--zb-secondary);border:1px solid rgba(6,182,212,0.3);">📱 Portal</span>'
-                            : '<span class="ms-1" style="font-size:.68rem;padding:1px 5px;border-radius:4px;background:rgba(249,115,22,0.15);color:#fb923c;border:1px solid rgba(249,115,22,0.3);">🖥 POS</span>';
+                            : '';
                         var servedBtn = '';
-                        if (isPortal && !it.isServed) {
+                        if (!it.isServed) {
                             servedBtn = '<button type="button" class="btn btn-sm fw-semibold me-1" style="white-space:nowrap;font-size:.72rem;padding:2px 8px;background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);" onclick="markServed(' + it.orderDetailId + ', this)"><i class="bi bi-check2 me-1"></i>Served</button>';
-                        } else if (isPortal && it.isServed) {
+                        } else {
                             servedBtn = '<span style="white-space:nowrap;font-size:.72rem;color:#22c55e;" class="me-1"><i class="bi bi-check2-all me-1"></i>Served</span>';
                         }
                         var tr = document.createElement('tr');
@@ -1161,16 +1161,43 @@
                     if (res.ok) {
                         _cart = []; renderModal();
                         bsModal().hide();
+                        // Build toast message — include warnings for rejected items
+                        var msg = res.data.message || 'Order placed!';
+                        if (res.data.errors && res.data.errors.length > 0) {
+                            msg += '\n⚠ ' + res.data.errors.join(', ');
+                        }
                         var t = document.createElement('div');
-                        t.style.cssText = 'position:fixed;top:1.2rem;right:1.2rem;z-index:9999;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#86efac;padding:.5rem 1.1rem;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
-                        t.textContent = res.data.message || 'Order placed!';
+                        t.style.cssText = 'position:fixed;top:1.2rem;right:1.2rem;z-index:9999;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.3);color:#86efac;padding:.5rem 1.1rem;border-radius:10px;font-size:.85rem;font-weight:600;box-shadow:0 4px 20px rgba(0,0,0,0.3);white-space:pre-line;max-width:380px;';
+                        t.textContent = msg;
                         document.body.appendChild(t);
-                        setTimeout(function () { t.remove(); }, 3000);
+                        setTimeout(function () { t.remove(); }, 4000);
                     } else {
                         alert(res.data.error || 'Failed to place order.');
                         placeBtn.disabled = false;
                         placeBtn.innerHTML = '<i class="bi bi-bag-check me-1"></i>Place Order &mdash; <span class="pos-modal-count">' + _cart.reduce(function (s, c) { return s + c.qty; }, 0) + '</span> item(s)';
                     }
+                    // ── Refresh live stock on tiles after placing ──────
+                    fetch('@Url.Action("GetLiveStock", "POS")')
+                        .then(function (r) { return r.json(); })
+                        .then(function (stocks) {
+                            stocks.forEach(function (s) {
+                                var tile = _modalEl.querySelector('.pos-modal-tile[data-item-id="' + s.itemId + '"]');
+                                if (!tile) return;
+                                tile.setAttribute('data-stock', s.stockAvailable);
+                                var labels = tile.querySelectorAll('div');
+                                var stockLabel = labels[labels.length - 1];
+                                if (stockLabel) {
+                                    if (s.stockAvailable > 0) {
+                                        stockLabel.textContent = s.stockAvailable + ' in stock';
+                                        stockLabel.style.color = 'var(--zb-text-muted)';
+                                    } else {
+                                        stockLabel.textContent = 'Out of stock';
+                                        stockLabel.style.color = '#f87171';
+                                    }
+                                }
+                            });
+                        })
+                        .catch(function () {});
                 })
                 .catch(function () {
                     alert('Network error. Try again.');
@@ -1203,6 +1230,30 @@
                 _cart = [];
                 renderModal();
                 bsModal().show();
+
+                // ── Fetch live stock on open ──────────────────────────
+                fetch('@Url.Action("GetLiveStock", "POS")')
+                    .then(function (r) { return r.json(); })
+                    .then(function (stocks) {
+                        stocks.forEach(function (s) {
+                            var tile = _modalEl.querySelector('.pos-modal-tile[data-item-id="' + s.itemId + '"]');
+                            if (!tile) return;
+                            tile.setAttribute('data-stock', s.stockAvailable);
+                            // Update the stock label text
+                            var labels = tile.querySelectorAll('div');
+                            var stockLabel = labels[labels.length - 1];
+                            if (stockLabel) {
+                                if (s.stockAvailable > 0) {
+                                    stockLabel.textContent = s.stockAvailable + ' in stock';
+                                    stockLabel.style.color = 'var(--zb-text-muted)';
+                                } else {
+                                    stockLabel.textContent = 'Out of stock';
+                                    stockLabel.style.color = '#f87171';
+                                }
+                            }
+                        });
+                    })
+                    .catch(function () {});
             };
         })();
     </script>

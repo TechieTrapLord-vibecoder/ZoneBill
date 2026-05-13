@@ -15,10 +15,12 @@ namespace ZoneBill_Lloren.Controllers
     public class MenuItemsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ZoneBill_Lloren.Helpers.ITenantAuditLogger _auditLogger;
 
-        public MenuItemsController(ApplicationDbContext context)
+        public MenuItemsController(ApplicationDbContext context, ZoneBill_Lloren.Helpers.ITenantAuditLogger auditLogger)
         {
             _context = context;
+            _auditLogger = auditLogger;
         }
 
         // GET: MenuItems
@@ -99,6 +101,9 @@ namespace ZoneBill_Lloren.Controllers
             {
                 _context.Add(menuItem);
                 await _context.SaveChangesAsync();
+                
+                await _auditLogger.LogAsync(businessId.Value, User, "Created", "MenuItem", menuItem.ItemId.ToString(), $"Created new menu item '{menuItem.ItemName}' (Price: {menuItem.CurrentPrice:C})");
+
                 return RedirectToAction(nameof(Index));
             }
             ViewData["BusinessId"] = new SelectList(_context.Businesses.Where(b => b.BusinessId == businessId.Value), "BusinessId", "BusinessName", menuItem.BusinessId);
@@ -147,8 +152,18 @@ namespace ZoneBill_Lloren.Controllers
             {
                 try
                 {
+                    var originalItem = await _context.MenuItems.AsNoTracking().FirstOrDefaultAsync(m => m.ItemId == menuItem.ItemId);
                     _context.Update(menuItem);
                     await _context.SaveChangesAsync();
+                    
+                    var changes = new List<string>();
+                    if (originalItem != null)
+                    {
+                        if (originalItem.CurrentPrice != menuItem.CurrentPrice) changes.Add($"Price {originalItem.CurrentPrice:C} -> {menuItem.CurrentPrice:C}");
+                        if (originalItem.StockAvailable != menuItem.StockAvailable) changes.Add($"Stock {originalItem.StockAvailable} -> {menuItem.StockAvailable}");
+                    }
+                    var details = changes.Any() ? string.Join(", ", changes) : "Updated details";
+                    await _auditLogger.LogAsync(businessId.Value, User, "Updated", "MenuItem", menuItem.ItemId.ToString(), $"Updated '{menuItem.ItemName}'. {details}");
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -191,6 +206,10 @@ namespace ZoneBill_Lloren.Controllers
             if (menuItem == null) return NotFound();
             menuItem.IsActive = !menuItem.IsActive;
             await _context.SaveChangesAsync();
+            
+            var actionStr = menuItem.IsActive ? "Restored" : "Archived";
+            await _auditLogger.LogAsync(businessId.Value, User, actionStr, "MenuItem", menuItem.ItemId.ToString(), $"{actionStr} menu item '{menuItem.ItemName}'");
+
             TempData["Success"] = menuItem.IsActive ? $"\u2018{menuItem.ItemName}\u2019 has been restored." : $"\u2018{menuItem.ItemName}\u2019 has been archived.";
             return RedirectToAction(nameof(Index));
         }

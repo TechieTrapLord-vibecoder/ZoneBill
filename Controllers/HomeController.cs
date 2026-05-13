@@ -43,6 +43,8 @@ namespace ZoneBill_Lloren.Controllers
             return View();
         }
 
+
+
         [Authorize(Roles = "MainAdmin")]
         public async Task<IActionResult> Dashboard(string? range = "7d", DateTime? startDate = null, DateTime? endDate = null)
         {
@@ -429,6 +431,38 @@ namespace ZoneBill_Lloren.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult StatusCode(int code)
+        {
+            Response.StatusCode = code;
+            ViewBag.StatusCode = code;
+            ViewBag.Title = code switch
+            {
+                404 => "Page Not Found",
+                429 => "Too Many Requests",
+                403 => "Access Denied",
+                500 => "Server Error",
+                _   => "Something Went Wrong"
+            };
+            ViewBag.Message = code switch
+            {
+                404 => "The page you're looking for doesn't exist or may have been moved.",
+                429 => "You've made too many requests in a short period. Please wait a moment and try again.",
+                403 => "You don't have permission to access this page.",
+                500 => "Something went wrong on our end. We're already working on fixing it.",
+                _   => "An unexpected error occurred. Please try again."
+            };
+            ViewBag.Icon = code switch
+            {
+                404 => "bi-map",
+                429 => "bi-hourglass-split",
+                403 => "bi-shield-exclamation",
+                500 => "bi-exclamation-triangle",
+                _   => "bi-x-circle"
+            };
+            return View("StatusCode");
         }
 
         [Authorize]

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +18,14 @@ namespace ZoneBill_Lloren.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly IEmailService _emailService;
+        private readonly ITenantAuditLogger _auditLogger;
 
-        public AccountController(ApplicationDbContext context, IConfiguration configuration, IEmailService emailService)
+        public AccountController(ApplicationDbContext context, IConfiguration configuration, IEmailService emailService, ITenantAuditLogger auditLogger)
         {
             _context = context;
             _configuration = configuration;
             _emailService = emailService;
+            _auditLogger = auditLogger;
         }
 
         // ──────────────────────────────────────────────────────────────────────
@@ -41,18 +44,47 @@ namespace ZoneBill_Lloren.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [EnableRateLimiting("Login")]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             ViewData["ReturnUrl"] = returnUrl;
+
+            // --- reCAPTCHA Verification ---
+            var recaptchaResponse = Request.Form["g-recaptcha-response"].ToString();
+            if (string.IsNullOrEmpty(recaptchaResponse))
+            {
+                ModelState.AddModelError(string.Empty, "Please verify that you are not a robot.");
+                return View(model);
+            }
+
+            var secretKey = _configuration["Recaptcha:SecretKey"];
+            using (var client = new HttpClient())
+            {
+                var response = await client.PostAsync($"https://www.google.com/recaptcha/api/siteverify?secret={secretKey}&response={recaptchaResponse}", null);
+                var jsonResult = await response.Content.ReadAsStringAsync();
+                if (!jsonResult.Contains("\"success\": true"))
+                {
+                    ModelState.AddModelError(string.Empty, "reCAPTCHA verification failed. Please try again.");
+                    return View(model);
+                }
+            }
+            // ------------------------------
 
             if (ModelState.IsValid)
             {
                 var user = await _context.Users
                     .FirstOrDefaultAsync(u => u.EmailAddress == model.Email && u.IsActive);
 
-                bool passwordValid = false;
                 if (user != null)
                 {
+                    // Check if account is locked out
+                    if (user.LockoutEnd.HasValue && user.LockoutEnd.Value > DateTime.UtcNow)
+                    {
+                        ModelState.AddModelError(string.Empty, $"Account locked. Try again after {user.LockoutEnd.Value.ToLocalTime():t}.");
+                        return View(model);
+                    }
+
+                    bool passwordValid = false;
                     if (user.PasswordHash.StartsWith("$2"))
                     {
                         // BCrypt hash
@@ -68,37 +100,82 @@ namespace ZoneBill_Lloren.Controllers
                             await _context.SaveChangesAsync();
                         }
                     }
-                }
 
-                if (passwordValid)
-                {
-                    var claims = new List<Claim>
+                    if (passwordValid)
                     {
-                        new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                        new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-                        new Claim(ClaimTypes.Email, user.EmailAddress),
-                        new Claim(ClaimTypes.Role, user.UserRole)
-                    };
+                        // Reset failed attempts on success
+                        user.FailedLoginAttempts = 0;
+                        user.LockoutEnd = null;
+                        await _context.SaveChangesAsync();
 
-                    if (user.BusinessId.HasValue)
-                        claims.Add(new Claim("BusinessId", user.BusinessId.Value.ToString()));
+                        var claims = new List<Claim>
+                        {
+                            new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+                            new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
+                            new Claim(ClaimTypes.Email, user.EmailAddress),
+                            new Claim(ClaimTypes.Role, user.UserRole)
+                        };
 
-                    var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-                    var authProperties = new AuthenticationProperties
+                        if (user.BusinessId.HasValue)
+                            claims.Add(new Claim("BusinessId", user.BusinessId.Value.ToString()));
+
+                        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                        var authProperties = new AuthenticationProperties
+                        {
+                            IsPersistent = model.RememberMe
+                        };
+
+                        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity), authProperties);
+                        
+                        if (user.BusinessId.HasValue)
+                        {
+                            var ipAddress = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "Unknown";
+                            await _auditLogger.LogDirectAsync(
+                                user.BusinessId.Value,
+                                user.UserId,
+                                $"{user.FirstName} {user.LastName}",
+                                user.UserRole,
+                                "Logged In",
+                                "Login",
+                                user.UserId.ToString(),
+                                $"'{user.FirstName} {user.LastName}' ({user.EmailAddress}) logged in successfully. IP: {ipAddress}");
+                        }
+
+                        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                            return Redirect(returnUrl);
+
+                        return RedirectToAction("Index", "Home");
+                    }
+                    else
                     {
-                        IsPersistent = model.RememberMe,
-                        ExpiresUtc = DateTimeOffset.UtcNow.AddDays(7)
-                    };
-
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-
-                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                        return Redirect(returnUrl);
-
-                    return RedirectToAction("Index", "Home");
+                        // Increment failed login attempts
+                        user.FailedLoginAttempts++;
+                        
+                        if (user.FailedLoginAttempts >= 5)
+                        {
+                            user.LockoutEnd = DateTime.UtcNow.AddMinutes(15);
+                            if (user.BusinessId.HasValue)
+                            {
+                                var ipAddress = HttpContext.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "Unknown";
+                                await _auditLogger.LogDirectAsync(
+                                    user.BusinessId.Value,
+                                    user.UserId,
+                                    $"{user.FirstName} {user.LastName}",
+                                    user.UserRole,
+                                    "Account Locked",
+                                    "Security",
+                                    user.UserId.ToString(),
+                                    $"'{user.FirstName} {user.LastName}' ({user.EmailAddress}) locked out after 5 failed login attempts. IP: {ipAddress}");
+                            }
+                            ModelState.AddModelError(string.Empty, "Account locked. Try again in 15 minutes.");
+                        }
+                        else
+                        {
+                            ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                        }
+                        await _context.SaveChangesAsync();
+                        return View(model);
+                    }
                 }
 
                 ModelState.AddModelError(string.Empty, "Invalid login attempt. Check your email or password.");

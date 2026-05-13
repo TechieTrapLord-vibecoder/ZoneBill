@@ -1,4 +1,5 @@
 @model ZoneBill_Lloren.Models.LoginViewModel
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 
 @{
     ViewData["Title"] = "Log in";
@@ -35,7 +36,7 @@
             @* Header *@
             <div style="padding:1.75rem 2rem 1.25rem;text-align:center;border-bottom:1px solid rgba(6,182,212,0.12);">
                 <h2 style="color:#f1f5f9;font-size:1.5rem;font-weight:800;margin:0;">Welcome Back</h2>
-                <p style="color:#94a3b8;font-size:0.85rem;margin:0.25rem 0 0;">Sign in to your ZoneBill dashboard</p>
+                <p style="color:#94a3b8;font-size:0.85rem;margin:0.25rem 0 0;">Sign in to your account</p>
             </div>
 
             @* Form Body *@
@@ -63,10 +64,13 @@
                         </div>
                         <div style="position:relative;">
                             <i class="bi bi-lock" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:0.9rem;"></i>
-                            <input asp-for="Password" type="password" class="form-control zb-login-input" placeholder="••••••••"
-                                   style="background:#0f172a;color:#f1f5f9;border:1px solid rgba(6,182,212,0.25);border-radius:10px;padding:0.65rem 0.75rem 0.65rem 2.25rem;font-size:0.9rem;transition:border-color 0.2s,box-shadow 0.2s;"
+                            <input asp-for="Password" type="password" id="loginPassword" class="form-control zb-login-input" placeholder="••••••••"
+                                   style="background:#0f172a;color:#f1f5f9;border:1px solid rgba(6,182,212,0.25);border-radius:10px;padding:0.65rem 2.5rem 0.65rem 2.25rem;font-size:0.9rem;transition:border-color 0.2s,box-shadow 0.2s;"
                                    onfocus="this.style.borderColor='#06b6d4';this.style.boxShadow='0 0 0 3px rgba(6,182,212,0.12)'"
                                    onblur="this.style.borderColor='rgba(6,182,212,0.25)';this.style.boxShadow='none'" />
+                            <i class="bi bi-eye-slash" id="togglePassword" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#64748b;font-size:0.9rem;cursor:pointer;transition:color 0.2s;"
+                               onmouseover="this.style.color='#06b6d4'" onmouseout="this.style.color='#64748b'"
+                               onclick="var p=document.getElementById('loginPassword');if(p.type==='password'){p.type='text';this.classList.remove('bi-eye-slash');this.classList.add('bi-eye');}else{p.type='password';this.classList.remove('bi-eye');this.classList.add('bi-eye-slash');}"></i>
                         </div>
                         <span asp-validation-for="Password" class="text-danger" style="font-size:0.8rem;"></span>
                     </div>
@@ -74,12 +78,17 @@
                     @* Remember Me *@
                     <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;flex-wrap:wrap;margin:1rem 0 1.5rem;">
                         <div style="display:flex;align-items:center;gap:0.5rem;">
-                            <input asp-for="RememberMe" class="form-check-input" style="background:#0f172a;border-color:rgba(6,182,212,0.3);width:16px;height:16px;margin:0;" />
+                            <input asp-for="RememberMe" class="form-check-input" style="width:16px;height:16px;margin:0;cursor:pointer;" />
                             <label asp-for="RememberMe" style="color:#94a3b8;font-size:0.85rem;margin:0;cursor:pointer;">Remember me for 7 days</label>
                         </div>
                         <a asp-action="ForgotPassword" style="color:#06b6d4;font-size:0.82rem;font-weight:600;text-decoration:none;transition:color 0.2s;"
                                     onmouseover="this.style.color='#22d3ee'" onmouseout="this.style.color='#06b6d4'"
                                     onfocus="this.style.color='#22d3ee'" onblur="this.style.color='#06b6d4'">Forgot password?</a>
+                    </div>
+
+                    @* reCAPTCHA *@
+                    <div style="margin-bottom:1.5rem;display:flex;justify-content:center;">
+                        <div class="g-recaptcha" data-sitekey="@Configuration["Recaptcha:SiteKey"]" data-theme="dark"></div>
                     </div>
 
                     @* Submit *@
@@ -124,5 +133,6 @@
 </div>
 
 @section Scripts {
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 }

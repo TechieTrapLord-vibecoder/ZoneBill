@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 using System.Globalization;
@@ -21,12 +22,32 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<ActiveSubscriptionFilter>();
 builder.Services.AddScoped<ZoneBill_Lloren.Helpers.IEmailService, ZoneBill_Lloren.Helpers.EmailService>();
+builder.Services.AddScoped<ZoneBill_Lloren.Helpers.INotificationService, ZoneBill_Lloren.Helpers.NotificationService>();
+builder.Services.AddScoped<ZoneBill_Lloren.Helpers.ITenantAuditLogger, ZoneBill_Lloren.Helpers.TenantAuditLogger>();
 builder.Services.AddScoped<IInventoryIntelligenceService, InventoryIntelligenceService>();
 builder.Services.AddScoped<IDemandForecastService, DemandForecastService>();
 builder.Services.AddScoped<IInventoryAnomalyService, InventoryAnomalyService>();
 builder.Services.AddScoped<IInventoryAlertService, InventoryAlertService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddHostedService<ZoneBill_Lloren.Helpers.AutomationWorker>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("Login", opt =>
+    {
+        opt.PermitLimit = 20;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+        context.HttpContext.Response.Redirect("/Home/StatusCode?code=429");
+        await Task.CompletedTask;
+    };
+});
 
 // Configure Cookie Authentication for Roles (SuperAdmin, MainAdmin, Staff)
 builder.Services.AddAuthentication(options =>
@@ -71,14 +92,21 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+else
+{
+    app.UseDeveloperExceptionPage();
+}
+
+// Custom status code pages (404, 429, 500) for all environments
+app.UseStatusCodePagesWithReExecute("/Home/StatusCode", "?code={0}");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseRateLimiter();
 
 app.UseAuthentication(); // 1. Authenticate Who They Are First
 
@@ -140,7 +168,7 @@ app.MapControllerRoute(
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    
+
     // 1. Seed the default SaaS Subscription Plans if they don't exist
     var defaultPlans = new[]
     {

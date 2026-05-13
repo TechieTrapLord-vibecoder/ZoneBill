@@ -28,12 +28,12 @@
            class="btn btn-sm fw-semibold" style="background:rgba(249,115,22,0.15);color:#f97316;border:1px solid rgba(249,115,22,0.3);"><i class="bi bi-currency-exchange me-1"></i>Cash Flow</a>
         <a asp-action="TrialBalance"
            class="btn btn-sm fw-semibold" style="background:rgba(168,85,247,0.15);color:#a855f7;border:1px solid rgba(168,85,247,0.3);"><i class="bi bi-calculator me-1"></i>Trial Balance</a>
-        <a asp-action="ExportCsv"
+        <a asp-action="ExportExcel"
            asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
            asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"
            asp-route-cashierId="@Model.SelectedCashierId"
            asp-route-paymentMethod="@Model.SelectedPaymentMethod"
-           class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);"><i class="bi bi-filetype-csv me-1"></i>Export CSV</a>
+           class="btn btn-sm fw-semibold" style="background:rgba(34,197,94,0.15);color:#22c55e;border:1px solid rgba(34,197,94,0.3);"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</a>
         <a asp-action="ExportPdf"
            asp-route-startDate="@Model.StartDate.ToString("yyyy-MM-dd")"
            asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")"

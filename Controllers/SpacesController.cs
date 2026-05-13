@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ZoneBill_Lloren.Data;
+using ZoneBill_Lloren.Helpers;
 using ZoneBill_Lloren.Models;
 
 namespace ZoneBill_Lloren.Controllers
@@ -15,10 +16,12 @@ namespace ZoneBill_Lloren.Controllers
     public class SpacesController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ITenantAuditLogger _auditLogger;
 
-        public SpacesController(ApplicationDbContext context)
+        public SpacesController(ApplicationDbContext context, ITenantAuditLogger auditLogger)
         {
             _context = context;
+            _auditLogger = auditLogger;
         }
 
         // GET: Spaces
@@ -143,6 +146,9 @@ namespace ZoneBill_Lloren.Controllers
             {
                 _context.Add(space);
                 await _context.SaveChangesAsync();
+
+                await _auditLogger.LogAsync(businessId, User, "Created", "Space", space.SpaceId.ToString(), $"Created space '{space.SpaceName}'. Rate: ₱{space.CurrentHourlyRate:N2}/hr, Capacity: {space.Capacity} pax.");
+
                 return RedirectToAction(nameof(Index));
             }
             ViewData["BusinessId"] = new SelectList(
@@ -250,6 +256,10 @@ namespace ZoneBill_Lloren.Controllers
             if (space == null) return NotFound();
             space.IsActive = !space.IsActive;
             await _context.SaveChangesAsync();
+
+            var action = space.IsActive ? "Restored" : "Archived";
+            await _auditLogger.LogAsync(businessId, User, action, "Space", space.SpaceId.ToString(), $"{action} space '{space.SpaceName}'.");
+
             TempData["Success"] = space.IsActive ? $"Space \u2018{space.SpaceName}\u2019 has been restored." : $"Space \u2018{space.SpaceName}\u2019 has been archived.";
             return RedirectToAction(nameof(Index));
         }

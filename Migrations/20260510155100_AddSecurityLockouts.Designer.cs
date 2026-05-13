@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ZoneBill_Lloren.Data;
 
@@ -11,9 +12,11 @@ using ZoneBill_Lloren.Data;
 namespace ZoneBill_Lloren.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260510155100_AddSecurityLockouts")]
+    partial class AddSecurityLockouts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1368,58 +1371,6 @@ namespace ZoneBill_Lloren.Migrations
                     b.ToTable("Suppliers");
                 });
 
-            modelBuilder.Entity("ZoneBill_Lloren.Models.TenantAuditLog", b =>
-                {
-                    b.Property<int>("LogId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogId"));
-
-                    b.Property<string>("ActionType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("BusinessId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Details")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("EntityId")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("EntityType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserName")
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<string>("UserRole")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("LogId");
-
-                    b.HasIndex("BusinessId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("TenantAuditLogs");
-                });
-
             modelBuilder.Entity("ZoneBill_Lloren.Models.User", b =>
                 {
                     b.Property<int>("UserId")
@@ -1906,24 +1857,6 @@ namespace ZoneBill_Lloren.Migrations
                         .IsRequired();
 
                     b.Navigation("Business");
-                });
-
-            modelBuilder.Entity("ZoneBill_Lloren.Models.TenantAuditLog", b =>
-                {
-                    b.HasOne("ZoneBill_Lloren.Models.Business", "Business")
-                        .WithMany()
-                        .HasForeignKey("BusinessId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("ZoneBill_Lloren.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Business");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ZoneBill_Lloren.Models.User", b =>

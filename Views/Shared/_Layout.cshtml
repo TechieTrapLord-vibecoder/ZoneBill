@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ZoneBill_Lloren.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/tailwind.output.css" asp-append-version="true" />
+    <link rel="icon" type="image/jpeg" href="~/images/download.jpg" />
 </head>
 <body class="@themeClass">
     @{
@@ -125,7 +126,9 @@
                     {
                         <a class="zb-nav-link @Nav("Home","Dashboard")" asp-controller="Home" asp-action="Dashboard"><i class="bi bi-bar-chart-line"></i> Analytics Dashboard</a>
                     }
-                    <a class="zb-nav-link @NavCtrl("Reports")" asp-controller="Reports" asp-action="Index"><i class="bi bi-file-earmark-bar-graph"></i> Financial Reports</a>
+                    <a class="zb-nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Reports" && ViewContext.RouteData.Values["action"]?.ToString() != "TenantAuditLog" && ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Reports" asp-action="Index">
+                        <i class="bi bi-file-earmark-bar-graph"></i> Financial Reports
+                    </a>
                     @if (isMainAdmin)
                     {
                         <a class="zb-nav-link @NavCtrl("Billing")" asp-controller="Billing" asp-action="Index"><i class="bi bi-credit-card"></i> Billing &amp; Plan</a>
@@ -163,6 +166,7 @@
                            asp-controller="Businesses" asp-action="Settings">
                             <i class="bi bi-gear"></i> Business Settings
                         </a>
+                        <a class="zb-nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "TenantAuditLog" ? "active" : "")" asp-controller="Reports" asp-action="TenantAuditLog"><i class="bi bi-shield-check"></i> Activity Log</a>
                     }
                 }
 
@@ -282,6 +286,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/zb-validation.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
     <div id="zbToastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index:1095;"></div>

@@ -14,10 +14,12 @@ namespace ZoneBill_Lloren.Controllers
     public class ShiftsController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly ITenantAuditLogger _auditLogger;
 
-        public ShiftsController(ApplicationDbContext context)
+        public ShiftsController(ApplicationDbContext context, ITenantAuditLogger auditLogger)
         {
             _context = context;
+            _auditLogger = auditLogger;
         }
 
         public async Task<IActionResult> Index()
@@ -132,6 +134,9 @@ namespace ZoneBill_Lloren.Controllers
             });
 
             await _context.SaveChangesAsync();
+
+            await _auditLogger.LogAsync(businessId.Value, User, "Opened", "Shift", null, $"Shift opened with opening cash ₱{request.OpeningCash:N2}.");
+
             TempData["Success"] = "Shift opened successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -216,6 +221,8 @@ namespace ZoneBill_Lloren.Controllers
             await _context.SaveChangesAsync();
 
             var varianceText = variance == 0m ? "balanced exactly" : variance > 0 ? $"over by {variance:C}" : $"short by {Math.Abs(variance):C}";
+            await _auditLogger.LogAsync(businessId.Value, User, "Closed", "Shift", shift.ShiftId.ToString(), $"Shift #{shift.ShiftId} closed. Expected: ₱{expectedCash:N2}, Actual: ₱{request.ActualCash:N2}, Variance: ₱{variance:N2} ({varianceText}).");
+
             TempData["Success"] = $"Shift closed successfully. Drawer is {varianceText}.";
             return RedirectToAction(nameof(Index));
         }
@@ -258,6 +265,8 @@ namespace ZoneBill_Lloren.Controllers
             await _context.SaveChangesAsync();
 
             var varianceText = variance == 0m ? "balanced exactly" : variance > 0 ? $"over by {variance:C}" : $"short by {Math.Abs(variance):C}";
+            await _auditLogger.LogAsync(businessId.Value, User, "Force Closed", "Shift", shift.ShiftId.ToString(), $"Shift #{shift.ShiftId} force closed by manager. Expected: ₱{expectedCash:N2}, Actual: ₱{request.ActualCash:N2}, Variance: ₱{variance:N2} ({varianceText}).");
+
             TempData["Success"] = $"Shift #{shift.ShiftId} force closed. Drawer is {varianceText}.";
             return RedirectToAction(nameof(Index));
         }
@@ -306,6 +315,9 @@ namespace ZoneBill_Lloren.Controllers
             shift.Notes = CombineNotes(shift.Notes, string.IsNullOrWhiteSpace(request.Notes) ? "Reopened by manager." : $"Reopened by manager: {request.Notes.Trim()}");
 
             await _context.SaveChangesAsync();
+
+            await _auditLogger.LogAsync(businessId.Value, User, "Reopened", "Shift", shift.ShiftId.ToString(), $"Shift #{shift.ShiftId} reopened by manager.");
+
             TempData["Success"] = $"Shift #{shift.ShiftId} reopened successfully.";
             return RedirectToAction(nameof(Index));
         }

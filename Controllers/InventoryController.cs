@@ -30,17 +30,20 @@ namespace ZoneBill_Lloren.Controllers
         private readonly IInventoryIntelligenceService _inventoryIntelligenceService;
         private readonly IDemandForecastService _demandForecastService;
         private readonly IInventoryAnomalyService _inventoryAnomalyService;
+        private readonly ITenantAuditLogger _auditLogger;
 
         public InventoryController(
             ApplicationDbContext context,
             IInventoryIntelligenceService inventoryIntelligenceService,
             IDemandForecastService demandForecastService,
-            IInventoryAnomalyService inventoryAnomalyService)
+            IInventoryAnomalyService inventoryAnomalyService,
+            ITenantAuditLogger auditLogger)
         {
             _context = context;
             _inventoryIntelligenceService = inventoryIntelligenceService;
             _demandForecastService = demandForecastService;
             _inventoryAnomalyService = inventoryAnomalyService;
+            _auditLogger = auditLogger;
         }
 
         public async Task<IActionResult> Index()
@@ -1104,6 +1107,8 @@ namespace ZoneBill_Lloren.Controllers
 
             await _context.SaveChangesAsync();
 
+            await _auditLogger.LogAsync(businessId.Value, User, "Restocked", "MenuItem", menuItem.ItemId.ToString(), $"Restocked '{menuItem.ItemName}' +{request.Quantity} units. Stock: {previousStock} → {menuItem.StockAvailable}.");
+
             TempData[SuccessTempDataKey] = $"Restocked {request.Quantity} unit(s) for {menuItem.ItemName}. New stock: {menuItem.StockAvailable}.";
             return RedirectToAction(nameof(Index));
         }
@@ -1170,6 +1175,8 @@ namespace ZoneBill_Lloren.Controllers
             await _context.SaveChangesAsync();
 
             var signed = quantityChange >= 0 ? $"+{quantityChange}" : quantityChange.ToString();
+            await _auditLogger.LogAsync(businessId.Value, User, request.TransactionType, "MenuItem", menuItem.ItemId.ToString(), $"{request.TransactionType} on '{menuItem.ItemName}': {signed} units. Stock: {previousStock} → {newStock}.");
+
             TempData[SuccessTempDataKey] = $"{request.TransactionType} saved for {menuItem.ItemName}: {signed}. New stock: {newStock}.";
             return RedirectToAction(nameof(Index));
         }

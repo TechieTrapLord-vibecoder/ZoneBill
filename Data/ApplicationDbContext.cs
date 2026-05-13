@@ -40,6 +40,7 @@ namespace ZoneBill_Lloren.Data
         public DbSet<PendingRegistration> PendingRegistrations { get; set; }
         public DbSet<BusinessLifecycleEvent> BusinessLifecycleEvents { get; set; }
         public DbSet<SuperAdminAuditLog> SuperAdminAuditLogs { get; set; }
+        public DbSet<TenantAuditLog> TenantAuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

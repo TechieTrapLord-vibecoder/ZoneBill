@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ZoneBill_Lloren.Models.Booking>
+@model IEnumerable<ZoneBill_Lloren.Models.Booking>
 
 @{
     ViewData["Title"] = "Bookings";
@@ -118,10 +118,7 @@
                         <td><span class="zb-badge @statusClass">@item.BookingStatus</span></td>
                         <td><span class="zb-mono text-muted">@item.ReferenceCode</span></td>
                         <td>
-                            <div class="d-flex gap-1">
-                                <a asp-action="Details" asp-route-id="@item.BookingId" class="zb-action-btn"><i class="bi bi-eye"></i></a>
-                                <a asp-action="Edit" asp-route-id="@item.BookingId" class="zb-action-btn"><i class="bi bi-pencil"></i></a>
-                            </div>
+                            <a asp-action="Details" asp-route-id="@item.BookingId" class="zb-action-btn" title="View Details"><i class="bi bi-eye"></i></a>
                         </td>
                     </tr>
                 }

@@ -20,10 +20,12 @@ namespace ZoneBill_Lloren.Controllers
         private static readonly string[] MainAdminAssignableRoles = { "Manager", "Cashier" };
 
         private readonly ApplicationDbContext _context;
+        private readonly ITenantAuditLogger _auditLogger;
 
-        public UsersController(ApplicationDbContext context)
+        public UsersController(ApplicationDbContext context, ITenantAuditLogger auditLogger)
         {
             _context = context;
+            _auditLogger = auditLogger;
         }
 
         // GET: Users
@@ -131,6 +133,12 @@ namespace ZoneBill_Lloren.Controllers
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
                 _context.Add(user);
                 await _context.SaveChangesAsync();
+                
+                if (user.BusinessId.HasValue && user.BusinessId > 0)
+                {
+                    await _auditLogger.LogAsync(user.BusinessId.Value, User, "Created", "User", user.UserId.ToString(), $"Created new user '{user.EmailAddress}' with role '{user.UserRole}'");
+                }
+                
                 return RedirectToAction(nameof(Index));
             }
 
@@ -260,6 +268,15 @@ namespace ZoneBill_Lloren.Controllers
 
                     _context.Update(existingUser);
                     await _context.SaveChangesAsync();
+                    
+                    if (existingUser.BusinessId != null)
+                    {
+                        var changes = new List<string>();
+                        if (previousRole != existingUser.UserRole) changes.Add($"Role: {previousRole} -> {existingUser.UserRole}");
+                        if (existingUser.FirstName != user.FirstName || existingUser.LastName != user.LastName) changes.Add("Name updated");
+                        var details = changes.Any() ? string.Join(", ", changes) : "Updated details";
+                        await _auditLogger.LogAsync(existingUser.BusinessId.Value, User, "Updated", "User", existingUser.UserId.ToString(), $"Updated user '{existingUser.EmailAddress}'. {details}");
+                    }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -315,6 +332,12 @@ namespace ZoneBill_Lloren.Controllers
             if (user == null) return NotFound();
             user.IsActive = !user.IsActive;
             await _context.SaveChangesAsync();
+            
+            if (user.BusinessId != null)
+            {
+                var actionStr = user.IsActive ? "Restored" : "Archived";
+                await _auditLogger.LogAsync(user.BusinessId.Value, User, actionStr, "User", user.UserId.ToString(), $"{actionStr} user '{user.EmailAddress}'");
+            }
             TempData["Success"] = user.IsActive ? $"User \u2018{user.FirstName} {user.LastName}\u2019 has been restored." : $"User \u2018{user.FirstName} {user.LastName}\u2019 has been archived.";
             return RedirectToAction(nameof(Index));
         }

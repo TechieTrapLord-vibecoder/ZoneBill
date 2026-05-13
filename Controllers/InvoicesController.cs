@@ -280,7 +280,6 @@ namespace ZoneBill_Lloren.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: Invoices/BulkMarkPaid
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BulkMarkPaid(int[] invoiceIds)
@@ -294,47 +293,88 @@ namespace ZoneBill_Lloren.Controllers
                     .Where(i => invoiceIds.Contains(i.InvoiceId) && i.BusinessId == businessId.Value && i.PaymentStatus != "Paid")
                     .ToListAsync();
 
-                var cashAccount = await GetOrCreateAccountAsync(businessId.Value, "Cash", "Asset");
-                var accountsReceivable = await GetOrCreateAccountAsync(businessId.Value, "Accounts Receivable", "Asset");
+                var cashAccount          = await GetOrCreateAccountAsync(businessId.Value, "Cash",                "Asset");
+                var accountsReceivable   = await GetOrCreateAccountAsync(businessId.Value, "Accounts Receivable", "Asset");
+                var salesRevenue         = await GetOrCreateAccountAsync(businessId.Value, "Sales Revenue",        "Revenue");
+                var outputTaxPayable     = await GetOrCreateAccountAsync(businessId.Value, "Output Tax Payable",   "Liability");
 
                 foreach (var inv in invoices)
                 {
                     var payment = new Payment
                     {
-                        BusinessId = businessId.Value,
-                        InvoiceId = inv.InvoiceId,
-                        AmountPaid = inv.TotalAmount,
-                        PaymentMethod = "Manual",
-                        PaymentDate = PhilippineTime.Now,
+                        BusinessId      = businessId.Value,
+                        InvoiceId       = inv.InvoiceId,
+                        AmountPaid      = inv.TotalAmount,
+                        PaymentMethod   = "Manual",
+                        PaymentDate     = PhilippineTime.Now,
                         ReferenceNumber = "Bulk mark paid"
                     };
 
-                    var journalEntry = new JournalEntry
-                    {
-                        BusinessId = businessId.Value,
-                        ReferenceId = inv.InvoiceId,
-                        ReferenceType = "Payment",
-                        EntryDate = payment.PaymentDate,
-                        Description = $"Manual bulk payment for Invoice #{inv.InvoiceId}"
-                    };
+                    var taxableBase = inv.TotalAmount - inv.TaxAmount;
 
-                    _context.JournalEntries.Add(journalEntry);
+                    // ── Step 1: Invoice recognition (Dr AR / Cr Sales Revenue / Cr Tax Payable) ──
+                    var invoiceJournal = new JournalEntry
+                    {
+                        BusinessId    = businessId.Value,
+                        ReferenceId   = inv.InvoiceId,
+                        ReferenceType = "Invoice",
+                        EntryDate     = payment.PaymentDate,
+                        Description   = $"Invoice #{inv.InvoiceId} — revenue recognised (bulk)"
+                    };
+                    _context.JournalEntries.Add(invoiceJournal);
+                    await _context.SaveChangesAsync();
+
+                    _context.JournalEntryLines.Add(new JournalEntryLine
+                    {
+                        JournalEntryId = invoiceJournal.JournalEntryId,
+                        AccountId      = accountsReceivable.AccountId,
+                        Debit          = inv.TotalAmount,
+                        Credit         = 0m
+                    });
+                    _context.JournalEntryLines.Add(new JournalEntryLine
+                    {
+                        JournalEntryId = invoiceJournal.JournalEntryId,
+                        AccountId      = salesRevenue.AccountId,
+                        Debit          = 0m,
+                        Credit         = taxableBase
+                    });
+                    if (inv.TaxAmount > 0m)
+                    {
+                        _context.JournalEntryLines.Add(new JournalEntryLine
+                        {
+                            JournalEntryId = invoiceJournal.JournalEntryId,
+                            AccountId      = outputTaxPayable.AccountId,
+                            Debit          = 0m,
+                            Credit         = inv.TaxAmount
+                        });
+                    }
+
+                    // ── Step 2: Payment collection (Dr Cash / Cr AR) ──
+                    var paymentJournal = new JournalEntry
+                    {
+                        BusinessId    = businessId.Value,
+                        ReferenceId   = inv.InvoiceId,
+                        ReferenceType = "Payment",
+                        EntryDate     = payment.PaymentDate,
+                        Description   = $"Manual bulk payment for Invoice #{inv.InvoiceId}"
+                    };
+                    _context.JournalEntries.Add(paymentJournal);
                     await _context.SaveChangesAsync();
 
                     _context.JournalEntryLines.AddRange(
                         new JournalEntryLine
                         {
-                            JournalEntryId = journalEntry.JournalEntryId,
-                            AccountId = cashAccount.AccountId,
-                            Debit = payment.AmountPaid,
-                            Credit = 0m
+                            JournalEntryId = paymentJournal.JournalEntryId,
+                            AccountId      = cashAccount.AccountId,
+                            Debit          = payment.AmountPaid,
+                            Credit         = 0m
                         },
                         new JournalEntryLine
                         {
-                            JournalEntryId = journalEntry.JournalEntryId,
-                            AccountId = accountsReceivable.AccountId,
-                            Debit = 0m,
-                            Credit = payment.AmountPaid
+                            JournalEntryId = paymentJournal.JournalEntryId,
+                            AccountId      = accountsReceivable.AccountId,
+                            Debit          = 0m,
+                            Credit         = payment.AmountPaid
                         });
 
                     inv.PaymentStatus = "Paid";

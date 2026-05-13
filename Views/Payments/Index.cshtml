@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ZoneBill_Lloren.Models.Payment>
+@model IEnumerable<ZoneBill_Lloren.Models.Payment>
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -117,7 +117,6 @@
                         <td>
                             <div class="d-flex gap-1">
                                 <a asp-action="Details" asp-route-id="@item.PaymentId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
-                                <a asp-action="Edit" asp-route-id="@item.PaymentId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
                                 @if (User.IsInRole("MainAdmin") || User.IsInRole("Manager"))
                                 {
                                     <button type="button" class="zb-action-btn zb-action-danger" title="Void Payment"

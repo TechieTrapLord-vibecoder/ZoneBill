@@ -1,25 +1,143 @@
-﻿@model ErrorViewModel
+@model ZoneBill_Lloren.Models.ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    Layout = null;
+    ViewData["Title"] = "Server Error";
+    bool isAuthenticated = User.Identity?.IsAuthenticated == true;
+    string homeLink = isAuthenticated ? "/POS" : "/";
 }
 
-<h1 class="text-danger">Error.</h1>
-<h2 class="text-danger">An error occurred while processing your request.</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>500 — Server Error | ZoneBill</title>
+    <link rel="icon" type="image/jpeg" href="~/images/download.jpg" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #0b1120;
+            color: #f1f5f9;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            pointer-events: none;
+            animation: drift 12s ease-in-out infinite alternate;
+        }
+        .bg-orb-1 { width:500px;height:500px; background:radial-gradient(circle,rgba(239,68,68,0.10),transparent 70%); top:-15%;left:-10%; }
+        .bg-orb-2 { width:350px;height:350px; background:radial-gradient(circle,rgba(249,115,22,0.06),transparent 70%); bottom:-10%;right:-8%; animation-delay:-5s; }
+        @@keyframes drift { from{transform:translate(0,0) scale(1);} to{transform:translate(30px,20px) scale(1.05);} }
+        .bg-grid {
+            position:fixed;inset:0;
+            background-image: linear-gradient(rgba(239,68,68,0.03) 1px,transparent 1px), linear-gradient(90deg,rgba(239,68,68,0.03) 1px,transparent 1px);
+            background-size:40px 40px;
+            pointer-events:none;
+        }
+        .error-card {
+            position:relative;z-index:10;
+            background:rgba(15,23,42,0.75);
+            backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+            border:1px solid rgba(239,68,68,0.2);
+            border-radius:20px;padding:3rem 2.5rem;max-width:540px;width:90%;text-align:center;
+            box-shadow:0 30px 80px rgba(0,0,0,0.4),0 0 60px rgba(239,68,68,0.05);
+            animation:cardIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        @@keyframes cardIn { from{opacity:0;transform:scale(0.92) translateY(20px);} to{opacity:1;transform:scale(1) translateY(0);} }
+        .error-code {
+            font-size:6rem;font-weight:800;line-height:1;
+            background:linear-gradient(135deg,#ef4444,rgba(239,68,68,0.4));
+            -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+            margin-bottom:0.5rem;
+        }
+        .error-icon { font-size:2.5rem;color:#ef4444;margin-bottom:1rem;display:block;animation:float 3s ease-in-out infinite; }
+        @@keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-6px);} }
+        .error-title { font-size:1.6rem;font-weight:700;color:#f1f5f9;margin-bottom:0.75rem; }
+        .error-message { color:#94a3b8;font-size:0.95rem;line-height:1.6;margin-bottom:2rem; }
+        .error-divider { height:1px;background:linear-gradient(90deg,transparent,rgba(239,68,68,0.3),transparent);margin-bottom:2rem; }
+        .request-id {
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: #475569;
+            background: rgba(239,68,68,0.06);
+            border: 1px solid rgba(239,68,68,0.12);
+            border-radius: 6px;
+            padding: 0.4rem 0.75rem;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            word-break: break-all;
+        }
+        .btn-home {
+            display:inline-flex;align-items:center;gap:0.5rem;
+            padding:0.7rem 1.75rem;background:linear-gradient(135deg,#ef4444,rgba(239,68,68,0.7));
+            color:#fff;font-weight:700;font-size:0.95rem;border:none;border-radius:10px;
+            text-decoration:none;cursor:pointer;transition:all 0.2s;
+            box-shadow:0 4px 20px rgba(239,68,68,0.3);margin:0 0.4rem;
+        }
+        .btn-home:hover { transform:translateY(-2px);box-shadow:0 8px 30px rgba(239,68,68,0.4);color:#fff; }
+        .btn-ghost {
+            display:inline-flex;align-items:center;gap:0.5rem;
+            padding:0.7rem 1.75rem;background:transparent;color:#94a3b8;
+            font-weight:600;font-size:0.95rem;border:1px solid rgba(148,163,184,0.2);
+            border-radius:10px;text-decoration:none;cursor:pointer;transition:all 0.2s;margin:0 0.4rem;
+        }
+        .btn-ghost:hover { color:#f1f5f9;border-color:rgba(148,163,184,0.4);background:rgba(148,163,184,0.08); }
+        .zb-logo { display:flex;align-items:center;justify-content:center;gap:0.6rem;margin-bottom:2rem;opacity:0.7; }
+        .zb-logo img { height:28px; }
+        .zb-logo span { color:#64748b;font-size:0.8rem;font-weight:500; }
+        .btn-wrap { display:flex;flex-wrap:wrap;justify-content:center;gap:0.5rem; }
+    </style>
+</head>
+<body>
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-grid"></div>
 
-@if (Model.ShowRequestId)
-{
-    <p>
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+    <div class="error-card">
+        <div class="zb-logo">
+            <img src="/images/ZoneBill.png" alt="ZoneBill" onerror="this.style.display='none'" />
+            <span>ZoneBill</span>
+        </div>
 
-<h3>Development Mode</h3>
-<p>
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p>
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        <i class="bi bi-exclamation-triangle error-icon"></i>
+        <div class="error-code">500</div>
+        <h1 class="error-title">Internal Server Error</h1>
+        <p class="error-message">
+            Something went wrong on our end. Our team has been notified and is already working on a fix.
+            Please try again in a few moments.
+        </p>
+
+        @if (Model?.ShowRequestId == true)
+        {
+            <div class="request-id">
+                <i class="bi bi-hash me-1"></i> Request ID: @Model.RequestId
+            </div>
+        }
+
+        <div class="error-divider"></div>
+
+        <div class="btn-wrap">
+            <a href="@homeLink" class="btn-home">
+                <i class="bi bi-house-door"></i> Go Home
+            </a>
+            <a href="javascript:history.back()" class="btn-ghost">
+                <i class="bi bi-arrow-left"></i> Go Back
+            </a>
+        </div>
+
+        <p style="margin-top:1.5rem;color:#475569;font-size:0.78rem;">
+            If this keeps happening, please contact support with the Request ID above.
+        </p>
+    </div>
+</body>
+</html>

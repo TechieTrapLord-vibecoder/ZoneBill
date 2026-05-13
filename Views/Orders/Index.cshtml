@@ -1,4 +1,4 @@
-﻿@model IEnumerable<ZoneBill_Lloren.Models.Order>
+@model IEnumerable<ZoneBill_Lloren.Models.Order>
 @using ZoneBill_Lloren.Helpers
 
 @{
@@ -157,10 +157,7 @@
                         </td>
                         <td><span class="zb-mono">@PhilippineTime.ToDateTime(item.OrderTime).ToString("MMM d, h:mm tt")</span></td>
                         <td>
-                            <div class="d-flex gap-1">
-                                <a asp-action="Details" asp-route-id="@item.OrderId" class="zb-action-btn" title="View"><i class="bi bi-eye"></i></a>
-                                <a asp-action="Edit" asp-route-id="@item.OrderId" class="zb-action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
-                            </div>
+                            <a asp-action="Details" asp-route-id="@item.OrderId" class="zb-action-btn" title="View Details"><i class="bi bi-eye"></i></a>
                         </td>
                     </tr>
                 }

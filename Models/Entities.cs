@@ -154,6 +154,8 @@ namespace ZoneBill_Lloren.Models
         public bool IsActive { get; set; } = true;
         public string? PasswordResetToken { get; set; }
         public DateTime? PasswordResetTokenExpiry { get; set; }
+        public int FailedLoginAttempts { get; set; } = 0;
+        public DateTime? LockoutEnd { get; set; }
     }
 
     public class Customer
@@ -434,6 +436,21 @@ namespace ZoneBill_Lloren.Models
         [MaxLength(300)] public string? Reason { get; set; }
         public int? ActorUserId { get; set; }
         [MaxLength(120)] public string? ActorName { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+    public class TenantAuditLog
+    {
+        [Key] public int LogId { get; set; }
+        public int BusinessId { get; set; }
+        [ForeignKey("BusinessId")] public Business Business { get; set; } = null!;
+        public int? UserId { get; set; }
+        [ForeignKey("UserId")] public User? User { get; set; }
+        [MaxLength(120)] public string? UserName { get; set; }
+        [MaxLength(50)] public string? UserRole { get; set; }
+        [Required, MaxLength(50)] public string ActionType { get; set; } = null!;
+        [Required, MaxLength(50)] public string EntityType { get; set; } = null!;
+        [MaxLength(50)] public string? EntityId { get; set; }
+        [MaxLength(500)] public string? Details { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }
